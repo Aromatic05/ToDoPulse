@@ -192,7 +192,7 @@
 .v-layout .app_main .header .tool_btns .v-btn {
     margin-left: 4px;
     opacity: 1 !important;
-    visibility: visible !重要;
+    visibility: visible !important;
 }
 
 /* 在小屏幕设备上确保按钮可见 */
@@ -287,7 +287,7 @@
     width: calc(100% - 256px);
     border-radius: 0;
     margin: 0;
-    background: var(--md-sys-color-surface-container-low) !重要;
+    background: var(--md-sys-color-surface-container-low) !important;
     -webkit-backdrop-filter: blur(10px); /* Safari support */
     backdrop-filter: blur(10px);
 }
@@ -332,18 +332,3 @@
     -webkit-backdrop-filter: blur(10px); /* Safari support */
     backdrop-filter: blur(10px);
 }
-
-/* 可以移除或注释掉旧的 fixed_header 相关样式，因为现在默认就是固定的 */
-/*
-.fixed_header .app_main {
-    margin-top: 92px;
-}
-
-.fixed_header .app_main .header {
-    position: fixed;
-    top: 16px;
-    left: 286px;
-    width: calc(100vw - 306px);
-    z-index: 2;
-}
-*/

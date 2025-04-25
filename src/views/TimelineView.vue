@@ -13,17 +13,7 @@
 
             <v-timeline-item v-for="item in todayItems" :key="item.id" :dot-color="item.color" :icon="item.icon"
                 size="small" density="compact">
-                <v-card class="elevation-1">
-                    <v-card-title class="text-h6">
-                        {{ item.title }}
-                    </v-card-title>
-                    <v-card-text>
-                        {{ item.description }}
-                        <div class="text-caption mt-2">
-                            {{ item.time }}
-                        </div>
-                    </v-card-text>
-                </v-card>
+                <EventCard :data="formatCardData(item)" @update="updateItem" />
             </v-timeline-item>
 
             <!-- 明天的事项 -->
@@ -38,17 +28,7 @@
 
             <v-timeline-item v-for="item in tomorrowItems" :key="item.id" :dot-color="item.color" :icon="item.icon"
                 size="small" density="compact">
-                <v-card class="elevation-1">
-                    <v-card-title class="text-h6">
-                        {{ item.title }}
-                    </v-card-title>
-                    <v-card-text>
-                        {{ item.description }}
-                        <div class="text-caption mt-2">
-                            {{ item.time }}
-                        </div>
-                    </v-card-text>
-                </v-card>
+                <EventCard :data="formatCardData(item)" @update="updateItem" />
             </v-timeline-item>
 
             <!-- 下周的事项 -->
@@ -63,17 +43,7 @@
 
             <v-timeline-item v-for="item in nextWeekItems" :key="item.id" :dot-color="item.color" :icon="item.icon"
                 size="small" density="compact">
-                <v-card class="elevation-1">
-                    <v-card-title class="text-h6">
-                        {{ item.title }}
-                    </v-card-title>
-                    <v-card-text>
-                        {{ item.description }}
-                        <div class="text-caption mt-2">
-                            {{ item.time }}
-                        </div>
-                    </v-card-text>
-                </v-card>
+                <EventCard :data="formatCardData(item)" @update="updateItem" />
             </v-timeline-item>
         </v-timeline>
     </div>
@@ -81,6 +51,7 @@
 
 <script setup lang="ts">
 import { ref, computed } from 'vue'
+import EventCard from '@/components/Cards/EventCard.vue'
 
 // 所有时间线项目数据
 const timelineItems = ref([
@@ -91,7 +62,8 @@ const timelineItems = ref([
         time: '今天 09:00',
         color: 'primary',
         icon: 'mdi-file-document',
-        dateGroup: 'today'
+        dateGroup: 'today',
+        isCompleted: false
     },
     {
         id: 2,
@@ -100,7 +72,8 @@ const timelineItems = ref([
         time: '今天 14:00',
         color: 'secondary',
         icon: 'mdi-account-group',
-        dateGroup: 'today'
+        dateGroup: 'today',
+        isCompleted: false
     },
     {
         id: 3,
@@ -109,7 +82,8 @@ const timelineItems = ref([
         time: '明天 10:30',
         color: 'success',
         icon: 'mdi-code-tags',
-        dateGroup: 'tomorrow'
+        dateGroup: 'tomorrow',
+        isCompleted: false
     },
     {
         id: 4,
@@ -118,7 +92,8 @@ const timelineItems = ref([
         time: '明天 15:00',
         color: 'info',
         icon: 'mdi-palette',
-        dateGroup: 'tomorrow'
+        dateGroup: 'tomorrow',
+        isCompleted: false
     },
     {
         id: 5,
@@ -127,7 +102,8 @@ const timelineItems = ref([
         time: '下周一 11:00',
         color: 'warning',
         icon: 'mdi-chart-timeline',
-        dateGroup: 'next-week'
+        dateGroup: 'next-week',
+        isCompleted: false
     },
     {
         id: 6,
@@ -136,7 +112,8 @@ const timelineItems = ref([
         time: '下周三 09:30',
         color: 'error',
         icon: 'mdi-rocket-launch',
-        dateGroup: 'next-week'
+        dateGroup: 'next-week',
+        isCompleted: false
     }
 ])
 
@@ -152,17 +129,57 @@ const tomorrowItems = computed(() => {
 const nextWeekItems = computed(() => {
     return timelineItems.value.filter(item => item.dateGroup === 'next-week')
 })
+
+// 将timeline数据格式转换为EventCard所需的格式
+const formatCardData = (item) => {
+    return {
+        id: item.id,
+        title: item.title,
+        content: item.description,
+        date: item.time,
+        dateColor: getColorVariable(item.color),
+        isCompleted: item.isCompleted || false,
+        tags: [item.dateGroup] // 使用dateGroup作为标签
+    }
+}
+
+// 将颜色名称转换为CSS变量
+const getColorVariable = (color) => {
+    const colorMap = {
+        'primary': 'var(--md-sys-color-primary)',
+        'secondary': 'var(--md-sys-color-secondary)',
+        'info': 'var(--md-sys-color-tertiary)',
+        'success': 'var(--md-sys-color-success)',
+        'warning': 'var(--md-sys-color-warning)',
+        'error': 'var(--md-sys-color-error)'
+    }
+    return colorMap[color] || 'var(--md-sys-color-on-surface-variant)'
+}
+
+// 更新项目的回调函数
+const updateItem = (updatedData) => {
+    const index = timelineItems.value.findIndex(item => item.id === updatedData.id)
+    if (index !== -1) {
+        // 从EventCard格式转回timeline格式
+        timelineItems.value[index] = {
+            ...timelineItems.value[index],
+            title: updatedData.title,
+            description: updatedData.content,
+            isCompleted: updatedData.isCompleted
+        }
+    }
+}
 </script>
 
 <style scoped>
 .timeline-view {
     width: 100% !important;
-    margin: 0 !important;
-    padding: 16px 0 0 0 !important;
-    max-width: none !important;
+    max-width: 900px !important; 
+    margin: 0 auto !important;
+    padding: 16px 16px 0 16px !important;
 }
 
-/* 强制时间线左对齐 */
+/* 强制时间线左对齐并占满宽度 */
 :deep(.timeline-force-left) {
     width: 100% !important;
     margin-left: 0 !important;
@@ -170,22 +187,25 @@ const nextWeekItems = computed(() => {
     justify-content: flex-start !important;
 }
 
-/* 强制容器内所有元素左对齐 */
-:deep(.v-timeline-item) {
+/* 强制整个时间线组件占满容器宽度 */
+:deep(.v-timeline) {
     width: 100% !important;
-    margin-left: 0 !important;
-    padding-left: 0 !important;
+    max-width: 100% !important;
+    padding: 0 !important;
 }
 
-:deep(.v-timeline-divider) {
-    justify-content: flex-start !important;
-}
-
+/* 时间线内的其他样式 */
 .timeline-group-title {
     font-size: 18px;
     font-weight: 600;
     margin: 4px 0;
     color: var(--md-sys-color-on-surface);
+}
+
+/* 强制时间线项目占满可用空间 */
+:deep(.v-timeline-item) {
+    width: 100% !important;
+    margin-bottom: -12px;
 }
 
 /* 让时间线项目的布局更紧凑 */
@@ -199,8 +219,19 @@ const nextWeekItems = computed(() => {
     margin-bottom: 8px;
 }
 
-/* 确保卡片右侧有适当的间距 */
-:deep(.v-card) {
-    margin-right: 16px;
+/* 这是最关键的部分 - 时间线项的内容区域 */
+:deep(.v-timeline-item__body) {
+    width: calc(100% - 36px) !important; /* 减去图标和间距的宽度 */
+    max-width: none !important;
+    padding-right: 0 !important;
 }
+
+/* 给时间线项内的内容增加水平空间 */
+:deep(.v-timeline-item__opposite),
+:deep(.v-timeline-item__content) {
+    width: 100% !important;
+    max-width: 100% !important;
+    flex: 1 1 auto !important;
+}
+
 </style>
