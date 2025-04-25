@@ -1,7 +1,11 @@
-use crate::storage::{Event, TaskTime};
+use crate::data::{Event, TaskTime};
 
 pub trait EventFilter {
     fn matches(&self, event: &Event) -> bool;
+}
+
+pub trait SetFilter {
+    fn matches(&self, name: &str) -> bool;
 }
 
 pub struct TimeFilter {
@@ -21,8 +25,8 @@ pub struct NameFilter {
     pub name: String,
 }
 
-impl EventFilter for NameFilter {
-    fn matches(&self, event: &Event) -> bool {
-        event.title.contains(&self.name) || event.content.contains(&self.name)
+impl SetFilter for NameFilter {
+    fn matches(&self, name: &str) -> bool {
+        self.name == name
     }
 }

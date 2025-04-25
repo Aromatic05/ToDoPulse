@@ -1,7 +1,7 @@
 use reqwest;
 use serde::{Deserialize, Serialize};
 use tokio;
-use crate::storage::Event;
+use crate::data::Event;
 use std::env;
 use log::{error, info};
 

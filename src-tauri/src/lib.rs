@@ -3,6 +3,7 @@ mod storage;
 mod aigc;
 mod config;
 mod filter;
+mod data;
 
 use std::sync::Mutex;
 use storage::{Storage, StorageState};
@@ -24,6 +25,7 @@ pub fn run() -> std::io::Result<()> {
             ipc::get_events,
             ipc::get_metadata,
             ipc::new_list,
+            ipc::add_tag,
             config::parse,
         ])
         .run(tauri::generate_context!())
