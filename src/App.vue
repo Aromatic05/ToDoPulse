@@ -1,7 +1,7 @@
 <template>
-  <v-app>
-    <Layout />
-  </v-app>
+    <v-app>
+        <Layout />
+    </v-app>
 </template>
 
 <script setup lang="ts">

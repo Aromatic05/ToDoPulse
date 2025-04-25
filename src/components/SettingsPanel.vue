@@ -1,93 +1,51 @@
 <template>
-    <div class="settings-panel">
-        <div class="settings-header">
-            <h2 class="text-h5">设置</h2>
-            <v-spacer></v-spacer>
-            <v-btn icon variant="text" @click="$emit('close')">
-                <v-icon>mdi-close</v-icon>
-            </v-btn>
-        </div>
+    <div class="settings-view">
+        <div class="settings-panel">
+            <div class="settings-content">
+                <v-row>
+                    <v-col cols="12" md="4">
+                        <v-card class="pa-4">
+                            <h3 class="text-h6 mb-5">界面设置</h3>
 
-        <div class="settings-content">
-            <v-row>
-                <v-col cols="12" md="4">
-                    <div class="pa-4">
-                        <h3 class="text-h6 mb-2">界面设置</h3>
-                        
-                        <v-switch
-                            v-model="darkMode"
-                            label="深色模式"
-                            color="primary"
-                            hide-details
-                            class="mb-4"
-                        ></v-switch>
-                        
-                        <v-switch
-                            v-model="compactMode"
-                            label="紧凑模式"
-                            color="primary"
-                            hide-details
-                            class="mb-4"
-                        ></v-switch>
-                    </div>
-                </v-col>
-                
-                <v-col cols="12" md="4">
-                    <div class="pa-4">
-                        <h3 class="text-h6 mb-2">个性化</h3>
-                        
-                        <v-select
-                            v-model="selectedTheme"
-                            :items="themes"
-                            label="主题色"
-                            variant="outlined"
-                            density="compact"
-                            class="mb-4"
-                        ></v-select>
-                        
-                        <v-select
-                            v-model="selectedLanguage"
-                            :items="languages"
-                            label="语言"
-                            variant="outlined"
-                            density="compact"
-                            class="mb-4"
-                        ></v-select>
-                    </div>
-                </v-col>
-                
-                <v-col cols="12" md="4">
-                    <div class="pa-4">
-                        <h3 class="text-h6 mb-2">通知设置</h3>
-                        
-                        <v-switch
-                            v-model="emailNotifications"
-                            label="邮件通知"
-                            color="primary"
-                            hide-details
-                            class="mb-4"
-                        ></v-switch>
-                        
-                        <v-switch
-                            v-model="desktopNotifications"
-                            label="桌面通知"
-                            color="primary"
-                            hide-details
-                            class="mb-4"
-                        ></v-switch>
-                    </div>
-                </v-col>
-            </v-row>
-        </div>
-        
-        <div class="settings-footer">
-            <v-spacer></v-spacer>
-            <v-btn color="primary" variant="elevated" @click="saveSettings">
-                保存设置
-            </v-btn>
-            <v-btn variant="text" class="ml-2" @click="$emit('close')">
-                取消
-            </v-btn>
+                            <v-switch v-model="darkMode" label="深色模式" color="primary" hide-details
+                                class="mb-4"></v-switch>
+
+                            <v-switch v-model="compactMode" label="紧凑模式" color="primary" hide-details
+                                class="mb-4"></v-switch>
+                        </v-card>
+                    </v-col>
+
+                    <v-col cols="12" md="4">
+                        <v-card class="pa-4">
+                            <h3 class="text-h6 mb-5">个性化</h3>
+
+                            <v-select v-model="selectedTheme" :items="themes" label="主题色" variant="outlined"
+                                density="compact" class="mb-4"></v-select>
+
+                            <v-select v-model="selectedLanguage" :items="languages" label="语言" variant="outlined"
+                                density="compact" class="mb-4"></v-select>
+                        </v-card>
+                    </v-col>
+
+                    <v-col cols="12" md="4">
+                        <v-card class="pa-4">
+                            <h3 class="text-h6 mb-5">通知设置</h3>
+
+                            <v-switch v-model="emailNotifications" label="邮件通知" color="primary" hide-details
+                                class="mb-4"></v-switch>
+
+                            <v-switch v-model="desktopNotifications" label="桌面通知" color="primary" hide-details
+                                class="mb-4"></v-switch>
+                        </v-card>
+                    </v-col>
+                </v-row>
+            </div>
+
+            <div class="settings-footer mt-6">
+                <v-btn color="primary" size="large" variant="elevated" @click="saveSettings">
+                    保存设置
+                </v-btn>
+            </div>
         </div>
     </div>
 </template>
@@ -118,37 +76,32 @@ const saveSettings = () => {
         emailNotifications: emailNotifications.value,
         desktopNotifications: desktopNotifications.value
     });
-    
-    // 关闭设置面板
-    emit('close');
 };
-
-const emit = defineEmits(['close']);
 </script>
 
 <style scoped>
-.settings-panel {
-    display: flex;
-    flex-direction: column;
-    height: 100%;
+.settings-view {
+    width: 100%;
+    padding: 16px;
 }
 
-.settings-header {
-    display: flex;
-    align-items: center;
-    padding: 16px 24px;
-    border-bottom: 1px solid rgba(0, 0, 0, 0.1);
+.settings-panel {
+    max-width: 1200px;
+    margin: 0 auto;
 }
 
 .settings-content {
-    flex: 1;
-    overflow-y: auto;
-    padding: 0 8px;
+    margin-bottom: 30px;
 }
 
 .settings-footer {
     display: flex;
-    padding: 16px 24px;
-    border-top: 1px solid rgba(0, 0, 0, 0.1);
+    justify-content: center;
+    margin-top: 20px;
+}
+
+h3 {
+    font-weight: 500;
+    color: var(--md-sys-color-on-surface-variant);
 }
 </style>

@@ -2,19 +2,19 @@
     <!-- 将整个组件包装在单一元素中，这样可以正确使用activator="parent" -->
     <v-menu location="bottom" :close-on-content-click="false" offset="10">
         <template v-slot:activator="{ props }">
-            <v-btn v-bind="props" density="comfortable" variant="text" icon="mdi-palette" 
+            <v-btn v-bind="props" density="comfortable" variant="text" icon="mdi-palette"
                 color="var(--md-sys-color-primary)">
             </v-btn>
         </template>
-        
+
         <v-card min-width="200" class="pa-2" color="var(--md-sys-color-surface-container)">
             <v-list density="compact" bg-color="var(--md-sys-color-surface-container)">
                 <v-list-subheader>选择主题</v-list-subheader>
-                <v-list-item @click="toggleDarkMode" prepend-icon="mdi-theme-light-dark" 
+                <v-list-item @click="toggleDarkMode" prepend-icon="mdi-theme-light-dark"
                     :title="isDarkMode ? '切换到亮色模式' : '切换到暗色模式'" />
                 <v-divider class="my-2"></v-divider>
-                <v-list-item v-for="theme in availableThemes" :key="theme.id"
-                    @click="changeTheme(theme.id)" :title="theme.name">
+                <v-list-item v-for="theme in availableThemes" :key="theme.id" @click="changeTheme(theme.id)"
+                    :title="theme.name">
                     <template v-slot:prepend>
                         <div class="color-dot" :style="{ backgroundColor: theme.color }"></div>
                     </template>
@@ -85,10 +85,10 @@ function initTheme() {
     if (document.body.classList.contains('dark')) {
         isDarkMode.value = true;
     }
-    
+
     // 检查当前是否使用特定颜色主题
     for (const theme of availableThemes) {
-        if (document.body.classList.contains(`${theme.id}-light`) || 
+        if (document.body.classList.contains(`${theme.id}-light`) ||
             document.body.classList.contains(`${theme.id}-dark`)) {
             currentTheme.value = theme.id;
             break;
