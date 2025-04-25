@@ -4,8 +4,8 @@
 
         <v-row>
             <v-col cols="12">
-                <v-text-field v-model="newTask" label="添加新任务" append-icon="mdi-plus" @click:append="addTask"
-                    @keyup.enter="addTask" class="mb-4"></v-text-field>
+                <v-text-field v-model="newTask" label="添加新任务" append-icon="mdi-plus" @click:append="addNewTask"
+                    @keyup.enter="addNewTask" class="mb-4"></v-text-field>
             </v-col>
         </v-row>
 
@@ -30,7 +30,7 @@
                 <v-icon small class="mr-2" @click="editTask(item)">
                     mdi-pencil
                 </v-icon>
-                <v-icon small @click="deleteTask(item)">
+                <v-icon small @click="deleteTaskItem(item)">
                     mdi-delete
                 </v-icon>
             </template>
@@ -40,6 +40,8 @@
 
 <script setup lang="ts">
 import { ref, computed, onMounted, watch } from 'vue'
+import { getLists, ListItem } from '@/services/GetListsServices';
+import { getTasksByListId, addTask, toggleTaskStatus, updateTask, deleteTask, TaskItem } from '@/services/ListDataService';
 
 const props = defineProps({
     viewId: {
@@ -50,17 +52,12 @@ const props = defineProps({
 
 const listTitle = ref('我的列表')
 const listId = computed(() => {
-    const match = props.viewId.match(/list\/(\d+)/)
+    const match = props.viewId.match(/list\/([^\/]+)/)
     return match ? match[1] : null
 })
 
-// 模拟数据，实际应从API获取
-const tasks = ref([
-    { id: 1, title: '完成项目方案', completed: false, priority: '高', dueDate: '2025-04-28' },
-    { id: 2, title: '准备周会演示', completed: true, priority: '中', dueDate: '2025-04-26' },
-    { id: 3, title: '回复客户邮件', completed: false, priority: '高', dueDate: '2025-04-25' },
-    { id: 4, title: '更新项目文档', completed: false, priority: '低', dueDate: '2025-04-30' }
-])
+// 使用服务获取数据，不再使用硬编码数据
+const tasks = ref<TaskItem[]>([])
 
 const newTask = ref('')
 
@@ -75,18 +72,28 @@ const headers = [
 // 根据列表ID加载数据
 watch(() => props.viewId, loadListData, { immediate: true })
 
-function loadListData() {
+async function loadListData() {
     if (listId.value) {
-        // 这里应该从API获取数据
-        console.log(`加载列表ID: ${listId.value}的数据`)
-
-        // 模拟获取列表标题
-        if (listId.value === '1') {
-            listTitle.value = '工作'
-        } else if (listId.value === '2') {
-            listTitle.value = '个人'
-        } else {
-            listTitle.value = `列表 ${listId.value}`
+        try {
+            // 获取列表信息
+            const lists = await getLists();
+            const currentList = lists.find(list => list.id === listId.value);
+            
+            if (currentList) {
+                listTitle.value = currentList.title;
+                console.log(`加载列表: ${currentList.title} (ID: ${currentList.id})`);
+                
+                // 获取该列表的任务
+                tasks.value = await getTasksByListId(listId.value);
+            } else {
+                listTitle.value = '未找到列表';
+                console.error(`未找到ID为 ${listId.value} 的列表`);
+                tasks.value = [];
+            }
+        } catch (error) {
+            console.error('加载列表数据失败:', error);
+            listTitle.value = '加载失败';
+            tasks.value = [];
         }
     }
 }
@@ -100,32 +107,47 @@ function getPriorityColor(priority: string) {
     }
 }
 
-function addTask() {
-    if (newTask.value.trim()) {
-        tasks.value.push({
-            id: Date.now(),
-            title: newTask.value,
-            completed: false,
-            priority: '中',
-            dueDate: new Date().toISOString().substring(0, 10)
-        })
-        newTask.value = ''
+async function addNewTask() {
+    if (newTask.value.trim() && listId.value) {
+        try {
+            // 使用服务添加任务
+            tasks.value = await addTask(
+                listId.value,
+                newTask.value,
+                '中'
+            );
+            newTask.value = '';
+        } catch (error) {
+            console.error('添加任务失败:', error);
+        }
     }
 }
 
-function toggleTask(task: any) {
-    console.log(`任务 "${task.title}" 状态变更为: ${task.completed ? '已完成' : '未完成'}`)
+async function toggleTask(task: TaskItem) {
+    if (listId.value) {
+        try {
+            tasks.value = await toggleTaskStatus(task.id, listId.value, task.completed);
+        } catch (error) {
+            console.error('更新任务状态失败:', error);
+        }
+    }
 }
 
-function editTask(task: any) {
-    console.log(`编辑任务: ${task.title}`)
-    // 实现编辑功能
+async function editTask(task: TaskItem) {
+    console.log(`编辑任务: ${task.title}`);
+    // 这里可以显示编辑对话框，然后调用 updateTask 服务
+    // 示例：如果有编辑对话框的结果
+    // const updatedFields = { title: '新标题', priority: '高', dueDate: '2025-05-01' };
+    // tasks.value = await updateTask(task.id, listId.value, updatedFields);
 }
 
-function deleteTask(task: any) {
-    const index = tasks.value.findIndex(t => t.id === task.id)
-    if (index !== -1) {
-        tasks.value.splice(index, 1)
+async function deleteTaskItem(task: TaskItem) {
+    if (listId.value) {
+        try {
+            tasks.value = await deleteTask(task.id, listId.value);
+        } catch (error) {
+            console.error('删除任务失败:', error);
+        }
     }
 }
 </script>

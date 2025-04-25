@@ -1,122 +1,109 @@
 <template>
-    <div v-if="modelValue" class="modal-mask" @click.self="handleClose">
-        <div class="modal-container">
-            <div class="modal-header">
-                <h3>新建列表</h3>
-                <button @click="handleClose" aria-label="关闭弹窗">
-                    &times;
-                </button>
-            </div>
-            <div class="modal-body">
-                <input ref="input" v-model="inputValue" type="text" placeholder="输入列表名称" @keyup.enter="handleConfirm"
-                    aria-label="列表名称输入框">
-            </div>
-            <div class="modal-footer">
-                <button @click="handleClose">取消</button>
-                <button @click="handleConfirm" class="confirm-btn">确认</button>
-            </div>
-        </div>
-    </div>
+    <v-dialog v-model="dialogVisible" max-width="500px" persistent>
+        <v-card>
+            <v-card-title class="text-h5">
+                创建新列表
+            </v-card-title>
+
+            <v-card-text>
+                <v-form ref="form" v-model="valid" @submit.prevent="createList">
+                    <v-text-field v-model="listName" label="列表名称" :rules="[v => !!v || '名称不能为空']" required
+                        variant="outlined" class="mb-3"></v-text-field>
+
+                    <p class="text-subtitle-1 mb-2">选择图标</p>
+                    <v-chip-group v-model="selectedIconIndex" column mandatory>
+                        <v-chip v-for="(icon, index) in availableIcons" :key="index" filter :value="index">
+                            <v-icon :icon="icon"></v-icon>
+                        </v-chip>
+                    </v-chip-group>
+                </v-form>
+            </v-card-text>
+
+            <v-card-actions>
+                <v-spacer></v-spacer>
+                <v-btn color="grey-darken-1" variant="text" @click="closeModal">
+                    取消
+                </v-btn>
+                <v-btn color="primary" variant="elevated" :disabled="!valid" @click="createList">
+                    创建
+                </v-btn>
+            </v-card-actions>
+        </v-card>
+    </v-dialog>
 </template>
 
-<script>
-export default {
-    name: 'AddListModal',
-    props: {
-        modelValue: {
-            type: Boolean,
-            default: false
-        }
-    },
-    data() {
-        return {
-            inputValue: ''
-        }
-    },
-    watch: {
-        modelValue(newVal) {
-            if (newVal) {
-                this.$nextTick(() => this.$refs.input.focus())
-            }
-        }
-    },
-    methods: {
-        handleClose() {
-            this.inputValue = ''
-            this.$emit('update:modelValue', false)
-        },
-        handleConfirm() {
-            if (this.inputValue.trim()) {
-                this.$emit('confirm', this.inputValue.trim())
-                this.handleClose()
-            }
-        }
+<script setup lang="ts">
+import { ref, computed, watch } from 'vue';
+
+const props = defineProps({
+    show: {
+        type: Boolean,
+        default: false
+    }
+});
+
+const emit = defineEmits(['update:show', 'create']);
+
+// 表单数据
+const listName = ref('');
+const selectedIconIndex = ref(0);
+const valid = ref(false);
+const form = ref(null);
+
+// 可用的图标列表
+const availableIcons = [
+    'mdi-format-list-bulleted',
+    'mdi-home',
+    'mdi-account',
+    'mdi-briefcase',
+    'mdi-shopping',
+    'mdi-star',
+    'mdi-school',
+    'mdi-book',
+    'mdi-basket',
+    'mdi-heart',
+    'mdi-account-group',
+    'mdi-food',
+    'mdi-gift',
+    'mdi-cart',
+    'mdi-alarm',
+    'mdi-airplane',
+    'mdi-wallet'
+];
+
+// 控制对话框显示
+const dialogVisible = computed({
+    get: () => props.show,
+    set: (value) => emit('update:show', value)
+});
+
+// 监听对话框关闭时重置表单
+watch(dialogVisible, (newVal) => {
+    if (!newVal) {
+        resetForm();
+    }
+});
+
+// 重置表单
+function resetForm() {
+    listName.value = '';
+    selectedIconIndex.value = 0;
+    if (form.value) {
+        form.value.resetValidation();
     }
 }
+
+// 关闭模态框
+function closeModal() {
+    dialogVisible.value = false;
+}
+
+// 创建列表
+function createList() {
+    if (!valid.value) return;
+
+    const selectedIcon = availableIcons[selectedIconIndex.value];
+    emit('create', listName.value, selectedIcon);
+    closeModal();
+}
 </script>
-
-<style scoped>
-/* 弹窗样式 */
-.modal-mask {
-    position: fixed;
-    top: 0;
-    left: 0;
-    width: 100%;
-    height: 100%;
-    background: rgba(0, 0, 0, 0.5);
-    display: flex;
-    justify-content: center;
-    align-items: center;
-    z-index: 1000;
-}
-
-.modal-container {
-    background: var(--md-sys-color-surface);
-    padding: 20px;
-    border-radius: 8px;
-    width: min(90%, 400px);
-    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.33);
-}
-
-.modal-header {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    margin-bottom: 1rem;
-}
-
-.modal-header button {
-    background: none;
-    border: none;
-    font-size: 1.5em;
-    cursor: pointer;
-    color: var(--md-sys-color-on-surface);
-}
-
-.modal-body input {
-    width: 100%;
-    padding: 0.5rem;
-    border: 1px solid var(--md-sys-color-outline);
-    border-radius: 4px;
-    margin-bottom: 1rem;
-}
-
-.modal-footer {
-    display: flex;
-    justify-content: flex-end;
-    gap: 0.5rem;
-}
-
-.modal-footer button {
-    padding: 0.5rem 1rem;
-    border-radius: 4px;
-    cursor: pointer;
-    transition: background 0.2s;
-}
-
-.confirm-btn {
-    background: var(--md-sys-color-primary);
-    color: white;
-    border: none;
-}
-</style>

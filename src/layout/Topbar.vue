@@ -3,7 +3,7 @@
         <!-- 标题区域 -->
         <div class="header_title ml-4">
             <!-- 只在 ListView 中显示 Breadcrumbs -->
-            <Breadcrumbs v-if="currentView && currentView.startsWith('list/')" />
+            <Breadcrumbs v-if="currentView && currentView.startsWith('list/')" :currentPageTitle="viewTitle" />
 
             <!-- 在其他视图中显示英文标题 -->
             <h2 v-else class="text-h6">{{ viewTitle }}</h2>

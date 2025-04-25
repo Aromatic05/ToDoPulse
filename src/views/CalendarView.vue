@@ -68,9 +68,9 @@ export default {
                 select: this.handleDateSelect,
                 eventClick: this.handleEventClick,
                 eventsSet: this.handleEvents,
-                height: 'auto', // 改为 'auto' 让 FullCalendar 自动计算高度
-                contentHeight: 'auto', // 保持 'auto'
-                aspectRatio: 2.2, // 稍微增加一点日历的宽高比
+                height: 'auto',
+                contentHeight: 'auto', 
+                aspectRatio: 2.2,
                 locale: 'zh-cn',
                 buttonText: {
                     today: '今天',
@@ -114,42 +114,41 @@ export default {
 <style scoped>
 .calendar-container {
     display: flex;
-    height: calc(100vh - 64px); /* 减去顶部导航栏高度，根据实际情况调整 */
+    /* 移除固定高度，允许内容自然流动 */
+    min-height: calc(100vh - 64px); /* 改为最小高度 */
     width: 100%;
     font-family: var(--md-sys-typescale-body-large-font);
     font-size: var(--md-sys-typescale-body-large-size);
     color: var(--md-sys-color-on-surface);
-    overflow: hidden; /* 防止容器本身出现滚动条 */
+    overflow: visible; /* 允许内容溢出 */
+    flex-direction: column; /* 在小屏幕上垂直堆叠 */
+}
+
+/* 在大屏幕上保持水平布局 */
+@media (min-width: 768px) {
+    .calendar-container {
+        flex-direction: row;
+    }
 }
 
 .calendar-sidebar {
-    width: 280px;
+    width: 100%; /* 在小屏幕上占满宽度 */
     padding: 1rem;
     background: var(--md-sys-color-surface-container);
-    border-right: 1px solid var(--md-sys-color-outline);
-    /* 添加滚动条支持 */
-    overflow-y: auto;
-    height: 100%; /* 使用 100% 而不是 max-height: 100vh */
+    border-right: none;
+    border-bottom: 1px solid var(--md-sys-color-outline);
+    /* 移除滚动属性 */
+    overflow: visible;
+    height: auto;
 }
 
-/* 自定义侧边栏滚动条样式 */
-.calendar-sidebar::-webkit-scrollbar {
-    width: 6px;
-    height: 6px;
-}
-
-.calendar-sidebar::-webkit-scrollbar-track {
-    background: var(--md-sys-color-surface-container);
-    border-radius: 3px;
-}
-
-.calendar-sidebar::-webkit-scrollbar-thumb {
-    background: var(--md-sys-color-outline);
-    border-radius: 3px;
-}
-
-.calendar-sidebar::-webkit-scrollbar-thumb:hover {
-    background: var(--md-sys-color-outline-variant);
+@media (min-width: 768px) {
+    .calendar-sidebar {
+        width: 280px; 
+        border-right: 1px solid var(--md-sys-color-outline);
+        border-bottom: none;
+        height: auto;
+    }
 }
 
 .calendar-sidebar-section {
@@ -200,29 +199,9 @@ export default {
 .calendar-main {
     flex: 1;
     padding: 1rem;
-    overflow-y: auto; /* 确保只在需要时显示垂直滚动条 */
-    overflow-x: hidden; /* 防止水平滚动条 */
-    height: 100%; /* 使用 100% 而不是 max-height: 100vh */
-}
-
-/* 自定义滚动条样式 */
-.calendar-main::-webkit-scrollbar {
-    width: 8px;
-    height: 8px;
-}
-
-.calendar-main::-webkit-scrollbar-track {
-    background: var(--md-sys-color-surface-container);
-    border-radius: 4px;
-}
-
-.calendar-main::-webkit-scrollbar-thumb {
-    background: var(--md-sys-color-outline);
-    border-radius: 4px;
-}
-
-.calendar-main::-webkit-scrollbar-thumb:hover {
-    background: var(--md-sys-color-outline-variant);
+    /* 移除滚动属性 */
+    overflow: visible;
+    height: auto;
 }
 
 .calendar {

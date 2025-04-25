@@ -1,6 +1,7 @@
 <template>
     <div class="timeline-view">
-        <v-timeline side="end" align="start" class="timeline-force-left">
+        <v-timeline side="end" align="start" class="timeline-force-left"
+            line-color=var(--md-sys-color-outline)>
             <!-- 今天的事项 -->
             <v-timeline-item dot-color="primary" size="large" fill-dot>
                 <template v-slot:icon>
@@ -144,7 +145,7 @@ const formatCardData = (item) => {
 }
 
 // 将颜色名称转换为CSS变量
-const getColorVariable = (color) => {
+const getColorVariable = (color: string) => {
     const colorMap = {
         'primary': 'var(--md-sys-color-primary)',
         'secondary': 'var(--md-sys-color-secondary)',
@@ -174,7 +175,7 @@ const updateItem = (updatedData) => {
 <style scoped>
 .timeline-view {
     width: 100% !important;
-    max-width: 900px !important; 
+    max-width: 900px !important;
     margin: 0 auto !important;
     padding: 16px 16px 0 16px !important;
 }
@@ -221,7 +222,8 @@ const updateItem = (updatedData) => {
 
 /* 这是最关键的部分 - 时间线项的内容区域 */
 :deep(.v-timeline-item__body) {
-    width: calc(100% - 36px) !important; /* 减去图标和间距的宽度 */
+    width: calc(100% - 36px) !important;
+    /* 减去图标和间距的宽度 */
     max-width: none !important;
     padding-right: 0 !important;
 }

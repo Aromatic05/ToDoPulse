@@ -48,6 +48,7 @@ export default {
             required: true
         }
     },
+    emits: ['update:modelValue', 'confirm'],
     data() {
         return {
             formData: {
@@ -104,7 +105,7 @@ export default {
     left: 0;
     width: 100vw; /* 使用视口单位 */
     height: 100vh;
-    background: rgba(0, 0, 0, 0.5);
+    background: rgba(0, 0, 0, 0.3); /* 改为半透明黑色 */
     display: flex;
     justify-content: center;
     align-items: center;
@@ -130,6 +131,11 @@ export default {
     margin-bottom: 1rem;
 }
 
+.modal-header h3 {
+    color: var(--md-sys-color-primary);
+    margin: 0;
+}
+
 .modal-header button {
     background: none;
     border: none;
@@ -153,10 +159,12 @@ export default {
 }
 
 .modal-footer button {
+    background: none;
     padding: 0.5rem 1rem;
     border-radius: 4px;
     cursor: pointer;
     transition: background 0.2s;
+    color: var(--md-sys-color-on-surface);
 }
 
 .confirm-btn {

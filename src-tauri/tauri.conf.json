@@ -1,21 +1,21 @@
 {
   "$schema": "https://schema.tauri.app/config/2",
-  "productName": "todolists",
+  "productName": "todopulse",
   "version": "0.1.0",
-  "identifier": "com.todolists.app",
+  "identifier": "com.todopulse.app",
   "build": {
-    "beforeDevCommand": "npm run dev",
+    "beforeDevCommand": "pnpm dev",
     "devUrl": "http://localhost:1420",
-    "beforeBuildCommand": "npm run build",
+    "beforeBuildCommand": "pnpm build",
     "frontendDist": "../dist"
   },
   "app": {
     "windows": [
       {
-        "title": "todolists",
-        "width": 1200,
+        "title": "todopulse",
+        "width": 1280,
         "height": 800,
-        "minWidth": 1200,
+        "minWidth": 1280,
         "minHeight": 800
       }
     ],
