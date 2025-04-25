@@ -1,5 +1,4 @@
 <template>
-    <!-- 将整个组件包装在单一元素中，这样可以正确使用activator="parent" -->
     <v-menu location="bottom" :close-on-content-click="false" offset="10">
         <template v-slot:activator="{ props }">
             <v-btn v-bind="props" density="comfortable" variant="text" icon="mdi-palette"
@@ -9,11 +8,12 @@
 
         <v-card min-width="200" class="pa-2" color="var(--md-sys-color-surface-container)">
             <v-list density="compact" bg-color="var(--md-sys-color-surface-container)">
-                <v-list-subheader>选择主题</v-list-subheader>
-                <v-list-item @click="toggleDarkMode" prepend-icon="mdi-theme-light-dark"
-                    :title="isDarkMode ? '切换到亮色模式' : '切换到暗色模式'" />
+                <v-list-item @click="toggleDarkMode"
+                    :prepend-icon="isDarkMode ? 'mdi-white-balance-sunny' : 'mdi-moon-waning-crescent'" :title="''"
+                    :tooltip="isDarkMode ? '切换到亮色模式' : '切换到暗色模式'">
+                </v-list-item>
                 <v-divider class="my-2"></v-divider>
-                <v-list-item v-for="theme in availableThemes" :key="theme.id" @click="changeTheme(theme.id)"
+                <v-list-item v-for="theme in availableThemes" :key="theme.name" @click="changeTheme(theme.name)"
                     :title="theme.name">
                     <template v-slot:prepend>
                         <div class="color-dot" :style="{ backgroundColor: theme.color }"></div>
@@ -25,52 +25,68 @@
 </template>
 
 <script setup lang="ts">
-import { ref } from 'vue';
+import { ref, onMounted } from 'vue';
+import {
+    getThemes,
+    loadThemePreference,
+    saveThemePreference,
+    getThemeClassName,
+    getSystemThemePreference
+} from '@/services/ThemeService';
 
-const isDarkMode = ref(false);
-const currentTheme = ref('');
+// 定义类型接口
+interface Theme {
+    name: string;
+    light: string;
+    dark: string;
+    color: string;
+}
 
-const availableThemes = [
-    { id: '', name: '默认蓝绿', color: '#006874' },
-    { id: 'red', name: '红色', color: '#8F4C38' },
-    { id: 'green', name: '绿色', color: '#4C662B' },
-    { id: 'blue', name: '蓝色', color: '#415F91' },
-    { id: 'skyblue', name: '天蓝', color: '#1478DC' },
-    { id: 'purple', name: '紫色', color: '#6750A4' },
-];
+interface ThemePreference {
+    themeName: string;
+    isDarkMode: boolean;
+}
 
-function toggleDarkMode() {
+// 使用TypeScript的类型注解
+const isDarkMode = ref<boolean>(false);
+const currentTheme = ref<string>('');
+const availableThemes = getThemes() as Theme[];
+
+/**
+ * 切换深色/浅色模式
+ */
+function toggleDarkMode(): void {
     isDarkMode.value = !isDarkMode.value;
     applyTheme();
+    // 保存偏好设置
+    saveThemePreference(currentTheme.value, isDarkMode.value);
 }
 
-function changeTheme(themeId) {
-    currentTheme.value = themeId;
+/**
+ * 更改主题
+ * @param themeName - 主题名称
+ */
+function changeTheme(themeName: string): void {
+    currentTheme.value = themeName;
     applyTheme();
+    // 保存偏好设置
+    saveThemePreference(currentTheme.value, isDarkMode.value);
 }
 
-function applyTheme() {
-    // 移除所有主题相关的类
-    document.body.classList.forEach(className => {
-        if (className === 'dark' ||
-            availableThemes.some(theme =>
-                className === `${theme.id}-light` || className === `${theme.id}-dark`)) {
+/**
+ * 应用当前选择的主题
+ */
+function applyTheme(): void {
+    // 先移除所有主题相关的类
+    document.body.classList.forEach((className: string) => {
+        if (className === 'dark' || className.endsWith('-light') || className.endsWith('-dark')) {
             document.body.classList.remove(className);
         }
     });
 
-    // 应用选中的主题
-    if (currentTheme.value === '') {
-        // 默认主题
-        if (isDarkMode.value) {
-            document.body.classList.add('dark');
-        }
-    } else {
-        // 其他主题
-        document.body.classList.add(isDarkMode.value
-            ? `${currentTheme.value}-dark`
-            : `${currentTheme.value}-light`);
-    }
+    // 应用当前主题
+    const themeClassName: string = getThemeClassName(currentTheme.value, isDarkMode.value);
+    document.body.classList.add(themeClassName);
 
     // 确保图标颜色更新
     document.documentElement.style.setProperty(
@@ -79,25 +95,13 @@ function applyTheme() {
     );
 }
 
-// 在组件挂载时检查当前主题状态
-function initTheme() {
-    // 检查当前是否为暗色模式
-    if (document.body.classList.contains('dark')) {
-        isDarkMode.value = true;
-    }
-
-    // 检查当前是否使用特定颜色主题
-    for (const theme of availableThemes) {
-        if (document.body.classList.contains(`${theme.id}-light`) ||
-            document.body.classList.contains(`${theme.id}-dark`)) {
-            currentTheme.value = theme.id;
-            break;
-        }
-    }
-}
-
-// 初始化主题
-initTheme();
+// 在组件挂载时初始化主题
+onMounted(() => {
+    const preference: ThemePreference = loadThemePreference();
+    currentTheme.value = preference.themeName;
+    isDarkMode.value = preference.isDarkMode;
+    applyTheme();
+});
 
 // 对外暴露方法以便父组件调用
 defineExpose({

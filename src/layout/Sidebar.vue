@@ -18,17 +18,17 @@
         <v-list nav class="mx-2">
             <!-- Timeline -->
             <v-list-item prepend-icon="mdi-timeline" title="Timeline" class="mx-1" active-class="nav_active"
-                rounded="lg" color="var(--md-sys-color-primary)" active-color="var(--md-sys-color-on-primary)" link
+                rounded="lg" color="var(--md-sys-color-primary)" base-color="var(--md-sys-color-on-primary)" link
                 @click="handleClick('timeline')" :ripple="true" :href="'#'"></v-list-item>
 
             <!-- Calendar -->
             <v-list-item prepend-icon="mdi-calendar" title="Calendar" class="mx-1" active-class="nav_active"
-                rounded="lg" color="var(--md-sys-color-primary)" active-color="var(--md-sys-color-on-primary)" link
+                rounded="lg" color="var(--md-sys-color-primary)" base-color="var(--md-sys-color-on-primary)" link
                 @click="handleClick('calendar')" :ripple="true" :href="'#'"></v-list-item>
 
             <!-- Tags -->
             <v-list-item prepend-icon="mdi-tag-multiple" title="Tags" class="mx-1" active-class="nav_active"
-                rounded="lg" color="var(--md-sys-color-primary)" active-color="var(--md-sys-color-on-primary)" link
+                rounded="lg" color="var(--md-sys-color-primary)" base-color="var(--md-sys-color-on-primary)" link
                 @click="handleClick('tags')" :ripple="true" :href="'#'"></v-list-item>
 
             <!-- Lists (as dropdown group) -->

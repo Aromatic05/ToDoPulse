@@ -192,7 +192,7 @@
 .v-layout .app_main .header .tool_btns .v-btn {
     margin-left: 4px;
     opacity: 1 !important;
-    visibility: visible !important;
+    visibility: visible !重要;
 }
 
 /* 在小屏幕设备上确保按钮可见 */
@@ -206,6 +206,31 @@
 .v-layout .app_main .router {
     padding: 16px;
     margin-top: 78px; /* 70px(header高度) + 8px(额外空间) */
+}
+
+/* 为视图内容添加适当的上边距，防止被顶栏遮挡 */
+.v-layout .app_main .view-content {
+    padding: 16px;
+    margin-top: 86px; /* 70px(顶栏高度) + 16px(顶部间距) */
+    position: relative;
+    z-index: 1;
+}
+
+/* 确保折叠侧边栏状态下，视图内容也正确显示 */
+.mini_nav .app_main .view-content {
+    margin-top: 86px;
+}
+
+/* 在小屏幕上调整边距 */
+@media (max-width: 768px) {
+    .v-layout .app_main .view-content {
+        margin-top: 78px;
+    }
+}
+
+/* 确保设置面板也在正确位置显示 */
+.v-layout .app_main .settings-container {
+    margin-top: 86px;
 }
 
 /* 保留已有的 mini_nav 模式下的固定头部样式，但需要调整 */
