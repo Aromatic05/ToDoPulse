@@ -1,0 +1,249 @@
+.v-layout {
+    background: rgb(var(--theme-background)) !important;
+    padding: 4px; /* 减少整体内边距 */
+}
+
+.v-layout .layout_navigation {
+    border-radius: 12px !important;
+    margin: 0 !important;
+    height: calc(100vh - 2rem) !important;
+    transition: all 0.2s;
+    border-right-width: 0;
+    background: rgba(var(--header-bg), 0.8) !important;
+    backdrop-filter: blur(10px);
+    box-shadow: 0 2px 12px 0 rgba(0, 0, 0, 0.1);
+}
+
+
+.v-layout .layout_navigation.showSettings {
+    z-index: 1 !important;
+}
+
+.v-layout .layout_navigation .v-navigation-drawer__content {
+    overflow-y: hidden;
+}
+
+.v-layout .layout_navigation .v-navigation-drawer__content:hover {
+    overflow-y: auto;
+}
+
+.v-layout .layout_navigation .nav_active {
+    background-color: rgb(var(--v-theme-primary));
+}
+
+.v-layout .layout_navigation .nav_active .v-list-item__prepend > .v-icon,
+.v-layout .layout_navigation .nav_active .v-list-item__append > .v-icon {
+    color: #ffffff;
+    left: 0px;
+}
+
+.v-layout .layout_navigation .nav_active .v-list-item-title {
+    color: #ffffff;
+}
+
+.v-layout .layout_navigation .v-list-item__prepend > .v-icon,
+.v-layout .layout_navigation .v-list-item__append > .v-icon {
+    opacity: 1 !important;
+}
+
+.v-layout .layout_navigation .v-list-item__prepend {
+    width: 40px;
+}
+
+.v-layout .layout_navigation .v-list-item-title {
+    font-size: 14px;
+    font-weight: 500;
+    opacity: 1;
+}
+
+.v-layout .layout_navigation .v-list-item-title .link {
+    color: inherit;
+}
+
+.v-layout .layout_navigation .v-list-group__items .v-list-item {
+    padding-inline-start: 47px !important;
+}
+
+.v-layout .layout_navigation .logo .v-avatar {
+    border-radius: 0;
+}
+
+.v-layout .layout_navigation .logo .v-list-item__content .title {
+    margin-top: 4px;
+    font-size: 18px;
+    font-weight: 700;
+}
+
+.v-layout .layout_navigation .logo .v-list-item__content .v-list-item-subtitle {
+    margin-top: 4px;
+}
+
+.v-layout .layout_navigation .logo .v-list-item__prepend {
+    width: auto;
+    padding-left: 0;
+}
+
+.v-layout .app_main {
+    flex: 1;
+    margin-left: 272px;
+    transition: all 0.2s;
+    padding: 0 4px; /* 进一步减少左右内边距 */
+}
+
+.v-layout .app_main .header {
+    width: calc(100% - 8px); /* 增加宽度 */
+    background: rgba(var(--header-bg), 0.8);
+    backdrop-filter: blur(10px);
+    height: 70px; /* 减小高度 */
+    transition: all 0.2s;
+    display: flex;
+    align-items: center;
+    border-radius: 12px;
+    box-shadow: 0 2px 12px 0 rgba(0, 0, 0, 0.1);
+    margin-bottom: 12px; /* 减小底部间距 */
+    margin-top: -4px; /* 减少顶部间距 */
+}
+
+.v-layout .app_main .header .header_title .v-breadcrumbs {
+    padding: 0 !important;
+}
+
+.v-layout .app_main .header .header_title .v-breadcrumbs .imglogo {
+    height: 22px;
+}
+
+.v-layout .app_main .header .header_title .v-breadcrumbs .v-breadcrumbs-item--disabled {
+    opacity: 0.6;
+}
+
+.v-layout .app_main .header .header_title .v-breadcrumbs .v-breadcrumbs-item {
+    font-weight: 500;
+}
+
+.v-layout .app_main .header .header_title .v-breadcrumbs .v-breadcrumbs-divider {
+    opacity: 0.6;
+    padding: 0;
+}
+
+.v-layout .app_main .header .header_title .v-breadcrumbs .v-breadcrumbs__prepend {
+    opacity: 0.6;
+}
+
+.v-layout .app_main .header .header_title .v-breadcrumbs .v-breadcrumbs__prepend .v-icon {
+    margin-left: 5px;
+}
+
+.v-layout .app_main .header .header_title .v-breadcrumbs .link {
+    color: inherit;
+}
+
+.v-layout .app_main .header .header_title .page_title {
+    margin-top: 8px;
+    font-size: 16px;
+    font-weight: 700;
+}
+
+.v-layout .app_main .header .gamepad {
+    cursor: pointer;
+    align-self: flex-start;
+    position: relative;
+    z-index: 2;
+}
+
+.v-layout .app_main .header .search_ip {
+    position: relative;
+    z-index: 2;
+}
+
+.v-layout .app_main .header .search_ip .v-field--variant-solo {
+    box-shadow: none;
+}
+
+.v-layout .app_main .header .tool_btns {
+    position: relative;
+    z-index: 2;
+}
+
+.v-layout .app_main .router {
+    padding: 16px;
+}
+
+.fixed_header .app_main {
+    margin-top: 92px;
+}
+
+.fixed_header .app_main .header {
+    position: fixed;
+    top: 16px;
+    left: 286px;
+    width: calc(100vw - 306px);
+    z-index: 2;
+}
+
+.mini_nav .layout_navigation .v-list-item__prepend {
+    padding-left: 0;
+}
+
+.mini_nav .layout_navigation .v-list-group__items .v-list-item {
+    padding-inline-start: 8px !important;
+}
+
+.mini_nav.fixed_header .app_main .header {
+    left: 108px;
+    width: calc(100vw - 130px);
+    margin: 0;
+}
+
+.mini_nav .app_main {
+    margin-left: 93px;
+}
+
+.mini_nav .app_main .header {
+    width: calc(100% - 8px); /* 更新折叠状态下的宽度 */
+    margin: 0 0 12px 0; /* 减小底部间距 */
+    transition: all 0.2s;
+}
+
+/* Update hover effects */
+.v-layout .layout_navigation:hover,
+.v-layout .app_main .header:hover {
+    background: rgba(var(--header-bg), 0.95) !important;
+    box-shadow: 0 4px 20px 0 rgba(0, 0, 0, 0.15);
+}
+
+.welt .v-layout .app_main {
+    margin-left: 256px;
+    margin-top: 76px;
+}
+
+.welt .v-layout .app_main .header {
+    background: rgba(var(--header-bg), 0.5);
+}
+
+.welt .v-layout .app_main .header .tool_btns {
+    padding-right: 16px;
+}
+
+.welt .mini_nav.fixed_header .app_main .header {
+    left: 77px;
+    width: calc(100vw - 77px);
+    margin-top: 0;
+    top: 0;
+}
+
+.welt .mini_nav .app_main {
+    margin-left: 77px;
+    margin-top: 0;
+}
+
+.welt .mini_nav .app_main .header {
+    margin: 0;
+}
+
+.h_a_menu .v-list-item--density-default.v-list-item--one-line {
+    min-height: 36px !important;
+}
+
+.h_a_menu .v-list-item__prepend > .v-icon {
+    margin-inline-end: 16px;
+}
