@@ -3,12 +3,12 @@
         <Sidebar @update:rail="(val: boolean) => rail = val" :rail="rail" />
         <main class="app_main">
             <Topbar @toggle-settings="toggleSettings" />
-            
+
             <!-- 内联设置面板 -->
             <div v-if="showSettings" class="settings-container">
                 <SettingsPanel @close="showSettings = false" />
             </div>
-            
+
             <!-- 其他内容会在这里 -->
             <div v-else class="content-area">
                 <!-- 应用主要内容 -->
@@ -50,7 +50,14 @@ function toggleSettings() {
 }
 
 @keyframes fadeIn {
-    from { opacity: 0; transform: translateY(-10px); }
-    to { opacity: 1; transform: translateY(0); }
+    from {
+        opacity: 0;
+        transform: translateY(-10px);
+    }
+
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
 }
 </style>

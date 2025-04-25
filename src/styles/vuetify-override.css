@@ -1,0 +1,51 @@
+/* Vuetify 组件样式覆盖 */
+
+/* Card 样式 */
+.v-card {
+  background-color: var(--md-sys-color-surface) !important;
+  color: var(--md-sys-color-on-surface) !important;
+}
+
+/* Button 样式 */
+.v-btn {
+  color: var(--md-sys-color-primary);
+}
+
+.v-btn--variant-tonal {
+  background-color: var(--md-sys-color-secondary-container) !important;
+  color: var(--md-sys-color-on-secondary-container) !important;
+}
+
+.v-btn--variant-elevated {
+  background-color: var(--md-sys-color-primary-container) !important;
+  color: var(--md-sys-color-on-primary-container) !important;
+}
+
+/* 表单控件 */
+.v-field {
+  background-color: var(--md-sys-color-surface-container-low);
+  color: var(--md-sys-color-on-surface);
+}
+
+.v-field__input {
+  color: var(--md-sys-color-on-surface) !important;
+}
+
+.v-field__outline {
+  color: var(--md-sys-color-outline) !important;
+}
+
+/* List 样式 */
+.v-list {
+  background-color: var(--md-sys-color-surface) !important;
+  color: var(--md-sys-color-on-surface) !important;
+}
+
+.v-list-item {
+  color: var(--md-sys-color-on-surface);
+}
+
+/* 应用过渡效果 */
+body, .v-application, .v-card, .v-btn, .v-field, .v-list, .v-list-item {
+  transition: background-color 0.3s ease, color 0.3s ease, border-color 0.3s ease;
+}

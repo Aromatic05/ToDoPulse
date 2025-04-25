@@ -9,5 +9,6 @@ import Layout from '@/layout/index.vue'
 </script>
 
 <style>
-/* 可以添加全局样式 */
+@import "@/styles/material.css";
+@import "@/styles/vuetify-override.css";
 </style>

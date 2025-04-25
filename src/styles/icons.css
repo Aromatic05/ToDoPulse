@@ -1,0 +1,42 @@
+/* 图标颜色适配暗色/亮色模式 */
+
+/* 默认图标颜色 */
+.v-icon {
+  transition: color 0.3s ease;
+}
+
+/* 导航项图标 */
+.v-list-item .v-list-item__prepend > .v-icon {
+  color: var(--md-sys-color-on-surface-variant);
+}
+
+/* 激活状态的导航项图标 */
+.v-list-item--active .v-list-item__prepend > .v-icon {
+  color: var(--md-sys-color-on-primary) !important;
+}
+
+/* 按钮图标 */
+.v-btn .v-icon {
+  color: inherit;
+}
+
+/* 工具栏图标 */
+.tool_btns .v-btn .v-icon {
+  color: var(--md-sys-color-primary);
+}
+
+/* 主要操作图标 */
+.v-btn--variant-elevated .v-icon,
+.v-btn--variant-flat .v-icon {
+  color: var(--md-sys-color-on-primary);
+}
+
+/* 确保图标在悬停时颜色正确 */
+.v-list-item:hover .v-list-item__prepend > .v-icon {
+  color: var(--md-sys-color-primary);
+}
+
+/* 确保图标在暗色模式下也有良好对比度 */
+.dark .v-icon {
+  opacity: 0.87;
+}
