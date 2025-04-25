@@ -1,9 +1,10 @@
-use tauri::State;
-use core::hash;
+use redb::Result;
 use std::hash::{Hash, Hasher};
+use tauri::State;
 
-use crate::storage::{StorageState,Repository};
-use crate::data::{self, Event, EventMetadata, EventType, List, Tag, TaskTime};
+use crate::aigc::gen_tag;
+use crate::data::{self, Event, EventMetadata, EventType, Tag, TaskTime};
+use crate::storage::{Repository, StorageState};
 
 #[tauri::command]
 pub fn get_metadata(event: Event) -> EventMetadata {
@@ -11,33 +12,39 @@ pub fn get_metadata(event: Event) -> EventMetadata {
 }
 
 #[tauri::command]
-pub fn new_event(
+pub async fn new_event(
+    state: State<'_, StorageState>,
     title: String,
     content: String,
     event_type: String,
     task_time: TaskTime,
-) -> Event {
+) -> Result<Event, String> {
     let metadata = EventMetadata::new();
     let event_type = match event_type.as_str() {
         "Instant" => EventType::Instant,
         "Duration" => EventType::Duration,
         _ => panic!("Invalid event type"),
     };
-    Event {
+    let mut new_evnet = Event {
         metadata,
         title,
         content,
         event_type,
         task_time,
         finished: false,
-    }
+    };
+    gen_tag(state, &mut new_evnet)
+        .await
+        .map_err(|e| e.to_string())?;
+    Ok(new_evnet)
 }
 
 #[tauri::command]
 pub async fn add_event(state: State<'_, StorageState>, event: Event) -> Result<(), String> {
     state
         .0
-        .lock().unwrap()
+        .lock()
+        .unwrap()
         .add(event)
         .map_err(|e| e.to_string())
 }
@@ -60,14 +67,16 @@ pub async fn new_list(state: State<'_, StorageState>, name: &str) -> Result<(), 
     todo!()
 }
 
-fn tag_exists(state: &State<'_, StorageState>,name: &str) -> bool {
+fn tag_exists(state: &State<'_, StorageState>, name: &str) -> bool {
     let mut hash = std::collections::hash_map::DefaultHasher::new();
     name.hash(&mut hash);
     let hash = hash.finish();
     let tag: Option<Tag> = state
         .0
-        .lock().unwrap()
-        .get_by_name(&hash.to_string()).unwrap();
+        .lock()
+        .unwrap()
+        .get_by_name(&hash.to_string())
+        .unwrap();
     if tag.is_none() {
         return false;
     }
@@ -84,9 +93,16 @@ pub async fn add_tag(
         return Ok(());
     }
     let tag = Tag::new(tag, color);
-    state
+    state.0.lock().unwrap().add(tag).map_err(|e| e.to_string())
+}
+
+#[tauri::command]
+pub async fn get_tags(state: State<'_, StorageState>) -> Result<Vec<Tag>, String> {
+    let tags = state
         .0
-        .lock().unwrap()
-        .add(tag)
-        .map_err(|e| e.to_string())
+        .lock()
+        .unwrap()
+        .get_all()
+        .map_err(|e| e.to_string())?;
+    Ok(tags)
 }

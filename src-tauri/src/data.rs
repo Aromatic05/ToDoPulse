@@ -16,8 +16,8 @@ const TAG_TABLE: Table = TableDefinition::new("tag");
 pub struct EventMetadata {
     uuid: String,
     timestamp: u64,
-    tag: Option<u8>,
     list: Option<u8>,
+    pub tag: Option<String>,
 }
 
 impl EventMetadata {
@@ -132,10 +132,6 @@ impl Tag {
         let mut hasher = std::collections::hash_map::DefaultHasher::new();
         name.hash(&mut hasher);
         let id = hasher.finish();
-        Self {
-            id,
-            name,
-            color,
-        }
+        Self { id, name, color }
     }
 }

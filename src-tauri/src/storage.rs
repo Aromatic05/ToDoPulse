@@ -1,7 +1,7 @@
 use anyhow::{Ok, Result};
 use redb::{self, Database, ReadableTable, TableDefinition};
 use serde::{Deserialize, Serialize};
-use std::{sync::Mutex, vec};
+use std::sync::Mutex;
 use tauri::Manager;
 
 type Table = TableDefinition<'static, &'static [u8], &'static [u8]>;
@@ -22,8 +22,10 @@ pub trait Repository<T: Entity> {
     fn add(&self, entity: T) -> Result<()>;
     fn delete(&self, id: &[u8]) -> Result<()>;
     fn get_by_name(&self, name: &str) -> Result<Option<T>>;
+    fn get_all(&self) -> Result<Vec<T>>;
 }
 
+#[allow(dead_code)]
 pub struct Storage {
     db: Database,
     event_repo: Table,
@@ -83,8 +85,21 @@ impl<T: Entity> Repository<T> for Storage {
         }
         Ok(None)
     }
+    fn get_all(&self) -> Result<Vec<T>> {
+        let txn = self.db.begin_read()?;
+        let table = T::table_def();
+        {
+            let t = txn.open_table(table)?;
+            let mut result = Vec::new();
+            for entry in t.iter()? {
+                let (_, value) = entry?;
+                let entity: T = serde_json::from_slice(value.value())?;
+                result.push(entity);
+            }
+            return Ok(result);
+        }
+    }
 }
-
 
 fn connect_to_db(app: &tauri::AppHandle) -> Result<Database> {
     let data_dir = app.path().data_dir()?.join("events");
@@ -95,4 +110,3 @@ fn connect_to_db(app: &tauri::AppHandle) -> Result<Database> {
     let db = Database::create(db_path)?;
     Ok(db)
 }
-

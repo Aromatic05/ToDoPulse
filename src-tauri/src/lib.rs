@@ -26,6 +26,7 @@ pub fn run() -> std::io::Result<()> {
             ipc::get_metadata,
             ipc::new_list,
             ipc::add_tag,
+            ipc::get_tags,
             config::parse,
         ])
         .run(tauri::generate_context!())
