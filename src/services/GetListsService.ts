@@ -3,7 +3,7 @@ import { invoke } from '@tauri-apps/api/core';
 
 // 列表项接口定义
 export interface ListItem {
-  id: string;
+  id: number;
   title: string;
   icon: string;
 }

@@ -6,7 +6,7 @@
             </v-card-title>
 
             <v-card-text>
-                <v-form ref="form" v-model="valid" @submit.prevent="createList">
+                <v-form ref="form" v-model="valid" @submit.prevent="createListLocal">
                     <v-text-field v-model="listName" label="列表名称" :rules="[v => !!v || '名称不能为空']" required
                         variant="outlined" class="mb-3"></v-text-field>
 
@@ -24,7 +24,7 @@
                 <v-btn color="grey-darken-1" variant="text" @click="closeModal">
                     取消
                 </v-btn>
-                <v-btn color="primary" variant="elevated" :disabled="!valid" @click="createList">
+                <v-btn color="primary" variant="elevated" :disabled="!valid" @click="createListLocal">
                     创建
                 </v-btn>
             </v-card-actions>
@@ -35,7 +35,7 @@
 <script setup lang="ts">
 import { ref, computed, watch } from 'vue';
 // 导入 createListAndStore 函数
-import { createListAndStore } from '@/services/GetListsService';
+import { createList } from '@/services/GetListsService';
 
 const props = defineProps({
     show: {
@@ -102,14 +102,14 @@ function closeModal() {
 }
 
 // 创建列表
-async function createList() {
+async function createListLocal() {
     if (!valid.value) return;
 
     const selectedIcon = availableIcons[selectedIconIndex.value];
     
     try {
         // 调用服务创建并存储列表
-        const updatedLists = await createListAndStore(listName.value, selectedIcon);
+        const updatedLists = await createList(listName.value, selectedIcon);
         // 发出创建成功的事件，传递列表名称、图标和更新后的列表
         emit('create', listName.value, selectedIcon, updatedLists);
         closeModal();
