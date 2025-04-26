@@ -77,7 +77,7 @@ impl Entity for Event {
 #[ts(export)]
 pub struct List {
     id: u64,
-    pub name: String,
+    pub title: String,
     pub icon: String,
 }
 
@@ -89,18 +89,18 @@ impl Entity for List {
         self.id.to_le_bytes().to_vec()
     }
     fn value(&self) -> Vec<u8> {
-        self.name.as_bytes().to_vec()
+        self.title.as_bytes().to_vec()
     }
 }
 
 impl List {
-    pub fn new(name: &str, icon: &str) -> Self {
+    pub fn new(title: &str, icon: &str) -> Self {
         let mut hasher = std::collections::hash_map::DefaultHasher::new();
-        name.hash(&mut hasher);
+        title.hash(&mut hasher);
         let id = hasher.finish();
         let icon = icon.to_string();
-        let name = name.to_string();
-        Self { name, id, icon }
+        let title = title.to_string();
+        Self { title, id, icon }
     }
 }
 

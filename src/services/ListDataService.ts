@@ -102,9 +102,10 @@ const tasksData: Record<string, EventCardData[]> = {
  * @param listId 列表ID
  * @returns Promise<EventCardData[]> 返回事件列表
  */
-export async function getTasksByListId(listId: string): Promise<EventCardData[]> {
+export async function getTasksByListId(listId: bigint): Promise<EventCardData[]> {
     // 返回指定列表的事件，如果列表不存在则返回空数组
-    return [...(tasksData[listId] || [])];
+    console.log(listId);
+    return [...(tasksData[listId.toString()] || [])];
 }
 
 /**

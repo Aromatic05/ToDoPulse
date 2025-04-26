@@ -21,7 +21,8 @@ export async function getLists(): Promise<List[]> {
  */
 export async function createList(title: string, icon: string = 'mdi-format-list-bulleted'): Promise<List[]> {
   try {
-    let newList: List = await invoke<List>('new_list', { name:title, icon });
+    let newList: List = await invoke<List>('new_list', { title, icon });
+    console.log(newList);
     listsData.push(newList);
     console.log(`Service: New list created with ID ${newList.id}`);
   } catch (error) {
@@ -36,11 +37,11 @@ export async function createList(title: string, icon: string = 'mdi-format-list-
  * @param newName 新的列表名称
  * @returns Promise<List[]> 返回更新后的列表数据
  */
-export async function renameList(id: bigint, newName: string): Promise<List[]> {
+export async function renameList(id: bigint, newTitle: string): Promise<List[]> {
   const listItem = listsData.find(l => l.id === id);
   if (listItem) {
-    listItem.name = newName;
-    console.log(`Service: List ${id} renamed to ${newName}`);
+    listItem.title = newTitle;
+    console.log(`Service: List ${id} renamed to ${newTitle}`);
   } else {
     console.error(`Service: List ${id} not found for renaming`);
   }

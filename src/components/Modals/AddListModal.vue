@@ -111,7 +111,7 @@ async function createListLocal() {
         // 调用服务创建并存储列表
         const updatedLists = await createList(listName.value, selectedIcon);
         // 发出创建成功的事件，传递列表名称、图标和更新后的列表
-        emit('create', listName.value, selectedIcon, updatedLists);
+        emit('create', updatedLists);
         closeModal();
     } catch (error) {
         console.error('创建列表失败:', error);

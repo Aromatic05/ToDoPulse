@@ -59,21 +59,21 @@ pub async fn delete_event(state: State<'_, StorageState>, uuid: &str) -> Result<
 #[tauri::command]
 pub async fn new_list(
     state: State<'_, StorageState>,
-    name: &str,
+    title: &str,
     icon: &str,
 ) -> Result<List, String> {
     let mut guard = state.0.lock().unwrap();
     let storage = guard.deref_mut();
-    let new_list = data::List::new(name, icon);
+    let new_list = data::List::new(title, icon);
     Repository::<data::List>::add(storage, &new_list).map_err(|e| e.to_string())?;
     Ok(new_list.clone())
 }
 
 #[tauri::command]
-pub async fn delete_list(state: State<'_, StorageState>, name: String) -> Result<(), String> {
+pub async fn delete_list(state: State<'_, StorageState>, title: String) -> Result<(), String> {
     let mut guard = state.0.lock().unwrap();
     let storage = guard.deref_mut();
-    Repository::<data::List>::delete(storage, &name).map_err(|e| e.to_string())?;
+    Repository::<data::List>::delete(storage, &title).map_err(|e| e.to_string())?;
     Ok(())
 }
 
