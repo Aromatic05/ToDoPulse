@@ -2,6 +2,7 @@ use chrono::Utc;
 use redb::{self, TableDefinition};
 use serde::{Deserialize, Serialize};
 use std::hash::{Hash, Hasher};
+use ts_rs::TS;
 use uuid::Uuid;
 
 use crate::storage::Entity;
@@ -12,7 +13,7 @@ const LIST_TABLE: Table = TableDefinition::new("lists");
 const EVENT_TABLE: Table = TableDefinition::new("events");
 const TAG_TABLE: Table = TableDefinition::new("tag");
 
-#[derive(Serialize, Deserialize, Debug, Clone, PartialEq)]
+#[derive(Serialize, Deserialize, TS, Clone, PartialEq)]
 pub struct EventMetadata {
     uuid: String,
     timestamp: u64,
@@ -31,25 +32,26 @@ impl EventMetadata {
     }
 }
 
-#[derive(Serialize, Deserialize, Debug, Clone, PartialEq)]
+#[derive(Serialize, Deserialize, TS, Clone, PartialEq)]
 pub enum EventType {
     Instant,
     Duration,
 }
 
-#[derive(Serialize, Deserialize, Debug, Clone, PartialEq)]
+#[derive(Serialize, Deserialize, TS, Clone, PartialEq)]
 pub struct DurationTime {
     pub start: u64,
     pub end: u64,
 }
 
-#[derive(Serialize, Deserialize, Debug, Clone, PartialEq)]
+#[derive(Serialize, Deserialize, TS, Clone, PartialEq)]
 pub enum TaskTime {
     Deadline(u64),
     Duration(DurationTime),
 }
 
-#[derive(Serialize, Deserialize, Debug, Clone)]
+#[derive(Serialize, Deserialize, TS, Clone)]
+#[ts(export)]
 pub struct Event {
     pub metadata: EventMetadata,
     pub title: String,
@@ -71,10 +73,12 @@ impl Entity for Event {
     }
 }
 
-#[derive(Serialize, Deserialize, Debug, Clone)]
+#[derive(Serialize, Deserialize, TS, Clone)]
+#[ts(export)]
 pub struct List {
     id: u64,
     pub name: String,
+    pub icon: String,
 }
 
 impl Entity for List {
@@ -90,15 +94,18 @@ impl Entity for List {
 }
 
 impl List {
-    pub fn new(name: String) -> Self {
+    pub fn new(name: &str, icon: &str) -> Self {
         let mut hasher = std::collections::hash_map::DefaultHasher::new();
         name.hash(&mut hasher);
         let id = hasher.finish();
-        Self { name, id }
+        let icon = icon.to_string();
+        let name = name.to_string();
+        Self { name, id, icon }
     }
 }
 
-#[derive(Serialize, Deserialize, Debug, Clone)]
+#[derive(Serialize, Deserialize, TS, Clone)]
+#[ts(export)]
 pub enum TagColor {
     Primary,
     Secondary,
@@ -108,7 +115,7 @@ pub enum TagColor {
     Error,
 }
 
-#[derive(Serialize, Deserialize, Debug, Clone)]
+#[derive(Serialize, Deserialize, Clone)]
 pub struct Tag {
     id: u64,
     pub name: String,

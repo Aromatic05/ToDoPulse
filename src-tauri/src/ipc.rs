@@ -5,7 +5,7 @@ use tauri::State;
 
 use crate::aigc::gen_tag;
 use crate::data::{self, Event, EventMetadata, EventType, Tag, TaskTime};
-use crate::storage::{Repository,StorageState};
+use crate::storage::{Repository, StorageState};
 
 #[tauri::command]
 pub fn get_metadata(event: Event) -> EventMetadata {
@@ -42,29 +42,49 @@ pub async fn new_event(
 
 #[tauri::command]
 pub async fn add_event(state: State<'_, StorageState>, event: Event) -> Result<(), String> {
-  let mut guard = state.0.lock().unwrap();
-  let storage = guard.deref_mut();
-  Repository::<Event>::add(storage, event)
-      .map_err(|e| e.to_string())?;
+    let mut guard = state.0.lock().unwrap();
+    let storage = guard.deref_mut();
+    Repository::<Event>::add(storage, event).map_err(|e| e.to_string())?;
     Ok(())
 }
 
 #[tauri::command]
-pub async fn delete_event(state: State<'_, StorageState>, uuid: String) -> Result<(), String> {
-    todo!()
+pub async fn delete_event(state: State<'_, StorageState>, uuid: &str) -> Result<(), String> {
+  let mut guard = state.0.lock().unwrap();
+  let storage = guard.deref_mut();
+  Repository::<Event>::delete(storage, uuid).map_err(|e| e.to_string())?;
+  Ok(())
 }
 
 #[tauri::command]
-pub async fn get_events(
+pub async fn new_list(
     state: State<'_, StorageState>,
-    deadline: u64,
-) -> Result<Vec<Event>, String> {
-    todo!()
+    name: &str,
+    icon: &str,
+) -> Result<(), String> {
+    let mut guard = state.0.lock().unwrap();
+    let storage = guard.deref_mut();
+    let new_list = data::List::new(name, icon);
+    Repository::<data::List>::add(storage, new_list).map_err(|e| e.to_string())?;
+    Ok(())
 }
 
 #[tauri::command]
-pub async fn new_list(state: State<'_, StorageState>, name: &str) -> Result<(), String> {
-    todo!()
+pub async fn delete_list(state: State<'_, StorageState>, name: String) -> Result<(), String> {
+    let mut guard = state.0.lock().unwrap();
+    let storage = guard.deref_mut();
+    Repository::<data::List>::delete(storage, &name).map_err(|e| e.to_string())?;
+    Ok(())
+}
+
+#[tauri::command]
+pub async fn get_lists(
+    state: State<'_, StorageState>,
+) -> Result<Vec<data::List>, String> {
+    let mut guard = state.0.lock().unwrap();
+    let storage = guard.deref_mut();
+    let lists = Repository::<data::List>::get_all(storage).map_err(|e| e.to_string())?;
+    Ok(lists)
 }
 
 fn tag_exists(state: &State<'_, StorageState>, name: &str) -> bool {
