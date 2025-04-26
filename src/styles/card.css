@@ -92,18 +92,67 @@
     border: 1px solid var(--md-sys-color-outline-variant);
 }
 
-.card-date {
-    font-size: 14px;
-    white-space: nowrap;
-    margin-left: 8px;
+.card-content-row {
+    display: flex;
+    align-items: center;
+    gap: 12px;
 }
 
+/* 圆形复选框样式 */
 .card-checkbox {
     cursor: pointer;
     width: 18px;
     height: 18px;
     flex-shrink: 0;
-    margin-right: 12px;
+    appearance: none; /* 移除默认样式 */
+    -webkit-appearance: none;
+    -moz-appearance: none;
+    background-color: transparent;
+    border: 2px solid var(--md-sys-color-outline);
+    border-radius: 50%; /* 圆形边框 */
+    position: relative;
+    margin: 0;
+    transition: all 0.3s;
+}
+
+/* 选中状态的复选框 */
+.card-checkbox:checked {
+    background-color: var(--md-sys-color-primary);
+    border-color: var(--md-sys-color-primary);
+}
+
+/* 选中状态的复选框中心标记 */
+.card-checkbox:checked::after {
+    content: '';
+    position: absolute;
+    width: 10px;
+    height: 10px;
+    background-color: white;
+    border-radius: 50%;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+}
+
+/* 悬停状态 */
+.card-checkbox:hover {
+    border-color: var(--md-sys-color-primary);
+}
+
+.card-title {
+    margin: 0;
+    flex-grow: 1;
+}
+
+.card-time {
+    white-space: nowrap;
+    margin-left: auto;
+}
+
+.card-date {
+    font-size: 14px;
+    white-space: nowrap;
+    margin-left: 8px;
 }
 
 /* 完成状态的卡片样式 */

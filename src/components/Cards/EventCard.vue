@@ -8,7 +8,7 @@
                 class="card-checkbox"
             />
             <h3 class="card-title">{{ localData.title }}</h3>
-            <span v-if="localData.date" class="card-date"
+            <span v-if="localData.time" class="card-"
                 :style="{ color: localData.dateColor || 'var(--md-sys-color-on-surface-variant)' }">
                 {{ localData.date }}
             </span>

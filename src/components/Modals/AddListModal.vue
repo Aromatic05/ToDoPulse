@@ -34,6 +34,8 @@
 
 <script setup lang="ts">
 import { ref, computed, watch } from 'vue';
+// 导入 createListAndStore 函数
+import { createListAndStore } from '@/services/GetListsService';
 
 const props = defineProps({
     show: {
@@ -100,11 +102,20 @@ function closeModal() {
 }
 
 // 创建列表
-function createList() {
+async function createList() {
     if (!valid.value) return;
 
     const selectedIcon = availableIcons[selectedIconIndex.value];
-    emit('create', listName.value, selectedIcon);
-    closeModal();
+    
+    try {
+        // 调用服务创建并存储列表
+        const updatedLists = await createListAndStore(listName.value, selectedIcon);
+        // 发出创建成功的事件，传递列表名称、图标和更新后的列表
+        emit('create', listName.value, selectedIcon, updatedLists);
+        closeModal();
+    } catch (error) {
+        console.error('创建列表失败:', error);
+        // 这里可以添加错误处理，比如显示错误提示
+    }
 }
 </script>

@@ -1,23 +1,34 @@
 import { reactive } from 'vue';
+import { v4 as uuidv4 } from 'uuid';
 
-// 定义类型接口 - 移除了dateGroup字段
+// 定义类型接口 - 按照新的定义
 export interface TimelineItem {
-    id: number;
+    id: string;
     title: string;
-    description: string;
+    isCompleted: boolean;
+    content: string;
+    priority: '高' | '中' | '低';
     time: string;
+    date: string;
+    dateColor: string;
     color: string;
     icon: string;
-    isCompleted: boolean;
+    listId: string;
+    tags: string[];
 }
 
 export interface EventCardData {
-    id: number;
+    id: string;
     title: string;
+    isCompleted: boolean;
     content: string;
+    priority?: '高' | '中' | '低'; 
+    time: string;
     date: string;
     dateColor: string;
-    isCompleted: boolean;
+    color: string;
+    icon: string;
+    listId: string;
     tags: string[];
 }
 
@@ -35,6 +46,14 @@ export interface GroupedTimelineItems {
 }
 
 class TimelineDataService {
+    // 列表ID常量 - 使用UUID替代简单字符串
+    private readonly LIST_IDS = {
+        WORK: '93a36bf8-e3f0-4e2d-8b3c-5fec9d399ef1',
+        MEETINGS: '7d8e6f45-9c0b-4a2d-8e7f-5a6b3c9d8e7f',
+        DESIGN: 'f1e2d3c4-b5a6-7890-1234-567890abcdef',
+        MARKETING: 'a1b2c3d4-e5f6-7890-1234-567890fedcba'
+    };
+
     // 时间线组标题数据
     private timelineGroups = reactive<TimelineGroup[]>([
         {
@@ -60,66 +79,96 @@ class TimelineDataService {
         }
     ]);
 
-    // 所有时间线项目数据 - 改为按组分类的二维数组
+    // 所有时间线项目数据 - 修改为使用UUID作为listId
     private timelineItems = reactive<GroupedTimelineItems>({
         'today': [
             {
-                id: 1,
+                id: uuidv4(),
                 title: '完成项目规划',
-                description: '讨论并确定项目范围、目标和里程碑',
-                time: '今天 09:00',
+                content: '讨论并确定项目范围、目标和里程碑',
+                priority: '高',
+                time: '09:00',
+                date: '2025-04-26',
+                dateColor: 'var(--md-sys-color-primary)',
                 color: 'primary',
                 icon: 'mdi-file-document',
-                isCompleted: true
+                isCompleted: true,
+                listId: this.LIST_IDS.WORK,
+                tags: ['today', 'work', 'high-priority']
             },
             {
-                id: 2,
+                id: uuidv4(),
                 title: '团队会议',
-                description: '周会：讨论本周工作进展和问题',
-                time: '今天 14:00',
+                content: '周会：讨论本周工作进展和问题',
+                priority: '中',
+                time: '14:00',
+                date: '2025-04-26',
+                dateColor: 'var(--md-sys-color-secondary)',
                 color: 'secondary',
                 icon: 'mdi-account-group',
-                isCompleted: false
+                isCompleted: false,
+                listId: this.LIST_IDS.MEETINGS,
+                tags: ['today', 'meeting']
             }
         ],
         'tomorrow': [
             {
-                id: 3,
+                id: uuidv4(),
                 title: '提交代码审查',
-                description: '提交新功能的代码审查请求',
-                time: '明天 10:30',
+                content: '提交新功能的代码审查请求',
+                priority: '中',
+                time: '10:30',
+                date: '2025-04-27',
+                dateColor: 'var(--md-sys-color-success)',
                 color: 'success',
                 icon: 'mdi-code-tags',
-                isCompleted: false
+                isCompleted: false,
+                listId: this.LIST_IDS.WORK,
+                tags: ['tomorrow', 'code-review']
             },
             {
-                id: 4,
+                id: uuidv4(),
                 title: 'UI设计评审',
-                description: '评审新界面设计和用户体验改进',
-                time: '明天 15:00',
+                content: '评审新界面设计和用户体验改进',
+                priority: '中',
+                time: '15:00',
+                date: '2025-04-27',
+                dateColor: 'var(--md-sys-color-info)',
                 color: 'info',
                 icon: 'mdi-palette',
-                isCompleted: false
+                isCompleted: false,
+                listId: this.LIST_IDS.DESIGN,
+                tags: ['tomorrow', 'design']
             }
         ],
         'next-week': [
             {
-                id: 5,
+                id: uuidv4(),
                 title: '项目进度汇报',
-                description: '向管理层汇报项目进展情况',
-                time: '下周一 11:00',
+                content: '向管理层汇报项目进展情况',
+                priority: '高',
+                time: '11:00',
+                date: '2025-04-28',
+                dateColor: 'var(--md-sys-color-warning)',
                 color: 'warning',
                 icon: 'mdi-chart-timeline',
-                isCompleted: false
+                isCompleted: false,
+                listId: this.LIST_IDS.MEETINGS,
+                tags: ['next-week', 'report']
             },
             {
-                id: 6,
+                id: uuidv4(),
                 title: '产品发布准备',
-                description: '准备产品发布材料和营销内容',
-                time: '下周三 09:30',
+                content: '准备产品发布材料和营销内容',
+                priority: '低',
+                time: '09:30',
+                date: '2025-04-30',
+                dateColor: 'var(--md-sys-color-error)',
                 color: 'error',
                 icon: 'mdi-rocket-launch',
-                isCompleted: false
+                isCompleted: false,
+                listId: this.LIST_IDS.MARKETING,
+                tags: ['next-week', 'release']
             }
         ]
     });
@@ -166,15 +215,19 @@ class TimelineDataService {
 
     // 将timeline数据格式转换为EventCard所需的格式
     formatCardData(item: TimelineItem, dateGroup: string): EventCardData {
-        return {
-            id: item.id,
-            title: item.title,
-            content: item.description,
-            date: item.time,
-            dateColor: this.getColorVariable(item.color),
-            isCompleted: item.isCompleted || false,
-            tags: [dateGroup] // 现在需要从外部传入dateGroup
+        // 确保tags包含dateGroup
+        const tags = [...(item.tags || [])];
+        if (!tags.includes(dateGroup)) {
+            tags.push(dateGroup);
         }
+        // if (!tags.includes(item.listId) && item.listId) {
+        //     tags.push(item.listId);
+        // }
+
+        return {
+            ...item,
+            tags
+        };
     }
 
     // 将颜色名称转换为CSS变量
@@ -197,35 +250,30 @@ class TimelineDataService {
         
         const index = items.findIndex(item => item.id === updatedData.id);
         if (index !== -1) {
-            // 从EventCard格式转回timeline格式
+            // 更新项目
             items[index] = {
                 ...items[index],
-                title: updatedData.title,
-                description: updatedData.content,
-                isCompleted: updatedData.isCompleted
+                ...updatedData
             };
         }
     }
     
-    // 添加新项目
-    addItem(item: Omit<TimelineItem, 'id'>, dateGroup: string): number {
+    // 添加新项目 - 使用UUID作为ID
+    addItem(item: Omit<TimelineItem, 'id'>, dateGroup: string): string {
         if (!this.timelineItems[dateGroup]) {
             this.timelineItems[dateGroup] = [];
         }
         
-        // 查找所有组中的最大ID
-        const allIds = Object.values(this.timelineItems)
-            .flat()
-            .map(item => item.id);
-        const newId = Math.max(0, ...allIds) + 1;
+        // 生成唯一UUID
+        const newId = uuidv4();
         
-        const newItem = { ...item, id: newId };
+        const newItem: TimelineItem = { ...item, id: newId };
         this.timelineItems[dateGroup].push(newItem);
         return newId;
     }
     
     // 删除项目
-    deleteItem(id: number, dateGroup: string): boolean {
+    deleteItem(id: string, dateGroup: string): boolean {
         const items = this.timelineItems[dateGroup];
         if (!items) return false;
         
@@ -238,7 +286,7 @@ class TimelineDataService {
     }
     
     // 跨分组移动项目
-    moveItem(id: number, fromGroup: string, toGroup: string): boolean {
+    moveItem(id: string, fromGroup: string, toGroup: string): boolean {
         const fromItems = this.timelineItems[fromGroup];
         if (!fromItems) return false;
         
@@ -254,9 +302,51 @@ class TimelineDataService {
         const item = { ...fromItems[index] };
         fromItems.splice(index, 1);
         
+        // 更新标签，添加新分组标签并移除旧分组标签
+        const tags = item.tags.filter(tag => tag !== fromGroup);
+        if (!tags.includes(toGroup)) {
+            tags.push(toGroup);
+        }
+        item.tags = tags;
+        
         // 添加到目标组
         this.timelineItems[toGroup].push(item);
         return true;
+    }
+    
+    // 根据列表ID筛选项目
+    getItemsByList(listId: string): TimelineItem[] {
+        return Object.values(this.timelineItems)
+            .flat()
+            .filter(item => item.listId === listId);
+    }
+    
+    // 获取所有的列表ID
+    getListIds(): string[] {
+        const allListIds = new Set<string>();
+        
+        Object.values(this.timelineItems)
+            .flat()
+            .forEach(item => {
+                if (item.listId) {
+                    allListIds.add(item.listId);
+                }
+            });
+            
+        return Array.from(allListIds);
+    }
+    
+    // 按优先级排序项目
+    sortItemsByPriority(items: TimelineItem[]): TimelineItem[] {
+        const priorityWeight = {
+            '高': 3,
+            '中': 2,
+            '低': 1
+        };
+        
+        return [...items].sort((a, b) => 
+            priorityWeight[b.priority] - priorityWeight[a.priority]
+        );
     }
 }
 

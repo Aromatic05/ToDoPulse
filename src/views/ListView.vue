@@ -10,29 +10,27 @@
         </v-row>
 
         <v-data-table :headers="headers" :items="tasks" :items-per-page="10" class="elevation-1 rounded">
-            <template v-slot:item.status="{ item }">
-                <v-checkbox v-model="item.completed" hide-details @change="toggleTask(item)"></v-checkbox>
+            <template v-slot:item="{ item }">
+                <tr>
+                    <td colspan="5" class="pa-2">
+                        <ListCard 
+                            :data="{ 
+                                id: item.id, 
+                                title: item.title, 
+                                content: item.description || '', 
+                                date: item.date, 
+                                isCompleted: item.completed,
+                                tags: [item.priority],
+                                dateColor: getPriorityColor(item.priority)
+                            }" 
+                            @update="handleCardUpdate($event, item)"
+                            @delete="deleteTaskItem(item)"
+                        />
+                    </td>
+                </tr>
             </template>
-
-            <template v-slot:item.title="{ item }">
-                <div :class="{ 'text-decoration-line-through': item.completed }">
-                    {{ item.title }}
-                </div>
-            </template>
-
-            <template v-slot:item.priority="{ item }">
-                <v-chip :color="getPriorityColor(item.priority)" size="small" text-color="white">
-                    {{ item.priority }}
-                </v-chip>
-            </template>
-
-            <template v-slot:item.actions="{ item }">
-                <v-icon small class="mr-2" @click="editTask(item)">
-                    mdi-pencil
-                </v-icon>
-                <v-icon small @click="deleteTaskItem(item)">
-                    mdi-delete
-                </v-icon>
+            <template v-slot:no-data>
+                <p class="text-center pa-4">暂无任务</p>
             </template>
         </v-data-table>
     </div>
@@ -40,17 +38,18 @@
 
 <script setup lang="ts">
 import { ref, computed, watch } from 'vue'
-import { getLists} from '@/services/GetListsService.ts';
+import { getLists } from '@/services/GetListsService.ts';
 import { getTasksByListId, addTask, toggleTaskStatus, updateTask, deleteTask, TaskItem } from '@/services/ListDataService';
+import ListCard from '@/components/Cards/ListCard.vue';  // 导入ListCard组件
 
 // 添加这个类型定义
 type HeaderAlign = 'start' | 'end' | 'center';
 interface DataTableHeader {
-  title: string;
-  key: string;
-  sortable?: boolean;
-  align?: HeaderAlign;
-  width?: string;
+    title: string;
+    key: string;
+    sortable?: boolean;
+    align?: HeaderAlign;
+    width?: string;
 }
 
 const props = defineProps({
@@ -76,7 +75,7 @@ const headers: DataTableHeader[] = [
     { title: '状态', key: 'status', sortable: false, align: 'center', width: '80px' },
     { title: '任务', key: 'title', sortable: true, align: 'start' },
     { title: '优先级', key: 'priority', sortable: true, align: 'center', width: '120px' },
-    { title: '截止日期', key: 'dueDate', sortable: true, align: 'center', width: '150px' },
+    { title: '截止日期', key: 'date', sortable: true, align: 'center', width: '150px' },
     { title: '操作', key: 'actions', sortable: false, align: 'center', width: '100px' }
 ]
 
@@ -89,11 +88,11 @@ async function loadListData() {
             // 获取列表信息
             const lists = await getLists();
             const currentList = lists.find(list => list.id === listId.value);
-            
+
             if (currentList) {
                 listTitle.value = currentList.title;
                 console.log(`加载列表: ${currentList.title} (ID: ${currentList.id})`);
-                
+
                 // 获取该列表的任务
                 tasks.value = await getTasksByListId(listId.value);
             } else {
@@ -162,6 +161,31 @@ async function deleteTaskItem(task: TaskItem) {
             tasks.value = await deleteTask(task.id, listId.value);
         } catch (error) {
             console.error('删除任务失败:', error);
+        }
+    }
+}
+
+// 添加处理ListCard更新的函数
+async function handleCardUpdate(updatedData: any, originalTask: TaskItem) {
+    if (listId.value) {
+        try {
+            // 处理完成状态切换
+            if (updatedData.isCompleted !== originalTask.completed) {
+                tasks.value = await toggleTaskStatus(originalTask.id, listId.value, updatedData.isCompleted);
+                return;
+            }
+            
+            // 处理其他更新
+            const updatedFields = { 
+                title: updatedData.title, 
+                priority: updatedData.tags?.[0] || originalTask.priority, 
+                dueDate: updatedData.date || originalTask.date,
+                description: updatedData.content
+            };
+            
+            tasks.value = await updateTask(originalTask.id, listId.value, updatedFields);
+        } catch (error) {
+            console.error('更新任务失败:', error);
         }
     }
 }
