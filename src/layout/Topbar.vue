@@ -32,10 +32,13 @@ import { ref, computed } from 'vue';
 import Breadcrumbs from '@/components/Breadcrumbs.vue';
 import ThemePicker from '@/components/ThemePicker.vue';
 
+// 定义视图名称的类型
+type ViewName = 'timeline' | 'calendar' | 'tags' | 'settings' | 'default';
+
 const props = defineProps({
     currentView: {
         type: String,
-        default: 'timeline'
+        default: 'timeline' as ViewName
     }
 });
 
@@ -43,7 +46,7 @@ const emit = defineEmits(['toggle-settings']);
 const isSettingsActive = ref(false);
 
 // 视图名称映射到英文标题
-const viewTitles = {
+const viewTitles: Record<ViewName, string> = {
     'timeline': 'Timeline',
     'calendar': 'Calendar',
     'tags': 'Tags',
@@ -56,7 +59,8 @@ const viewTitle = computed(() => {
     if (props.currentView.startsWith('list/')) {
         return 'List Details';
     }
-    return viewTitles[props.currentView] || viewTitles.default;
+    // 使用类型断言来确保 TypeScript 理解这是一个有效的键
+    return viewTitles[(props.currentView as ViewName)] || viewTitles.default;
 });
 
 function toggleSettings() {
@@ -65,12 +69,12 @@ function toggleSettings() {
 }
 
 // 添加暗色模式切换函数
-function toggleDarkMode() {
-    const themePickerInstance = document.querySelector('theme-picker')?.__vueParentComponent?.ctx;
-    if (themePickerInstance && typeof themePickerInstance.toggleDarkMode === 'function') {
-        themePickerInstance.toggleDarkMode();
-    }
-}
+// function toggleDarkMode() {
+//     const themePickerInstance = document.querySelector('theme-picker')?.__vueParentComponent?.ctx;
+//     if (themePickerInstance && typeof themePickerInstance.toggleDarkMode === 'function') {
+//         themePickerInstance.toggleDarkMode();
+//     }
+// }
 </script>
 
 <style scoped>

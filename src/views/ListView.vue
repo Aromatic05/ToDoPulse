@@ -39,9 +39,19 @@
 </template>
 
 <script setup lang="ts">
-import { ref, computed, onMounted, watch } from 'vue'
-import { getLists, ListItem } from '@/services/GetListsServices';
+import { ref, computed, watch } from 'vue'
+import { getLists} from '@/services/GetListsServices';
 import { getTasksByListId, addTask, toggleTaskStatus, updateTask, deleteTask, TaskItem } from '@/services/ListDataService';
+
+// 添加这个类型定义
+type HeaderAlign = 'start' | 'end' | 'center';
+interface DataTableHeader {
+  title: string;
+  key: string;
+  sortable?: boolean;
+  align?: HeaderAlign;
+  width?: string;
+}
 
 const props = defineProps({
     viewId: {
@@ -61,7 +71,8 @@ const tasks = ref<TaskItem[]>([])
 
 const newTask = ref('')
 
-const headers = [
+// 添加类型注解
+const headers: DataTableHeader[] = [
     { title: '状态', key: 'status', sortable: false, align: 'center', width: '80px' },
     { title: '任务', key: 'title', sortable: true, align: 'start' },
     { title: '优先级', key: 'priority', sortable: true, align: 'center', width: '120px' },
@@ -137,8 +148,12 @@ async function editTask(task: TaskItem) {
     console.log(`编辑任务: ${task.title}`);
     // 这里可以显示编辑对话框，然后调用 updateTask 服务
     // 示例：如果有编辑对话框的结果
-    // const updatedFields = { title: '新标题', priority: '高', dueDate: '2025-05-01' };
-    // tasks.value = await updateTask(task.id, listId.value, updatedFields);
+    const updatedFields = { title: '新标题', priority: '高' as '高' | '中' | '低', dueDate: '2025-05-01' };
+    if (listId.value) {
+        tasks.value = await updateTask(task.id, listId.value, updatedFields);
+    } else {
+        console.error('更新任务失败: listId 为 null');
+    }
 }
 
 async function deleteTaskItem(task: TaskItem) {

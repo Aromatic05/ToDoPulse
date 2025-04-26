@@ -48,7 +48,8 @@ const emit = defineEmits(['update:show', 'create']);
 const listName = ref('');
 const selectedIconIndex = ref(0);
 const valid = ref(false);
-const form = ref(null);
+// 添加类型注解
+const form = ref<{ resetValidation: () => void } | null>(null);
 
 // 可用的图标列表
 const availableIcons = [

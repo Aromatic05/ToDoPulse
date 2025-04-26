@@ -2,7 +2,7 @@
     <!-- 单一全局菜单 -->
     <v-menu
         v-model="show"
-        :activator="activatorElement"
+        :activator="activatorElement as unknown as Element"
         location="end"
         :close-on-content-click="true"
         :close-on-back="true"
@@ -54,7 +54,7 @@
 </template>
 
 <script setup lang="ts">
-import { ref, reactive, nextTick, computed } from 'vue';
+import { reactive, computed } from 'vue';
 
 interface ListItem {
     id: string;
@@ -68,8 +68,8 @@ const props = defineProps({
         default: false
     },
     activatorElement: {
-        type: [Object, null],
-        default: null
+        type: Object,
+        default: undefined
     },
     targetList: {
         type: Object as () => ListItem | null,

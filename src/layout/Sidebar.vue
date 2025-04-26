@@ -47,7 +47,7 @@
                             rounded="lg" 
                             color="var(--md-sys-color-primary)"
                             @click.stop="handleClick(`list/${list.id}`)"
-                            @contextmenu.prevent="showContextMenu(list, index, $event, $event.currentTarget)" 
+                            @contextmenu.prevent="showContextMenu(list, index, $event.currentTarget)" 
                             link
                             :ripple="true" 
                             :href="`#list-${list.id}`">
@@ -145,19 +145,19 @@ function handleClick(route: string) {
 
 const contextMenu = reactive({
     show: false,
-    targetList: null as ListItem | null,
+    targetList: undefined as ListItem | undefined,
     targetIndex: -1,
-    activatorElement: null as HTMLElement | null
+    activatorElement: undefined as HTMLElement | undefined
 });
 
-async function showContextMenu(list: ListItem, index: number, event: MouseEvent, element: HTMLElement) {
+async function showContextMenu(list: ListItem, index: number, element: HTMLElement) {
     if (contextMenu.show) {
         contextMenu.show = false;
         await nextTick();
     }
     contextMenu.targetList = list;
     contextMenu.targetIndex = index;
-    contextMenu.activatorElement = element;
+    contextMenu.activatorElement =  element;
     contextMenu.show = true;
 }
 
@@ -170,7 +170,7 @@ async function handleRename(id: string, newName: string) {
     }
 }
 
-async function handleDelete(id: string, index: number) {
+async function handleDelete(id: string) {
     try {
         // 调用服务层删除方法，并获取更新后的列表
         lists.value = await deleteList(id);

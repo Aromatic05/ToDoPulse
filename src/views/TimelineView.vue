@@ -54,8 +54,30 @@
 import { ref, computed } from 'vue'
 import EventCard from '@/components/Cards/EventCard.vue'
 
+// 定义类型接口
+interface TimelineItem {
+    id: number;
+    title: string;
+    description: string;
+    time: string;
+    color: string;
+    icon: string;
+    dateGroup: 'today' | 'tomorrow' | 'next-week';
+    isCompleted: boolean;
+}
+
+interface EventCardData {
+    id: number;
+    title: string;
+    content: string;
+    date: string;
+    dateColor: string;
+    isCompleted: boolean;
+    tags: string[];
+}
+
 // 所有时间线项目数据
-const timelineItems = ref([
+const timelineItems = ref<TimelineItem[]>([
     {
         id: 1,
         title: '完成项目规划',
@@ -132,7 +154,7 @@ const nextWeekItems = computed(() => {
 })
 
 // 将timeline数据格式转换为EventCard所需的格式
-const formatCardData = (item) => {
+const formatCardData = (item: TimelineItem): EventCardData => {
     return {
         id: item.id,
         title: item.title,
@@ -145,8 +167,8 @@ const formatCardData = (item) => {
 }
 
 // 将颜色名称转换为CSS变量
-const getColorVariable = (color: string) => {
-    const colorMap = {
+const getColorVariable = (color: string): string => {
+    const colorMap: Record<string, string> = {
         'primary': 'var(--md-sys-color-primary)',
         'secondary': 'var(--md-sys-color-secondary)',
         'info': 'var(--md-sys-color-tertiary)',
@@ -158,7 +180,7 @@ const getColorVariable = (color: string) => {
 }
 
 // 更新项目的回调函数
-const updateItem = (updatedData) => {
+const updateItem = (updatedData: EventCardData): void => {
     const index = timelineItems.value.findIndex(item => item.id === updatedData.id)
     if (index !== -1) {
         // 从EventCard格式转回timeline格式

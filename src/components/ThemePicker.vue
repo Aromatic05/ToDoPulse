@@ -31,7 +31,7 @@ import {
     loadThemePreference,
     saveThemePreference,
     getThemeClassName,
-    getSystemThemePreference
+    // getSystemThemePreference
 } from '@/services/ThemeService';
 
 // 定义类型接口
