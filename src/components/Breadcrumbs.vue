@@ -16,7 +16,7 @@
 
 <script setup lang="ts">
 import { ref, computed, onMounted, onUnmounted } from 'vue';
-import { getLists } from '@/services/GetListsServices';
+import { getLists } from '@/services/GetListsService.ts';
 
 // 当前列表数据
 const currentList = ref<{ id: string, title: string } | null>(null);

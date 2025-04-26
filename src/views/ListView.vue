@@ -40,7 +40,7 @@
 
 <script setup lang="ts">
 import { ref, computed, watch } from 'vue'
-import { getLists} from '@/services/GetListsServices';
+import { getLists} from '@/services/GetListsService.ts';
 import { getTasksByListId, addTask, toggleTaskStatus, updateTask, deleteTask, TaskItem } from '@/services/ListDataService';
 
 // 添加这个类型定义

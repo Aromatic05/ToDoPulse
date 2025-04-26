@@ -2,196 +2,55 @@
     <div class="timeline-view">
         <v-timeline side="end" align="start" class="timeline-force-left"
             line-color=var(--md-sys-color-outline)>
-            <!-- 今天的事项 -->
-            <v-timeline-item dot-color="primary" size="large" fill-dot>
-                <template v-slot:icon>
-                    <v-avatar color="primary">
-                        <v-icon color="white">mdi-calendar-today</v-icon>
-                    </v-avatar>
-                </template>
-                <div class="timeline-group-title">今天</div>
-            </v-timeline-item>
+            
+            <template v-for="group in timelineGroups" :key="group.id">
+                <!-- 时间线组标题 - 从服务获取 -->
+                <v-timeline-item :dot-color="group.color" size="large" fill-dot>
+                    <template v-slot:icon>
+                        <v-avatar :color="group.color">
+                            <v-icon color="white">{{ group.iconName }}</v-icon>
+                        </v-avatar>
+                    </template>
+                    <div class="timeline-group-title">{{ group.title }}</div>
+                </v-timeline-item>
 
-            <v-timeline-item v-for="item in todayItems" :key="item.id" :dot-color="item.color" :icon="item.icon"
-                size="small" density="compact">
-                <EventCard :data="formatCardData(item)" @update="updateItem" />
-            </v-timeline-item>
-
-            <!-- 明天的事项 -->
-            <v-timeline-item dot-color="secondary" size="large" fill-dot>
-                <template v-slot:icon>
-                    <v-avatar color="secondary">
-                        <v-icon color="white">mdi-calendar-arrow-right</v-icon>
-                    </v-avatar>
-                </template>
-                <div class="timeline-group-title">明天</div>
-            </v-timeline-item>
-
-            <v-timeline-item v-for="item in tomorrowItems" :key="item.id" :dot-color="item.color" :icon="item.icon"
-                size="small" density="compact">
-                <EventCard :data="formatCardData(item)" @update="updateItem" />
-            </v-timeline-item>
-
-            <!-- 下周的事项 -->
-            <v-timeline-item dot-color="info" size="large" fill-dot>
-                <template v-slot:icon>
-                    <v-avatar color="info">
-                        <v-icon color="white">mdi-calendar-week</v-icon>
-                    </v-avatar>
-                </template>
-                <div class="timeline-group-title">下周</div>
-            </v-timeline-item>
-
-            <v-timeline-item v-for="item in nextWeekItems" :key="item.id" :dot-color="item.color" :icon="item.icon"
-                size="small" density="compact">
-                <EventCard :data="formatCardData(item)" @update="updateItem" />
-            </v-timeline-item>
+                <!-- 该组的所有项目 -->
+                <v-timeline-item 
+                    v-for="item in getItemsByGroup(group.dateGroup)" 
+                    :key="item.id" 
+                    :dot-color="item.color" 
+                    :icon="item.icon"
+                    size="small" 
+                    density="compact">
+                    <EventCard :data="formatCardData(item, group.dateGroup)" @update="(data: EventCardData) => updateItem(data, group.dateGroup)" />
+                </v-timeline-item>
+            </template>
         </v-timeline>
     </div>
 </template>
 
 <script setup lang="ts">
-import { ref, computed } from 'vue'
+import { computed } from 'vue'
 import EventCard from '@/components/Cards/EventCard.vue'
+import timelineService, { TimelineItem, EventCardData } from '@/services/TimelineDataService'
 
-// 定义类型接口
-interface TimelineItem {
-    id: number;
-    title: string;
-    description: string;
-    time: string;
-    color: string;
-    icon: string;
-    dateGroup: 'today' | 'tomorrow' | 'next-week';
-    isCompleted: boolean;
-}
+// 使用服务获取时间线组数据
+const timelineGroups = computed(() => timelineService.getTimelineGroups());
 
-interface EventCardData {
-    id: number;
-    title: string;
-    content: string;
-    date: string;
-    dateColor: string;
-    isCompleted: boolean;
-    tags: string[];
-}
+// 获取特定组的项目
+const getItemsByGroup = (dateGroup: string): TimelineItem[] => {
+    return timelineService.getItemsByGroup(dateGroup);
+};
 
-// 所有时间线项目数据
-const timelineItems = ref<TimelineItem[]>([
-    {
-        id: 1,
-        title: '完成项目规划',
-        description: '讨论并确定项目范围、目标和里程碑',
-        time: '今天 09:00',
-        color: 'primary',
-        icon: 'mdi-file-document',
-        dateGroup: 'today',
-        isCompleted: false
-    },
-    {
-        id: 2,
-        title: '团队会议',
-        description: '周会：讨论本周工作进展和问题',
-        time: '今天 14:00',
-        color: 'secondary',
-        icon: 'mdi-account-group',
-        dateGroup: 'today',
-        isCompleted: false
-    },
-    {
-        id: 3,
-        title: '提交代码审查',
-        description: '提交新功能的代码审查请求',
-        time: '明天 10:30',
-        color: 'success',
-        icon: 'mdi-code-tags',
-        dateGroup: 'tomorrow',
-        isCompleted: false
-    },
-    {
-        id: 4,
-        title: 'UI设计评审',
-        description: '评审新界面设计和用户体验改进',
-        time: '明天 15:00',
-        color: 'info',
-        icon: 'mdi-palette',
-        dateGroup: 'tomorrow',
-        isCompleted: false
-    },
-    {
-        id: 5,
-        title: '项目进度汇报',
-        description: '向管理层汇报项目进展情况',
-        time: '下周一 11:00',
-        color: 'warning',
-        icon: 'mdi-chart-timeline',
-        dateGroup: 'next-week',
-        isCompleted: false
-    },
-    {
-        id: 6,
-        title: '产品发布准备',
-        description: '准备产品发布材料和营销内容',
-        time: '下周三 09:30',
-        color: 'error',
-        icon: 'mdi-rocket-launch',
-        dateGroup: 'next-week',
-        isCompleted: false
-    }
-])
+// 使用服务的格式转换函数，添加明确的类型定义
+const formatCardData = (item: TimelineItem, dateGroup: string): EventCardData => {
+    return timelineService.formatCardData(item, dateGroup);
+};
 
-// 按日期分组的计算属性
-const todayItems = computed(() => {
-    return timelineItems.value.filter(item => item.dateGroup === 'today')
-})
-
-const tomorrowItems = computed(() => {
-    return timelineItems.value.filter(item => item.dateGroup === 'tomorrow')
-})
-
-const nextWeekItems = computed(() => {
-    return timelineItems.value.filter(item => item.dateGroup === 'next-week')
-})
-
-// 将timeline数据格式转换为EventCard所需的格式
-const formatCardData = (item: TimelineItem): EventCardData => {
-    return {
-        id: item.id,
-        title: item.title,
-        content: item.description,
-        date: item.time,
-        dateColor: getColorVariable(item.color),
-        isCompleted: item.isCompleted || false,
-        tags: [item.dateGroup] // 使用dateGroup作为标签
-    }
-}
-
-// 将颜色名称转换为CSS变量
-const getColorVariable = (color: string): string => {
-    const colorMap: Record<string, string> = {
-        'primary': 'var(--md-sys-color-primary)',
-        'secondary': 'var(--md-sys-color-secondary)',
-        'info': 'var(--md-sys-color-tertiary)',
-        'success': 'var(--md-sys-color-success)',
-        'warning': 'var(--md-sys-color-warning)',
-        'error': 'var(--md-sys-color-error)'
-    }
-    return colorMap[color] || 'var(--md-sys-color-on-surface-variant)'
-}
-
-// 更新项目的回调函数
-const updateItem = (updatedData: EventCardData): void => {
-    const index = timelineItems.value.findIndex(item => item.id === updatedData.id)
-    if (index !== -1) {
-        // 从EventCard格式转回timeline格式
-        timelineItems.value[index] = {
-            ...timelineItems.value[index],
-            title: updatedData.title,
-            description: updatedData.content,
-            isCompleted: updatedData.isCompleted
-        }
-    }
-}
+// 使用服务的更新函数，添加明确的类型定义
+const updateItem = (updatedData: EventCardData, dateGroup: string): void => {
+    timelineService.updateItem(updatedData, dateGroup);
+};
 </script>
 
 <style scoped>
@@ -257,5 +116,4 @@ const updateItem = (updatedData: EventCardData): void => {
     max-width: 100% !important;
     flex: 1 1 auto !important;
 }
-
 </style>
