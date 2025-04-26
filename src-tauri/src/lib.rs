@@ -4,6 +4,7 @@ mod aigc;
 mod config;
 mod filter;
 mod data;
+mod debug;
 
 use std::sync::Mutex;
 use storage::{Storage, StorageState};
@@ -11,6 +12,7 @@ use tauri::Manager;
 
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() -> std::io::Result<()> {
+    println!("Starting application...");
     tauri::Builder::default()
         .setup(|app|{
           let storage = Storage::new(app.handle())?;

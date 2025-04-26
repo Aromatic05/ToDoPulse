@@ -4,7 +4,7 @@ use std::ops::DerefMut;
 use tauri::State;
 
 use crate::aigc::gen_tag;
-use crate::data::{self, Event, EventMetadata, EventType, Tag, TaskTime};
+use crate::data::{self, Event, EventMetadata, EventType, List, Tag, TaskTime};
 use crate::storage::{Repository, StorageState};
 
 #[tauri::command]
@@ -44,7 +44,7 @@ pub async fn new_event(
 pub async fn add_event(state: State<'_, StorageState>, event: Event) -> Result<(), String> {
     let mut guard = state.0.lock().unwrap();
     let storage = guard.deref_mut();
-    Repository::<Event>::add(storage, event).map_err(|e| e.to_string())?;
+    Repository::<Event>::add(storage, &event).map_err(|e| e.to_string())?;
     Ok(())
 }
 
@@ -61,12 +61,12 @@ pub async fn new_list(
     state: State<'_, StorageState>,
     name: &str,
     icon: &str,
-) -> Result<(), String> {
+) -> Result<List, String> {
     let mut guard = state.0.lock().unwrap();
     let storage = guard.deref_mut();
     let new_list = data::List::new(name, icon);
-    Repository::<data::List>::add(storage, new_list).map_err(|e| e.to_string())?;
-    Ok(())
+    Repository::<data::List>::add(storage, &new_list).map_err(|e| e.to_string())?;
+    Ok(new_list.clone())
 }
 
 #[tauri::command]
@@ -112,7 +112,7 @@ pub async fn add_tag(
         return Ok(());
     }
     let tag = Tag::new(tag, color);
-    state.0.lock().unwrap().add(tag).map_err(|e| e.to_string())
+    state.0.lock().unwrap().add(&tag).map_err(|e| e.to_string())
 }
 
 #[tauri::command]

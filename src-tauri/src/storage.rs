@@ -19,7 +19,7 @@ pub trait Entity: Serialize + for<'de> Deserialize<'de> {
 }
 
 pub trait Repository<T: Entity> {
-    fn add(&self, entity: T) -> Result<()>;
+    fn add(&self, entity: &T) -> Result<()>;
     fn delete(&self, name: &str) -> Result<()>;
     fn get_by_name(&self, name: &str) -> Result<Option<T>>;
     fn get_all(&self) -> Result<Vec<T>>;
@@ -49,7 +49,7 @@ impl Storage {
 }
 
 impl<T: Entity> Repository<T> for Storage {
-    fn add(&self, entity: T) -> Result<()> {
+    fn add(&self, entity: &T) -> Result<()> {
         let txn = self.db.begin_write()?;
         let table = T::table_def();
         {
@@ -103,6 +103,9 @@ impl<T: Entity> Repository<T> for Storage {
 
 fn connect_to_db(app: &tauri::AppHandle) -> Result<Database> {
     let data_dir = app.path().data_dir()?.join("events");
+    if !data_dir.exists() {
+        std::fs::create_dir_all(&data_dir)?;
+    }
     let db_path = data_dir.join("events.db");
     if !db_path.exists() {
         std::fs::create_dir_all(&data_dir)?;
