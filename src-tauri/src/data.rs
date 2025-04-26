@@ -17,7 +17,7 @@ pub struct EventMetadata {
     uuid: String,
     timestamp: u64,
     list: Option<u8>,
-    pub tag: Option<String>,
+    pub tag: Option<Vec<String>>,
 }
 
 impl EventMetadata {

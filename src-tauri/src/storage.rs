@@ -20,7 +20,7 @@ pub trait Entity: Serialize + for<'de> Deserialize<'de> {
 
 pub trait Repository<T: Entity> {
     fn add(&self, entity: T) -> Result<()>;
-    fn delete(&self, id: &[u8]) -> Result<()>;
+    fn delete(&self, name: &str) -> Result<()>;
     fn get_by_name(&self, name: &str) -> Result<Option<T>>;
     fn get_all(&self) -> Result<Vec<T>>;
 }
@@ -61,12 +61,12 @@ impl<T: Entity> Repository<T> for Storage {
         txn.commit()?;
         Ok(())
     }
-    fn delete(&self, id: &[u8]) -> Result<()> {
+    fn delete(&self, name: &str) -> Result<()> {
         let txn = self.db.begin_write()?;
         let table = T::table_def();
         {
             let mut t = txn.open_table(table)?;
-            let key = id;
+            let key = name.as_bytes();
             t.remove(key)?;
         }
         txn.commit()?;

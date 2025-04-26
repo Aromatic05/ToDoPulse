@@ -4479,7 +4479,6 @@ dependencies = [
  "tauri-build",
  "tauri-plugin-opener",
  "tauri-plugin-updater",
- "thiserror 2.0.12",
  "tokio",
  "toml",
  "uuid",

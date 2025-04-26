@@ -1,6 +1,5 @@
-// src/types.ts
+//这个文件定义了与 Rust 代码中 TypeScript 数据接口
 
-// 对应 Rust 中的 EventMetadata
 export interface EventMetadata {
   uuid: string;
   timestamp: number;
@@ -8,24 +7,20 @@ export interface EventMetadata {
   list: number | null;
 }
 
-// 对应 Rust 中的 EventType
 export enum EventType {
   Instant = "Instant",
   Duration = "Duration"
 }
 
-// 对应 Rust 中的 DurationTime
 export interface DurationTime {
   start: number;
   end: number;
 }
 
-// 对应 Rust 中的 TaskTime
 export type TaskTime = 
   | { Deadline: number }
   | { Duration: DurationTime };
 
-// 对应 Rust 中的 Event
 export interface Event {
   metadata: EventMetadata;
   title: string;
@@ -35,7 +30,6 @@ export interface Event {
   finished: boolean;
 }
 
-// 对应 Rust 中的 TagColor
 export enum TagColor {
   Primary = "Primary",
   Secondary = "Secondary",
@@ -45,13 +39,11 @@ export enum TagColor {
   Error = "Error"
 }
 
-// 对应 Rust 中的 Tag
 export interface Tag {
   name: string;
   color: TagColor;
 }
 
-// 对应 Rust 中的 List
 export interface List {
   name: string;
 }

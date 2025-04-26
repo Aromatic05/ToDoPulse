@@ -50,7 +50,7 @@ struct RawResponse {
 
 pub async fn gen_tag(
     state: State<'_, StorageState>,
-    evnet: & mut Event,
+    event: &mut Event,
 ) -> Result<(), Box<dyn std::error::Error>> {
     let url = "https://api.siliconflow.cn/v1/chat/completions";
     let client = reqwest::Client::new();
@@ -60,10 +60,13 @@ pub async fn gen_tag(
         .map(|tag| tag.name.clone())
         .collect::<Vec<String>>()
         .join(",");
-    let prompt = format!("你的任务是帮助用户为以下文本打上标签{}。
+    let prompt = format!(
+        "你的任务是帮助用户为以下文本打上标签{}。
     标签可以不止一个，但是只能从给出的词语中进行选择：{}。
-    你的答案只包含你选择的标签的内容，并且标签之间用英文逗号分隔。"
-    ,evnet.content.clone(),tags);
+    你的答案只包含你选择的标签的内容，并且标签之间用英文逗号分隔。",
+        event.content.clone(),
+        tags
+    );
 
     let request_body = ChatRequest {
         model: "deepseek-ai/DeepSeek-V3".to_string(),
@@ -103,10 +106,13 @@ pub async fn gen_tag(
             Ok(chat_response) => {
                 if let Some(choice) = chat_response.choices.first() {
                     let generated_tag = choice.message.content.trim().to_string();
-                    evnet.metadata.tag = Some(generated_tag
-                        .split(',')
-                        .map(|s| s.to_string())
-                        .collect());
+                    event.metadata.tag = Some(
+                        generated_tag
+                            .split(',')
+                            .map(|s| s.to_string())
+                            .filter(|s| !s.is_empty())
+                            .collect(),
+                    );
 
                     Ok(())
                 } else {
