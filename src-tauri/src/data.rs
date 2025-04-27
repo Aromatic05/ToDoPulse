@@ -15,9 +15,9 @@ const TAG_TABLE: Table = TableDefinition::new("tag");
 
 #[derive(Serialize, Deserialize,Clone, PartialEq)]
 pub struct EventMetadata {
-    uuid: String,
-    timestamp: u64,
-    list: Option<u8>,
+    pub uuid: String,
+    pub timestamp: u64,
+    pub list: Option<u8>,
     pub tag: Option<Vec<String>>,
 }
 
@@ -48,19 +48,24 @@ pub struct Event {
     pub task_time: u64,
     pub finished: bool,
     pub priority: Priority,
+    pub icon: String,
+    pub color: String,
 }
 
 #[derive(Serialize, Deserialize, TS, Clone)]
 #[ts(export)]
 pub struct FEvent {
-    id: String,
-    timestamp: u64,
-    list: Option<u8>,
+    pub id: String,
+    pub time: String,
+    pub date: String,
+    pub listid: String,
     pub tag: Option<Vec<String>>,
     pub title: String,
     pub task_time: u64,
     pub finished: bool,
     pub priority: Priority,
+    pub icon: String,
+    pub color: String,
 }
 
 impl Entity for Event {
@@ -78,7 +83,7 @@ impl Entity for Event {
 #[derive(Serialize, Deserialize, TS, Clone)]
 #[ts(export)]
 pub struct List {
-    id: u64,
+    pub id: u64,
     pub title: String,
     pub icon: String,
 }

@@ -6,17 +6,20 @@ use tauri::Manager;
 use tauri::State;
 
 use crate::aigc::gen_tag;
-use crate::data::{self, Event, EventMetadata, List, Tag};
+use crate::data::{self, Event, EventMetadata, FEvent, List, Tag};
 use crate::storage::{Repository, StorageState};
+use crate::time::{date, time};
 
 #[tauri::command]
 pub async fn add_event(
     state: State<'_, StorageState>,
-    title: String,
-    content: String,
+    title: &str,
+    content: &str,
     task_time: u64,
     tag: Option<Vec<String>>,
     app: State<'_, tauri::AppHandle>,
+    color: &str,
+    icon: &str,
 ) -> Result<Event, String> {
     let metadata = EventMetadata::new();
     let content_path = app
@@ -31,11 +34,13 @@ pub async fn add_event(
     fs::write(&content_path, content).map_err(|e| e.to_string())?;
     let mut new_event = Event {
         metadata,
-        title,
+        title: title.to_string(),
         content: content_path.to_string_lossy().to_string(),
         task_time,
         finished: false,
         priority: data::Priority::Undefined,
+        color: color.to_string(),
+        icon: icon.to_string(),
     };
     if let Some(tag_value) = tag {
         new_event.metadata.tag = Some(tag_value);
@@ -48,6 +53,36 @@ pub async fn add_event(
     let storage = guard.deref_mut();
     Repository::<Event>::add(storage, &new_event).map_err(|e| e.to_string())?;
     Ok(new_event.clone())
+}
+
+#[tauri::command]
+pub async fn get_event(
+    state: State<'_, StorageState>,
+    uuid: &str,
+) -> Result<Option<FEvent>, String> {
+    let mut guard = state.0.lock().unwrap();
+    let storage = guard.deref_mut();
+    let event = Repository::<Event>::get_by_name(storage, uuid).map_err(|e| e.to_string())?;
+    if let Some(event) = event {
+        let f_event = FEvent {
+            id: event.metadata.uuid,
+            listid: match event.metadata.list {
+                None => "Undefined".to_string(),
+                Some(listid) => listid.to_string(),
+            },
+            time: time(event.metadata.timestamp),
+            date: date(event.metadata.timestamp),
+            tag: event.metadata.tag,
+            title: event.title,
+            task_time: event.task_time,
+            finished: event.finished,
+            priority: event.priority,
+            color: event.color,
+            icon: event.icon,
+        };
+        return Ok(Some(f_event));
+    }
+    Ok(None)
 }
 
 #[tauri::command]
