@@ -6,6 +6,7 @@ mod filter;
 mod data;
 mod debug;
 mod time;
+mod utils;
 
 use std::sync::Mutex;
 use storage::{Storage, StorageState};
@@ -31,6 +32,7 @@ pub fn run() -> std::io::Result<()> {
             ipc::new_list,
             ipc::get_lists,
             ipc::delete_list,
+            ipc::list_content,
             ipc::add_tag,
             ipc::get_tags,
             ipc::delete_tag,

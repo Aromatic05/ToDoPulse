@@ -1,14 +1,13 @@
 use redb::Result;
 use std::fs;
-use std::hash::{Hash, Hasher};
 use std::ops::DerefMut;
 use tauri::Manager;
 use tauri::State;
 
 use crate::aigc::gen_tag;
-use crate::data::{self, Event, EventMetadata, FEvent, List, Tag};
+use crate::data::{self, Event, EventMetadata, FEvent, FList, List, Tag};
 use crate::storage::{Repository, StorageState};
-use crate::time::{date, time};
+use crate::utils::{event_to_fevent, list_exists, tag_exists};
 
 #[tauri::command]
 pub async fn add_event(
@@ -67,22 +66,7 @@ pub async fn get_event(
     let storage = guard.deref_mut();
     let event = Repository::<Event>::get_by_name(storage, uuid).map_err(|e| e.to_string())?;
     if let Some(event) = event {
-        let f_event = FEvent {
-            id: event.metadata.uuid,
-            listid: match event.metadata.list {
-                None => "Undefined".to_string(),
-                Some(listid) => listid.to_string(),
-            },
-            time: time(event.task_time),
-            date: date(event.task_time),
-            tag: event.metadata.tag,
-            title: event.title,
-            create: date(event.metadata.timestamp),
-            finished: event.finished,
-            priority: event.priority,
-            color: event.color,
-            icon: event.icon,
-        };
+        let f_event = event_to_fevent(&event);
         return Ok(Some(f_event));
     }
     Ok(None)
@@ -118,26 +102,36 @@ pub async fn delete_list(state: State<'_, StorageState>, title: String) -> Resul
 }
 
 #[tauri::command]
-pub async fn get_lists(state: State<'_, StorageState>) -> Result<Vec<data::List>, String> {
+pub async fn get_lists(state: State<'_, StorageState>) -> Result<Vec<data::FList>, String> {
     let mut guard = state.0.lock().unwrap();
     let storage = guard.deref_mut();
     let lists = Repository::<data::List>::get_all(storage).map_err(|e| e.to_string())?;
-    Ok(lists)
+    let f_lists: Vec<FList> = lists
+        .into_iter()
+        .map(|list| FList {
+            id: list.id.to_string(),
+            title: list.title,
+            icon: list.icon,
+        })
+        .collect();
+    Ok(f_lists)
 }
 
-fn tag_exists(state: &State<'_, StorageState>, name: &str) -> bool {
-    let mut hash = std::collections::hash_map::DefaultHasher::new();
-    name.hash(&mut hash);
-    let hash = hash.finish();
-    let mut guard = state.0.lock().unwrap();
-    let storage = guard.deref_mut();
-    let tag: Option<Tag> = Repository::<Tag>::get_by_name(storage, &hash.to_string())
-        .map_err(|e| e.to_string())
-        .unwrap();
-    if tag.is_none() {
-        return false;
+#[tauri::command]
+pub async fn list_content(state: State<'_, StorageState>, listid: &str) -> Result<FEvent, String> {
+    if !list_exists(&state, listid) {
+        Err("List not found".to_string())
+    } else {
+        let mut guard = state.0.lock().unwrap();
+        let storage = guard.deref_mut();
+        let event = Repository::<Event>::get_by_name(storage, listid).map_err(|e| e.to_string())?;
+        if let Some(event) = event {
+            let f_event = event_to_fevent(&event);
+            Ok(f_event)
+        } else {
+            Err("Event not found".to_string())
+        }
     }
-    true
 }
 
 #[tauri::command]

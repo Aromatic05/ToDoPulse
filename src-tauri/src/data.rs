@@ -80,8 +80,15 @@ impl Entity for Event {
     }
 }
 
-#[derive(Serialize, Deserialize, TS, Clone)]
+#[derive(Serialize, Deserialize,TS ,Clone)]
 #[ts(export)]
+pub struct FList {
+    pub id: String,
+    pub title: String,
+    pub icon: String,
+}
+
+#[derive(Serialize, Deserialize, Clone)]
 pub struct List {
     pub id: u64,
     pub title: String,
