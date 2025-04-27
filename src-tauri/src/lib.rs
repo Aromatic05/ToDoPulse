@@ -12,26 +12,26 @@ use tauri::Manager;
 
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() -> std::io::Result<()> {
-    println!("Starting application...");
     tauri::Builder::default()
         .setup(|app|{
           let storage = Storage::new(app.handle())?;
           app.manage(StorageState(Mutex::new(storage)));
+          match config::parse(app.handle()) {
+            Ok(_) => println!("Config parsed successfully"),
+            Err(e) => eprintln!("Failed to parse config: {}", e),
+          }
           Ok(())
         }
         )
         .invoke_handler(tauri::generate_handler![
-            ipc::new_event,
             ipc::add_event,
             ipc::delete_event,
-            ipc::get_metadata,
             ipc::new_list,
             ipc::get_lists,
             ipc::delete_list,
             ipc::add_tag,
             ipc::get_tags,
             ipc::delete_tag,
-            config::parse,
         ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");

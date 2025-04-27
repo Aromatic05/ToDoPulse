@@ -1,10 +1,11 @@
 use log::{error, info};
 use reqwest;
 use serde::{Deserialize, Serialize};
-use std::env;
+use std::fs;
+use std::path::PathBuf;
 use tauri::State;
 
-use crate::data::Event;
+use crate::config::{get_api_key, use_llm};
 use crate::ipc::get_tags;
 use crate::storage::StorageState;
 
@@ -50,8 +51,11 @@ struct RawResponse {
 
 pub async fn gen_tag(
     state: State<'_, StorageState>,
-    event: &mut Event,
-) -> Result<(), Box<dyn std::error::Error>> {
+    content_path: &PathBuf,
+) -> Result<Option<Vec<String>>, Box<dyn std::error::Error>> {
+    if !use_llm() {
+        return Ok(None);
+    }
     let url = "https://api.siliconflow.cn/v1/chat/completions";
     let client = reqwest::Client::new();
     let tags = get_tags(state)
@@ -60,12 +64,12 @@ pub async fn gen_tag(
         .map(|tag| tag.name.clone())
         .collect::<Vec<String>>()
         .join(",");
+    let content = fs::read_to_string(content_path)?;
     let prompt = format!(
         "你的任务是帮助用户为以下文本打上标签{}。
     标签可以不止一个，但是只能从给出的词语中进行选择：{}。
     你的答案只包含你选择的标签的内容，并且标签之间用英文逗号分隔。",
-        event.content.clone(),
-        tags
+        content, tags
     );
 
     let request_body = ChatRequest {
@@ -80,13 +84,7 @@ pub async fn gen_tag(
     };
 
     // Get API key from environment or config
-    let api_key = match env::var("DEEPSEEK_TOKEN") {
-        Ok(key) if !key.is_empty() => key,
-        _ => {
-            error!("No DEEPSEEK_TOKEN environment variable set or it's empty");
-            return Err("API key is required but not provided".into());
-        }
-    };
+    let api_key = get_api_key()?;
 
     // Send request
     let response = client
@@ -106,18 +104,15 @@ pub async fn gen_tag(
             Ok(chat_response) => {
                 if let Some(choice) = chat_response.choices.first() {
                     let generated_tag = choice.message.content.trim().to_string();
-                    event.metadata.tag = Some(
+                    Ok(Some(
                         generated_tag
                             .split(',')
                             .map(|s| s.to_string())
                             .filter(|s| !s.is_empty())
                             .collect(),
-                    );
-
-                    Ok(())
+                    ))
                 } else {
-                    info!("No tag choices returned, using default");
-                    Ok(())
+                    Err("No tag choices returned".into())
                 }
             }
             Err(e) => {
@@ -125,8 +120,7 @@ pub async fn gen_tag(
                 // Try to get raw response to see structure
                 let raw_text = e.to_string();
                 error!("Raw error: {}", raw_text);
-                println!("Response: general");
-                Ok(())
+                Err(format!("Failed to parse AI response: {}", e).into())
             }
         }
     } else {

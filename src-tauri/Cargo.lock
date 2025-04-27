@@ -4479,6 +4479,7 @@ dependencies = [
  "chrono",
  "dirs",
  "log",
+ "once_cell",
  "rand 0.9.1",
  "redb",
  "reqwest",

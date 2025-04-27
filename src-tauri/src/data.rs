@@ -13,7 +13,7 @@ const LIST_TABLE: Table = TableDefinition::new("lists");
 const EVENT_TABLE: Table = TableDefinition::new("events");
 const TAG_TABLE: Table = TableDefinition::new("tag");
 
-#[derive(Serialize, Deserialize, TS, Clone, PartialEq)]
+#[derive(Serialize, Deserialize,Clone, PartialEq)]
 pub struct EventMetadata {
     uuid: String,
     timestamp: u64,
@@ -32,33 +32,35 @@ impl EventMetadata {
     }
 }
 
-#[derive(Serialize, Deserialize, TS, Clone, PartialEq)]
-pub enum EventType {
-    Instant,
-    Duration,
-}
-
-#[derive(Serialize, Deserialize, TS, Clone, PartialEq)]
-pub struct DurationTime {
-    pub start: u64,
-    pub end: u64,
-}
-
-#[derive(Serialize, Deserialize, TS, Clone, PartialEq)]
-pub enum TaskTime {
-    Deadline(u64),
-    Duration(DurationTime),
-}
-
 #[derive(Serialize, Deserialize, TS, Clone)]
-#[ts(export)]
+pub enum Priority {
+    Low,
+    Medium,
+    High,
+    Undefined,
+}
+
+#[derive(Serialize, Deserialize, Clone)]
 pub struct Event {
     pub metadata: EventMetadata,
     pub title: String,
     pub content: String,
-    pub event_type: EventType,
-    pub task_time: TaskTime,
+    pub task_time: u64,
     pub finished: bool,
+    pub priority: Priority,
+}
+
+#[derive(Serialize, Deserialize, TS, Clone)]
+#[ts(export)]
+pub struct FEvent {
+    id: String,
+    timestamp: u64,
+    list: Option<u8>,
+    pub tag: Option<Vec<String>>,
+    pub title: String,
+    pub task_time: u64,
+    pub finished: bool,
+    pub priority: Priority,
 }
 
 impl Entity for Event {
