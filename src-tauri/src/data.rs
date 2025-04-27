@@ -61,7 +61,7 @@ pub struct FEvent {
     pub listid: String,
     pub tag: Option<Vec<String>>,
     pub title: String,
-    pub ddl: String,
+    pub create: String,
     pub finished: bool,
     pub priority: Priority,
     pub icon: String,
