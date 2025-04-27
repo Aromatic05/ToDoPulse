@@ -21,12 +21,14 @@
     "@types/node": "^22.15.2",
     "@types/uuid": "^10.0.0",
     "uuid": "^11.1.0",
+    "vditor": "^3.11.0",
     "vue": "^3.5.13",
     "vuetify": "^3.8.2"
   },
   "devDependencies": {
     "@tauri-apps/cli": "^2",
     "@vitejs/plugin-vue": "^5.2.1",
+    "less": "^4.3.0",
     "typescript": "~5.6.2",
     "vite": "^6.0.3",
     "vue-tsc": "^2.1.10"

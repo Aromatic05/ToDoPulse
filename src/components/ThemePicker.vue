@@ -93,6 +93,16 @@ function applyTheme(): void {
         '--icon-base-color',
         isDarkMode.value ? 'rgba(255, 255, 255, 0.8)' : 'rgba(0, 0, 0, 0.6)'
     );
+    
+    // 发送主题改变的全局事件
+    const themeChangeEvent = new CustomEvent('theme-change', {
+        detail: {
+            isDarkMode: isDarkMode.value,
+            themeName: currentTheme.value,
+            themeClassName: themeClassName
+        }
+    });
+    document.dispatchEvent(themeChangeEvent);
 }
 
 // 在组件挂载时初始化主题
