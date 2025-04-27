@@ -104,7 +104,7 @@ impl Entity for List {
         self.id.to_le_bytes().to_vec()
     }
     fn value(&self) -> Vec<u8> {
-        self.title.as_bytes().to_vec()
+        serde_json::to_vec(self).unwrap()
     }
 }
 
@@ -145,7 +145,7 @@ impl Entity for Tag {
         self.id.to_le_bytes().to_vec()
     }
     fn value(&self) -> Vec<u8> {
-        self.name.as_bytes().to_vec()
+        serde_json::to_vec(self).unwrap()
     }
 }
 
