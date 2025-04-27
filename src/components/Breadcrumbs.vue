@@ -17,16 +17,17 @@
 <script setup lang="ts">
 import { ref, computed, onMounted, onUnmounted } from 'vue';
 import { getLists } from '@/services/GetListsService.ts';
+import { FList } from 'src-tauri/bindings/FList';
 
 // 当前列表数据
-const currentList = ref<{ id: string, title: string } | null>(null);
+const currentList = ref<FList | null>(null);
 const lists = ref<any[]>([]);
 
 // 初始化获取列表数据
 const initLists = async () => {
     try {
         lists.value = await getLists();
-        
+        console.log(getLists());
         // 数据加载后立即检查当前URL
         checkCurrentRoute();
     } catch (error) {
@@ -71,10 +72,11 @@ const updateFromEvent = (event: CustomEvent) => {
 // 根据ID更新当前列表
 function updateListById(listId: string) {
     console.log('尝试更新列表ID:', listId, '当前列表数量:', lists.value.length);
+    console.log('当前列表数据:', lists.value);
     const list = lists.value.find(item => item.id === listId);
     if (list) {
         console.log('找到匹配列表:', list.title);
-        currentList.value = { id: list.id, title: list.title };
+        currentList.value = { id: list.id, title: list.title, icon: list.icon };
     } else {
         console.warn('未找到ID对应的列表:', listId);
     }

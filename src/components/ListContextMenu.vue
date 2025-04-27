@@ -55,7 +55,7 @@
 
 <script setup lang="ts">
 import { reactive, computed } from 'vue';
-import { List } from 'src-tauri/bindings/List';
+import { FList } from 'src-tauri/bindings/FList';
 
 const props = defineProps({
     show: {
@@ -67,7 +67,7 @@ const props = defineProps({
         default: undefined
     },
     targetList: {
-        type: Object as () => List | null,
+        type: Object as () => FList | null,
         default: null
     },
     targetIndex: {
@@ -90,14 +90,14 @@ const show = computed({
 const renameDialog = reactive({
     show: false,
     newName: '',
-    targetList: null as List | null
+    targetList: null as FList | null
 });
 
 // 删除确认对话框
 const deleteDialog = reactive({
     show: false,
     listTitle: '',
-    targetList: null as List | null,
+    targetList: null as FList | null,
     targetIndex: -1
 });
 

@@ -22,7 +22,7 @@
                                 tags: [item.priority],
                                 color: getPriorityColor(item.priority)
                             }" 
-                            @update="handleCardUpdate($event, item)"
+                            @update="handleEventUpdate($event, item)"
                             @delete="deleteFEvent(item)"
                         />
                     </td>
@@ -38,11 +38,10 @@
 <script setup lang="ts">
 import { ref, computed, watch } from 'vue'
 import { getLists } from '@/services/GetListsService.ts';
-import { getEventsByListId, addEvent, toggleEventStatus, updateEvent, deleteEvent } from '@/services/ListDataService';
+import { getEventsBylistid, addEvent, toggleEventStatus, updateEvent, deleteEvent } from '@/services/ListDataService';
 import ListCard from '@/components/Cards/ListCard.vue';  // 导入ListCard组件
 import { FEvent } from 'src-tauri/bindings/FEvent';
 import { Priority } from 'src-tauri/bindings/Priority';
-import { finished } from 'stream';
 
 // 添加这个类型定义
 type HeaderAlign = 'start' | 'end' | 'center';
@@ -63,9 +62,9 @@ const props = defineProps({
 
 const listTitle = ref('我的列表')
 const listId = computed(() => {
-  const match = props.viewId.match(/list\/([^\/]+)/);
-  return match ? BigInt(match[1]) : 0n;
-});
+    const match = props.viewId.match(/list\/([^\/]+)/)
+    return match ? match[1] : null
+})
 
 // 使用服务获取数据，不再使用硬编码数据
 const Events = ref<FEvent[]>([])
@@ -96,7 +95,7 @@ async function loadListData() {
                 console.log(`加载列表: ${currentList.title} (ID: ${currentList.id})`);
 
                 // 获取该列表的任务
-                Events.value = await getEventsByListId(listId.value);
+                Events.value = await getEventsBylistid(listId.value);
             } else {
                 listTitle.value = '未找到列表';
                 console.error(`未找到ID为 ${listId.value} 的列表`);

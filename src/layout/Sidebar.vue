@@ -95,7 +95,7 @@ import { ref, computed, reactive, nextTick, onMounted } from 'vue';
 import ListContextMenu from '@/components/ListContextMenu.vue';
 import AddListModal from '@/components/Modals/AddListModal.vue';
 import { getLists, renameList, deleteList, createList } from '@/services/GetListsService.ts';
-import { List } from 'src-tauri/bindings/List';
+import { FList } from 'src-tauri/bindings/FList';
 
 const props = defineProps({
     rail: {
@@ -115,7 +115,7 @@ const railModel = computed({
 })
 
 // 列表数据现在从服务中获取
-const lists = ref<ListItem[]>([]);
+const lists = ref<FList[]>([]);
 
 // 在组件挂载时获取列表
 onMounted(async () => {
@@ -146,12 +146,12 @@ function handleClick(route: string) {
 
 const contextMenu = reactive({
     show: false,
-    targetList: undefined as ListItem | undefined,
+    targetList: undefined as FList | undefined,
     targetIndex: -1,
     activatorElement: undefined as HTMLElement | undefined
 });
 
-async function showContextMenu(list: ListItem, index: number, element: HTMLElement) {
+async function showContextMenu(list: FList, index: number, element: HTMLElement) {
     if (contextMenu.show) {
         contextMenu.show = false;
         await nextTick();
@@ -186,13 +186,15 @@ function showAddListModal() {
     addListModalVisible.value = true;
 }
 
-async function handleAddList(title: string, icon: string) {
-    try {
-        // 调用服务创建新列表
-        lists.value = await createList(title, icon);
-    } catch (error) {
-        console.error('创建列表失败:', error);
-    }
+async function handleAddList() {
+    lists.value = await getLists();
+    // try {
+    //     // 调用服务创建新列表
+    //     // lists.value = await createList(title, icon);
+    //     lists.value = await getLists();
+    // } catch (error) {
+    //     console.error('创建列表失败:', error);
+    // }
 }
 </script>
 

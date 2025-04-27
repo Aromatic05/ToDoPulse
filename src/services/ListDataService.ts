@@ -20,7 +20,7 @@ import { Priority } from 'src-tauri/bindings/Priority';
 // 模拟事件数据，按列表ID组织
 const eventsData: Record<string, FEvent[]> = {
     // 工作列表的事件
-    "1": [
+    "4788325718170490349": [
         {
             id: uuidv4(),
             title: '完成项目方案',
@@ -31,7 +31,7 @@ const eventsData: Record<string, FEvent[]> = {
             create: "2025-04-20",
             color: '#f1c40f',
             icon: 'work',
-            listid: "1",
+            listid: "4788325718170490349",
             tag: ['项目', '文档'],
         },
         {
@@ -44,7 +44,7 @@ const eventsData: Record<string, FEvent[]> = {
             create: "2025-04-20",
             color: '#3498db',
             icon: 'presentation',
-            listid: "1",
+            listid: "4788325718170490349",
             tag: ['会议', '演示']
         },
         {
@@ -57,7 +57,7 @@ const eventsData: Record<string, FEvent[]> = {
             create: "2025-04-20",
             color: '#e74c3c',
             icon: 'email',
-            listid: "1",
+            listid: "4788325718170490349",
             tag: ['客户', '邮件']
         }
     ],
