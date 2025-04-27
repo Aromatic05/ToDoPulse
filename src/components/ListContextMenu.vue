@@ -55,12 +55,7 @@
 
 <script setup lang="ts">
 import { reactive, computed } from 'vue';
-
-interface ListItem {
-    id: string;
-    title: string;
-    icon: string;
-}
+import { List } from 'src-tauri/bindings/List';
 
 const props = defineProps({
     show: {
@@ -72,7 +67,7 @@ const props = defineProps({
         default: undefined
     },
     targetList: {
-        type: Object as () => ListItem | null,
+        type: Object as () => List | null,
         default: null
     },
     targetIndex: {
@@ -95,14 +90,14 @@ const show = computed({
 const renameDialog = reactive({
     show: false,
     newName: '',
-    targetList: null as ListItem | null
+    targetList: null as List | null
 });
 
 // 删除确认对话框
 const deleteDialog = reactive({
     show: false,
     listTitle: '',
-    targetList: null as ListItem | null,
+    targetList: null as List | null,
     targetIndex: -1
 });
 

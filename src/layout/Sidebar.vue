@@ -94,7 +94,8 @@
 import { ref, computed, reactive, nextTick, onMounted } from 'vue';
 import ListContextMenu from '@/components/ListContextMenu.vue';
 import AddListModal from '@/components/Modals/AddListModal.vue';
-import { getLists, renameList, deleteList, createList, ListItem } from '@/services/GetListsService.ts';
+import { getLists, renameList, deleteList, createList } from '@/services/GetListsService.ts';
+import { List } from 'src-tauri/bindings/List';
 
 const props = defineProps({
     rail: {

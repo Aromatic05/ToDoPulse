@@ -8,7 +8,7 @@
 
             <!-- 任务列 -->
             <div class="card-column title-column">
-                <h3 class="card-title" :class="{ 'completed-task': localData.isCompleted }">
+                <h3 class="card-title" :class="{ 'completed-task': localData.finished }">
                     {{ localData.title }}
                 </h3>
             </div>
@@ -86,21 +86,21 @@ export default {
             // 使用深拷贝防止引用问题
             localData: {
                 ...JSON.parse(JSON.stringify(this.data)),
-                isCompleted: this.data.isCompleted || false
+                finished: this.data.finished || false
             }
         }
     },
     methods: {
         handleCheckboxChange() {
             // 直接切换状态
-            this.localData.isCompleted = !this.localData.isCompleted;
+            this.localData.finished = !this.localData.finished;
             this.$emit('toggleStatus', {
                 id: this.localData.id,
                 listId: this.localData.listId,
-                isCompleted: this.localData.isCompleted
+                finished: this.localData.finished
             });
             
-            console.log('任务状态已切换:', this.localData.title, this.localData.isCompleted);
+            console.log('任务状态已切换:', this.localData.title, this.localData.finished);
         },
         handleConfirm(updatedData) {
             console.log('EventCard updating:', updatedData);

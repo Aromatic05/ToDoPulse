@@ -4,12 +4,12 @@
 
         <v-row>
             <v-col cols="12">
-                <v-text-field v-model="newTask" label="添加新任务" append-icon="mdi-plus" @click:append="addNewTask"
-                    @keyup.enter="addNewTask" class="mb-4"></v-text-field>
+                <v-text-field v-model="newEvent" label="添加新任务" append-icon="mdi-plus" @click:append="addNewEvent"
+                    @keyup.enter="addNewEvent" class="mb-4"></v-text-field>
             </v-col>
         </v-row>
 
-        <v-data-table :headers="headers" :items="tasks" :items-per-page="10" class="elevation-1 rounded">
+        <v-data-table :headers="headers" :items="Events" :items-per-page="10" class="elevation-1 rounded">
             <template v-slot:item="{ item }">
                 <tr>
                     <td colspan="5" class="pa-2">
@@ -17,14 +17,13 @@
                             :data="{ 
                                 id: item.id, 
                                 title: item.title, 
-                                content: item.description || '', 
                                 date: item.date, 
-                                isCompleted: item.completed,
+                                finished: item.finished,
                                 tags: [item.priority],
-                                dateColor: getPriorityColor(item.priority)
+                                color: getPriorityColor(item.priority)
                             }" 
                             @update="handleCardUpdate($event, item)"
-                            @delete="deleteTaskItem(item)"
+                            @delete="deleteFEvent(item)"
                         />
                     </td>
                 </tr>
@@ -39,8 +38,11 @@
 <script setup lang="ts">
 import { ref, computed, watch } from 'vue'
 import { getLists } from '@/services/GetListsService.ts';
-import { getTasksByListId, addTask, toggleTaskStatus, updateTask, deleteTask, TaskItem } from '@/services/ListDataService';
+import { getEventsByListId, addEvent, toggleEventStatus, updateEvent, deleteEvent } from '@/services/ListDataService';
 import ListCard from '@/components/Cards/ListCard.vue';  // 导入ListCard组件
+import { FEvent } from 'src-tauri/bindings/FEvent';
+import { Priority } from 'src-tauri/bindings/Priority';
+import { finished } from 'stream';
 
 // 添加这个类型定义
 type HeaderAlign = 'start' | 'end' | 'center';
@@ -61,14 +63,14 @@ const props = defineProps({
 
 const listTitle = ref('我的列表')
 const listId = computed(() => {
-    const match = props.viewId.match(/list\/([^\/]+)/)
-    return match ? match[1] : null
-})
+  const match = props.viewId.match(/list\/([^\/]+)/);
+  return match ? BigInt(match[1]) : 0n;
+});
 
 // 使用服务获取数据，不再使用硬编码数据
-const tasks = ref<TaskItem[]>([])
+const Events = ref<FEvent[]>([])
 
-const newTask = ref('')
+const newEvent = ref('')
 
 // 添加类型注解
 const headers: DataTableHeader[] = [
@@ -94,71 +96,71 @@ async function loadListData() {
                 console.log(`加载列表: ${currentList.title} (ID: ${currentList.id})`);
 
                 // 获取该列表的任务
-                tasks.value = await getTasksByListId(listId.value);
+                Events.value = await getEventsByListId(listId.value);
             } else {
                 listTitle.value = '未找到列表';
                 console.error(`未找到ID为 ${listId.value} 的列表`);
-                tasks.value = [];
+                Events.value = [];
             }
         } catch (error) {
             console.error('加载列表数据失败:', error);
             listTitle.value = '加载失败';
-            tasks.value = [];
+            Events.value = [];
         }
     }
 }
 
 function getPriorityColor(priority: string) {
     switch (priority) {
-        case '高': return 'red';
-        case '中': return 'orange';
-        case '低': return 'green';
+        case 'High': return 'red';
+        case 'Medium': return 'orange';
+        case 'Low': return 'green';
         default: return 'grey';
     }
 }
 
-async function addNewTask() {
-    if (newTask.value.trim() && listId.value) {
+async function addNewEvent() {
+    if (newEvent.value.trim() && listId.value) {
         try {
             // 使用服务添加任务
-            tasks.value = await addTask(
+            Events.value = await addEvent(
                 listId.value,
-                newTask.value,
-                '中'
+                newEvent.value,
+                'Medium',
             );
-            newTask.value = '';
+            newEvent.value = '';
         } catch (error) {
             console.error('添加任务失败:', error);
         }
     }
 }
 
-async function toggleTask(task: TaskItem) {
+async function toggleEvent(Event: FEvent) {
     if (listId.value) {
         try {
-            tasks.value = await toggleTaskStatus(task.id, listId.value, task.completed);
+            Events.value = await toggleEventStatus(Event.id, listId.value, Event.finished);
         } catch (error) {
             console.error('更新任务状态失败:', error);
         }
     }
 }
 
-async function editTask(task: TaskItem) {
-    console.log(`编辑任务: ${task.title}`);
-    // 这里可以显示编辑对话框，然后调用 updateTask 服务
+async function editEvent(Event: FEvent) {
+    console.log(`编辑任务: ${Event.title}`);
+    // 这里可以显示编辑对话框，然后调用 updateEvent 服务
     // 示例：如果有编辑对话框的结果
-    const updatedFields = { title: '新标题', priority: '高' as '高' | '中' | '低', dueDate: '2025-05-01' };
+    const updatedFields = { title: '新标题', priority: "High" as Priority, date: '2025-05-01' };
     if (listId.value) {
-        tasks.value = await updateTask(task.id, listId.value, updatedFields);
+        Events.value = await updateEvent(Event.id, listId.value, updatedFields);
     } else {
         console.error('更新任务失败: listId 为 null');
     }
 }
 
-async function deleteTaskItem(task: TaskItem) {
+async function deleteFEvent(Event: FEvent) {
     if (listId.value) {
         try {
-            tasks.value = await deleteTask(task.id, listId.value);
+            Events.value = await deleteEvent(Event.id, listId.value);
         } catch (error) {
             console.error('删除任务失败:', error);
         }
@@ -166,24 +168,23 @@ async function deleteTaskItem(task: TaskItem) {
 }
 
 // 添加处理ListCard更新的函数
-async function handleCardUpdate(updatedData: any, originalTask: TaskItem) {
+async function handleEventUpdate(updatedData: any, originalEvent: FEvent) {
     if (listId.value) {
         try {
             // 处理完成状态切换
-            if (updatedData.isCompleted !== originalTask.completed) {
-                tasks.value = await toggleTaskStatus(originalTask.id, listId.value, updatedData.isCompleted);
+            if (updatedData.Finished !== originalEvent.finished) {
+                Events.value = await toggleEventStatus(originalEvent.id, listId.value, updatedData.finished);
                 return;
             }
             
             // 处理其他更新
             const updatedFields = { 
                 title: updatedData.title, 
-                priority: updatedData.tags?.[0] || originalTask.priority, 
-                dueDate: updatedData.date || originalTask.date,
-                description: updatedData.content
+                priority: updatedData.tags?.[0] || originalEvent.priority, 
+                date: updatedData.date || originalEvent.date,
             };
             
-            tasks.value = await updateTask(originalTask.id, listId.value, updatedFields);
+            Events.value = await updateEvent(originalEvent.id, listId.value, updatedFields);
         } catch (error) {
             console.error('更新任务失败:', error);
         }

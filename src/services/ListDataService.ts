@@ -1,223 +1,216 @@
 import { v4 as uuidv4 } from 'uuid';
+import { FEvent } from 'src-tauri/bindings/FEvent';
+import { Priority } from 'src-tauri/bindings/Priority';
 
-// 事件卡片数据接口
-export interface EventCardData {
-    id: string;
-    title: string;
-    isCompleted: boolean;
-    content: string;
-    priority?: '高' | '中' | '低'; 
-    time: string;
-    date: string;
-    dateColor: string;
-    color: string;
-    icon: string;
-    listId: string;
-    tags: string[];
-}
+// export type FEvent = { 
+//     id: string, 
+//     time: string, 
+//     date: string, 
+//     listid: string, 
+//     tag: Array<string> | null, 
+//     title: string, 
+//     create: string, 
+//     finished: boolean, 
+//     priority: Priority, 
+//     icon: string, 
+//     color: string, 
+// };
+
 
 // 模拟事件数据，按列表ID组织
-const tasksData: Record<string, EventCardData[]> = {
+const eventsData: Record<string, FEvent[]> = {
     // 工作列表的事件
-    '93a36bf8-e3f0-4e2d-8b3c-5fec9d399ef1': [
-        { 
-            id: uuidv4(), 
-            title: '完成项目方案', 
-            isCompleted: false, 
-            content: '准备项目方案文档及相关材料',
-            priority: '高', 
+    "1": [
+        {
+            id: uuidv4(),
+            title: '完成项目方案',
+            finished: false,
+            priority: "High",
             date: '2025-04-28',
             time: '18:00',
-            dateColor: '#ff4757',
+            create: "2025-04-20",
             color: '#f1c40f',
             icon: 'work',
-            listId: '93a36bf8-e3f0-4e2d-8b3c-5fec9d399ef1',
-            tags: ['项目', '文档']
+            listid: "1",
+            tag: ['项目', '文档'],
         },
-        { 
-            id: uuidv4(), 
-            title: '准备周会演示', 
-            isCompleted: true, 
-            content: '准备周会PPT和演示材料',
-            priority: '中', 
+        {
+            id: uuidv4(),
+            title: '准备周会演示',
+            finished: true,
+            priority: "Medium",
             date: '2025-04-26',
             time: '10:00',
-            dateColor: '#2ecc71',
+            create: "2025-04-20",
             color: '#3498db',
             icon: 'presentation',
-            listId: '93a36bf8-e3f0-4e2d-8b3c-5fec9d399ef1',
-            tags: ['会议', '演示']
+            listid: "1",
+            tag: ['会议', '演示']
         },
-        { 
-            id: uuidv4(), 
-            title: '回复客户邮件', 
-            isCompleted: false, 
-            content: '回复关于项目进展的客户邮件',
-            priority: '高', 
+        {
+            id: uuidv4(),
+            title: '回复客户邮件',
+            finished: false,
+            priority: "High",
             date: '2025-04-25',
             time: '14:30',
-            dateColor: '#ff4757',
+            create: "2025-04-20",
             color: '#e74c3c',
             icon: 'email',
-            listId: '93a36bf8-e3f0-4e2d-8b3c-5fec9d399ef1',
-            tags: ['客户', '邮件']
+            listid: "1",
+            tag: ['客户', '邮件']
         }
     ],
-    
+
     // 个人列表的事件
-    'c7d8f418-39c1-4c0b-9c1d-2f3e8ea5968a': [
-        { 
-            id: uuidv4(), 
-            title: '更新项目文档', 
-            isCompleted: false, 
-            content: '更新项目相关文档和说明',
-            priority: '低', 
+    "2": [
+        {
+            id: uuidv4(),
+            title: '更新项目文档',
+            finished: false,
+            priority: "Low",
             date: '2025-04-30',
             time: '12:00',
-            dateColor: '#3498db',
+            create: "2025-04-20",
             color: '#9b59b6',
             icon: 'document',
-            listId: 'c7d8f418-39c1-4c0b-9c1d-2f3e8ea5968a',
-            tags: ['文档', '更新']
+            listid: "2",
+            tag: ['文档', '更新']
         },
-        { 
-            id: uuidv4(), 
-            title: '购买生日礼物', 
-            isCompleted: false, 
-            content: '为朋友购买生日礼物',
-            priority: '中', 
+        {
+            id: uuidv4(),
+            title: '购买生日礼物',
+            finished: false,
+            priority: "Medium",
             date: '2025-05-05',
-            time: '18:00',
-            dateColor: '#2ecc71',
+            time: '15:00',
+            create: "2025-04-20",
             color: '#1abc9c',
             icon: 'gift',
-            listId: 'c7d8f418-39c1-4c0b-9c1d-2f3e8ea5968a',
-            tags: ['生日', '购物']
+            listid: "2",
+            tag: ['生日', '购物']
         }
     ]
 };
 
 /**
  * 根据列表ID获取事件
- * @param listId 列表ID
- * @returns Promise<EventCardData[]> 返回事件列表
+ * @param listid 列表ID
+ * @returns Promise<FEvent[]> 返回事件列表
  */
-export async function getTasksByListId(listId: bigint): Promise<EventCardData[]> {
+export async function getEventsBylistid(listid: string): Promise<FEvent[]> {
     // 返回指定列表的事件，如果列表不存在则返回空数组
-    console.log(listId);
-    return [...(tasksData[listId.toString()] || [])];
+    console.log(listid);
+    return [...(eventsData[listid] || [])];
 }
 
 /**
  * 添加新事件
- * @param listId 列表ID
+ * @param listid 列表ID
  * @param title 事件标题
- * @param content 事件内容
- * @param priority 优先级
  * @param date 日期
  * @param time 时间
- * @returns Promise<EventCardData[]> 返回更新后的事件列表
+ * @returns Promise<FEvent[]> 返回更新后的事件列表
  */
-export async function addTask(
-    listId: string,
+export async function addEvent(
+    listid: string,
     title: string,
-    content: string = '',
-    priority: '高' | '中' | '低' = '中',
+    priority: Priority = "Medium",
     date: string = new Date().toISOString().substring(0, 10),
-    time: string = '12:00'
-): Promise<EventCardData[]> {
+    time: string = '12:00',
+    create: string = new Date().toISOString().substring(0, 10)
+): Promise<FEvent[]> {
     // 确保该列表的事件数组存在
-    if (!tasksData[listId]) {
-        tasksData[listId] = [];
+    if (!eventsData[listid]) {
+        eventsData[listid] = [];
     }
-    
-    const newTask: EventCardData = {
+
+    const newEvent: FEvent = {
         id: uuidv4(),
         title,
-        isCompleted: false,
-        content,
+        finished: false,
         priority,
         date,
         time,
-        dateColor: priority === '高' ? '#ff4757' : priority === '中' ? '#2ecc71' : '#3498db',
+        create,
         color: '#3498db',
-        icon: 'task',
-        listId,
-        tags: []
+        icon: 'Event',
+        listid,
+        tag: [],
     };
-    
-    tasksData[listId].push(newTask);
-    console.log(`Service: New event "${title}" added to list ${listId}`);
-    
-    return [...tasksData[listId]];
+
+    eventsData[listid].push(newEvent);
+    console.log(`Service: New event "${title}" added to list ${listid}`);
+
+    return [...eventsData[listid]];
 }
 
 /**
  * 切换事件完成状态
- * @param taskId 事件ID
- * @param listId 列表ID
- * @param isCompleted 完成状态
- * @returns Promise<EventCardData[]> 返回更新后的事件列表
+ * @param EventId 事件ID
+ * @param listid 列表ID
+ * @param finished 完成状态
+ * @returns Promise<FEvent[]> 返回更新后的事件列表
  */
-export async function toggleTaskStatus(
-    taskId: string,
-    listId: string,
-    isCompleted: boolean
-): Promise<EventCardData[]> {
-    const tasks = tasksData[listId] || [];
-    const task = tasks.find(t => t.id === taskId);
-    
-    if (task) {
-        task.isCompleted = isCompleted;
-        console.log(`Service: Event "${task.title}" status changed to: ${isCompleted ? '已完成' : '未完成'}`);
+export async function toggleEventStatus(
+    EventId: string,
+    listid: string,
+    finished: boolean
+): Promise<FEvent[]> {
+    const Events = eventsData[listid] || [];
+    const Event = Events.find(t => t.id === EventId);
+
+    if (Event) {
+        Event.finished = finished;
+        console.log(`Service: Event "${Event.title}" status changed to: ${finished ? '已完成' : '未完成'}`);
     }
-    
-    return [...tasks];
+
+    return [...Events];
 }
 
 /**
  * 编辑事件
- * @param taskId 事件ID
- * @param listId 列表ID
+ * @param EventId 事件ID
+ * @param listid 列表ID
  * @param updates 要更新的字段
- * @returns Promise<EventCardData[]> 返回更新后的事件列表
+ * @returns Promise<FEvent[]> 返回更新后的事件列表
  */
-export async function updateTask(
-    taskId: string,
-    listId: string,
-    updates: Partial<Omit<EventCardData, 'id' | 'listId'>>
-): Promise<EventCardData[]> {
-    const tasks = tasksData[listId] || [];
-    const task = tasks.find(t => t.id === taskId);
-    
-    if (task) {
-        // 保证isCompleted不会被设置为undefined
+export async function updateEvent(
+    EventId: string,
+    listid: string,
+    updates: Partial<Omit<FEvent, 'id' | 'listid'>>
+): Promise<FEvent[]> {
+    const Events = eventsData[listid] || [];
+    const Event = Events.find(t => t.id === EventId);
+
+    if (Event) {
+        // 保证finished不会被设置为undefined
         const safeUpdates = {
             ...updates,
-            isCompleted: updates.isCompleted === undefined ? task.isCompleted : Boolean(updates.isCompleted)
+            finished: updates.finished === undefined ? Event.finished : Boolean(updates.finished)
         };
-        
-        Object.assign(task, safeUpdates);
-        console.log(`Service: Event "${task.title}" updated, isCompleted: ${task.isCompleted}`);
+
+        Object.assign(Event, safeUpdates);
+        console.log(`Service: Event "${Event.title}" updated, finished: ${Event.finished}`);
     }
-    
-    return [...tasks];
+
+    return [...Events];
 }
 
 /**
  * 删除事件
- * @param taskId 事件ID
- * @param listId 列表ID
- * @returns Promise<EventCardData[]> 返回更新后的事件列表
+ * @param EventId 事件ID
+ * @param listid 列表ID
+ * @returns Promise<FEvent[]> 返回更新后的事件列表
  */
-export async function deleteTask(taskId: string, listId: string): Promise<EventCardData[]> {
-    const tasks = tasksData[listId] || [];
-    const index = tasks.findIndex(t => t.id === taskId);
-    
+export async function deleteEvent(EventId: string, listid: string): Promise<FEvent[]> {
+    const Events = eventsData[listid] || [];
+    const index = Events.findIndex(t => t.id === EventId);
+
     if (index !== -1) {
-        const [removedTask] = tasks.splice(index, 1);
-        console.log(`Service: Event "${removedTask.title}" deleted`);
+        const [removedEvent] = Events.splice(index, 1);
+        console.log(`Service: Event "${removedEvent.title}" deleted`);
     }
-    
-    return [...tasks];
+
+    return [...Events];
 }
