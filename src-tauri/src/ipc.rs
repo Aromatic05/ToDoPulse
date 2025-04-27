@@ -18,7 +18,7 @@ pub async fn add_event(
     task_time: u64,
     tag: Option<Vec<String>>,
     app: State<'_, tauri::AppHandle>,
-    color: &str,
+    color: Option<&str>,
     icon: &str,
 ) -> Result<Event, String> {
     let metadata = EventMetadata::new();
@@ -39,7 +39,10 @@ pub async fn add_event(
         task_time,
         finished: false,
         priority: data::Priority::Undefined,
-        color: color.to_string(),
+        color: match color {
+            Some(color) => color.to_string(),
+            None => "Undefined".to_string(),
+        },
         icon: icon.to_string(),
     };
     if let Some(tag_value) = tag {
@@ -74,7 +77,7 @@ pub async fn get_event(
             date: date(event.metadata.timestamp),
             tag: event.metadata.tag,
             title: event.title,
-            task_time: event.task_time,
+            ddl: time(event.task_time),
             finished: event.finished,
             priority: event.priority,
             color: event.color,

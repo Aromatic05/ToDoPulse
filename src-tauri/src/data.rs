@@ -61,7 +61,7 @@ pub struct FEvent {
     pub listid: String,
     pub tag: Option<Vec<String>>,
     pub title: String,
-    pub task_time: u64,
+    pub ddl: String,
     pub finished: bool,
     pub priority: Priority,
     pub icon: String,
@@ -87,6 +87,7 @@ pub struct List {
     pub title: String,
     pub icon: String,
 }
+
 
 impl Entity for List {
     fn table_def() -> Table {
