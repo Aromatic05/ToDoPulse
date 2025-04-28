@@ -18,8 +18,13 @@
                                 id: item.id, 
                                 title: item.title, 
                                 date: item.date, 
+                                time: item.time || '', 
+                                listid: item.listid || '', 
+                                tag: item.tag || [],
+                                create: item.create || '',
                                 finished: item.finished,
-                                tags: [item.priority],
+                                priority: item.priority || 'Low',
+                                icon: item.icon || '',
                                 color: getPriorityColor(item.priority)
                             }" 
                             @update="handleEventUpdate($event, item)"
@@ -40,8 +45,8 @@ import { ref, computed, watch } from 'vue'
 import { getLists } from '@/services/GetListsService.ts';
 import { getEventsBylistid, addEvent, toggleEventStatus, updateEvent, deleteEvent } from '@/services/ListDataService';
 import ListCard from '@/components/Cards/ListCard.vue';  // 导入ListCard组件
-import { FEvent } from 'src-tauri/bindings/FEvent';
-import { Priority } from 'src-tauri/bindings/Priority';
+import type { FEvent } from 'src-tauri/bindings/FEvent';
+// import { Priority } from 'src-tauri/bindings/Priority';
 
 // 添加这个类型定义
 type HeaderAlign = 'start' | 'end' | 'center';
@@ -134,27 +139,27 @@ async function addNewEvent() {
     }
 }
 
-async function toggleEvent(Event: FEvent) {
-    if (listId.value) {
-        try {
-            Events.value = await toggleEventStatus(Event.id, listId.value, Event.finished);
-        } catch (error) {
-            console.error('更新任务状态失败:', error);
-        }
-    }
-}
+// async function toggleEvent(Event: FEvent) {
+//     if (listId.value) {
+//         try {
+//             Events.value = await toggleEventStatus(Event.id, listId.value, Event.finished);
+//         } catch (error) {
+//             console.error('更新任务状态失败:', error);
+//         }
+//     }
+// }
 
-async function editEvent(Event: FEvent) {
-    console.log(`编辑任务: ${Event.title}`);
-    // 这里可以显示编辑对话框，然后调用 updateEvent 服务
-    // 示例：如果有编辑对话框的结果
-    const updatedFields = { title: '新标题', priority: "High" as Priority, date: '2025-05-01' };
-    if (listId.value) {
-        Events.value = await updateEvent(Event.id, listId.value, updatedFields);
-    } else {
-        console.error('更新任务失败: listId 为 null');
-    }
-}
+// async function editEvent(Event: FEvent) {
+//     console.log(`编辑任务: ${Event.title}`);
+//     // 这里可以显示编辑对话框，然后调用 updateEvent 服务
+//     // 示例：如果有编辑对话框的结果
+//     const updatedFields = { title: '新标题', priority: "High" as Priority, date: '2025-05-01' };
+//     if (listId.value) {
+//         Events.value = await updateEvent(Event.id, listId.value, updatedFields);
+//     } else {
+//         console.error('更新任务失败: listId 为 null');
+//     }
+// }
 
 async function deleteFEvent(Event: FEvent) {
     if (listId.value) {

@@ -15,8 +15,8 @@
 
             <!-- 优先级列 -->
             <div class="card-column priority-column">
-                <div v-if="localData.tags?.length" class="card-tags">
-                    <span v-for="(tag, i) in localData.tags" :key="i" class="card-tag">{{ tag }}</span>
+                <div v-if="localData.tag?.length" class="card-tags">
+                    <span v-for="(tag, i) in localData.tag" :key="i" class="card-tag">{{ tag }}</span>
                 </div>
             </div>
 
@@ -53,59 +53,60 @@
         </v-card>
     </v-dialog>
 
-    <CardContentModal v-model="showModal" :card-data="localData" @confirm="handleConfirm" />
+    <CardContentModal v-model="showModal" :card-data="localData" @confirm="handleConfirm" v-if="showModal" />
 </template>
 
-<script>
-import CardContentModal from '@/components/Modals/CardContentModal.vue'
-import { h } from 'vue';
+<script lang="ts">
+import CardContentModal from '@/components/Modals/CardContentModal.vue';
+import { FEvent } from 'src-tauri/bindings/FEvent';
 
 export default {
-    name: 'ListCard',
     components: {
         CardContentModal
     },
-    // 添加新的emit事件类型
-    emits: ['update', 'delete', 'toggleStatus'],
     props: {
         data: {
             type: Object,
             required: true,
-            validator: (value) => {
-                return value?.id && 
-                       value?.title !== undefined && 
-                       value?.content !== undefined; // 允许空字符串
+            validator: (value: any): boolean => {
+                const isFEvent = (obj: any): obj is FEvent => {
+                    return (
+                        typeof obj.id === 'string' &&
+                        typeof obj.title === 'string' &&
+                        typeof obj.date === 'string' &&
+                        typeof obj.finished === 'boolean' &&
+                        Array.isArray(obj.tag)
+                    );
+                };
+
+                return isFEvent(value);
             }
         }
     },
+    emits: ['update', 'delete', 'toggleStatus'], // 声明自定义事件
     data() {
         return {
             showModal: false,
             deleteDialog: false,
-            // 删除 isUpdatingFromWatch 标志，不再需要
-            // 使用深拷贝防止引用问题
             localData: {
                 ...JSON.parse(JSON.stringify(this.data)),
                 finished: this.data.finished || false
             }
-        }
+        };
     },
     methods: {
         handleCheckboxChange() {
-            // 直接切换状态
             this.localData.finished = !this.localData.finished;
             this.$emit('toggleStatus', {
                 id: this.localData.id,
                 listId: this.localData.listId,
                 finished: this.localData.finished
             });
-            
-            console.log('任务状态已切换:', this.localData.title, this.localData.finished);
         },
-        handleConfirm(updatedData) {
-            console.log('EventCard updating:', updatedData);
-            this.localData = { ...updatedData };  // 更新本地数据
-            this.$emit('update', updatedData);
+        handleConfirm(updatedData: FEvent) {
+            console.log('Updated data:', updatedData);
+            this.localData = { ...updatedData };
+            this.$emit('update', updatedData); // 触发 update 事件
         },
         handleEdit() {
             this.showModal = true;
@@ -114,12 +115,11 @@ export default {
             this.deleteDialog = true;
         },
         confirmDelete() {
-            this.$emit('delete', this.localData);
+            this.$emit('delete', this.localData); // 触发 delete 事件
             this.deleteDialog = false;
         }
     }
-    // 删除所有watch逻辑
-}
+};
 </script>
 
 <style scoped>

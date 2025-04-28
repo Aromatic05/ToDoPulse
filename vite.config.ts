@@ -10,6 +10,7 @@ export default defineConfig({
   resolve: {
     alias: {
       "@": path.resolve(__dirname, "./src"),
+      'src-tauri': path.resolve(__dirname, "./src-tauri"),
     },
   },
   

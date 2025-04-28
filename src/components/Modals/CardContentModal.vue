@@ -16,8 +16,8 @@
                                 <input id="title" v-model="formData.title" type="text" placeholder="输入标题">
                             </div>
                             <div class="form-group">
-                                <label for="tags">标签</label>
-                                <input id="tags" v-model="formData.tags" type="text" placeholder="用逗号分隔多个标签">
+                                <label for="tag">标签</label>
+                                <input id="tag" v-model="formData.tag" type="text" placeholder="用逗号分隔多个标签">
                             </div>
                             <div class="form-group">
                                 <label for="date">日期</label>
@@ -41,12 +41,13 @@
     </Teleport>
 </template>
 
-<script>
-import { Teleport } from 'vue'
-import Vditor from 'vditor'
-import 'vditor/dist/index.css'
+<script lang="ts">
+import { defineComponent, Teleport, ref, watch, onMounted, onBeforeUnmount } from 'vue';
+import Vditor from 'vditor';
+import 'vditor/dist/index.css';
+import type { FEvent } from 'src-tauri/bindings/FEvent';
 
-export default {
+export default defineComponent({
     name: 'CardContentModal',
     props: {
         modelValue: {
@@ -54,188 +55,133 @@ export default {
             default: false
         },
         cardData: {
-            type: Object,
+            type: Object as () => FEvent, // 使用 FEvent 类型
             required: true
         }
     },
     emits: ['update:modelValue', 'confirm'],
-    data() {
-        return {
-            formData: {
-                title: '',
-                content: '',
-                tags: '',
-                date: ''
-            },
-            vditor: null,
-            vditorInitialized: false
-        }
-    },
-    watch: {
-        modelValue(val) {
-            if (val) {
-                // 先初始化表单数据
-                this.initFormData();
+    setup(props, { emit }) {
+        const vditor = ref<Vditor | null>(null);
+        const vditorInitialized = ref(false);
 
-                // 在下一个 tick 更新编辑器内容
-                this.$nextTick(() => {
-                    // 如果编辑器尚未初始化，则进行初始化
-                    if (!this.vditorInitialized) {
-                        this.initVditor();
-                    } else if (this.vditor) {
-                        // 编辑器已存在，只需更新内容
-                        this.vditor.setValue(this.formData.content || '');
-                    }
-                });
-            }
-        }
-    },
-    mounted() {
-        // 组件挂载时初始化编辑器，但仅在模态窗口显示时
-        if (this.modelValue) {
-            this.initVditor();
-        }
+        // 将 formData 定义为 ref<FEvent>
+        const formData = ref<FEvent>({
+            id: props.cardData.id || '',
+            title: props.cardData.title || '',
+            date: props.cardData.date || '',
+            time: props.cardData.time || '',
+            listid: props.cardData.listid || '',
+            tag: props.cardData.tag || [],
+            create: props.cardData.create || '',
+            finished: props.cardData.finished || false,
+            priority: props.cardData.priority || 'Low', // 假设默认优先级为 'Low'
+            icon: props.cardData.icon || '',
+            color: props.cardData.color || ''
+        });
 
-        // 使用全局事件替代 MutationObserver
-        document.addEventListener('theme-change', this.handleThemeChangeEvent);
-    },
-    beforeUnmount() {
-        // 移除事件监听
-        document.removeEventListener('theme-change', this.handleThemeChangeEvent);
-
-        // 组件卸载前销毁编辑器
-        this.destroyVditor();
-    },
-    methods: {
-        // 添加一个方法检测当前是否为暗模式
-        isDarkMode() {
-            return document.body.classList.contains('dark') ||
-                document.body.classList.toString().includes('-dark');
-        },
-
-        // 处理主题变化事件 - 新增方法
-        handleThemeChangeEvent(event) {
-            const { isDarkMode } = event.detail;
-            if (this.vditor) {
-                this.vditor.setTheme(isDarkMode ? 'dark' : 'classic');
-            }
-        },
-
-        initFormData() {
-            this.formData = {
-                title: this.cardData.title || '',
-                content: this.cardData.content || '',
-                tags: Array.isArray(this.cardData.tags) ? this.cardData.tags.join(',') : '',
-                date: this.cardData.date || ''
-            };
-        },
-
-        initVditor() {
-            // 如果已经存在编辑器实例，直接返回
-            if (this.vditorInitialized && this.vditor) {
-                this.vditor.setValue(this.formData.content || '');
+        const initVditor = () => {
+            if (vditorInitialized.value && vditor.value) {
+                vditor.value.setValue(formData.value.content || '');
                 return;
             }
 
-            // 创建新的 Vditor 实例
-            this.vditor = new Vditor('vditor', {
+            vditor.value = new Vditor('vditor', {
                 height: 500,
                 width: '100%',
-                theme: this.isDarkMode() ? 'dark' : 'classic', // 根据当前主题设置
+                theme: isDarkMode() ? 'dark' : 'classic',
                 toolbarConfig: {
-                    pin: true,
+                    pin: true
                 },
                 cache: {
-                    enable: false,
+                    enable: false
                 },
                 placeholder: '请输入内容...',
                 mode: 'wysiwyg',
                 after: () => {
-                    console.log('Vditor initialized');
-                    this.vditorInitialized = true;
-                    if (this.formData.content) {
-                        this.vditor.setValue(this.formData.content);
+                    vditorInitialized.value = true;
+                    if (formData.value.content) {
+                        vditor.value?.setValue(formData.value.content);
                     }
                 },
-                input: (value) => {
-                    this.formData.content = value;
+                input: (value: string) => {
+                    formData.value.content = value;
                 }
             });
+        };
 
-            // 创建自定义样式以匹配应用主题
-            this.createCustomVditorStyles();
-        },
+        const isDarkMode = (): boolean => {
+            return document.body.classList.contains('dark') || document.body.classList.toString().includes('-dark');
+        };
 
-        // 创建与应用主题匹配的自定义样式
-        createCustomVditorStyles() {
-            const styleId = 'vditor-custom-style';
-            let styleEl = document.getElementById(styleId);
-
-            if (!styleEl) {
-                styleEl = document.createElement('style');
-                styleEl.id = styleId;
-                document.head.appendChild(styleEl);
+        const handleConfirm = () => {
+            if (vditor.value) {
+                formData.value.content = vditor.value.getValue();
             }
 
-            styleEl.textContent = `
-                .dark .vditor,
-                [class*="-dark"] .vditor {
-                    --vditor-theme-primary-color: var(--md-sys-color-primary);
-                    --vditor-bg-color: var(--md-sys-color-surface);
-                    --vditor-code-bg-color: var(--md-sys-color-surface-variant);
-                    --vditor-border-color: var(--md-sys-color-outline);
+            emit('confirm', formData.value); // 直接传递 FEvent 类型的 formData
+            handleClose();
+        };
+
+        const handleClose = () => {
+            emit('update:modelValue', false);
+
+            if (vditor.value) {
+                vditor.value.destroy();
+                vditor.value = null;
+                vditorInitialized.value = false;
+            }
+        };
+
+        watch(
+            () => props.modelValue,
+            (val) => {
+                if (val) {
+                    formData.value = {
+                        ...props.cardData // 使用 cardData 更新 formData
+                    };
+
+                    if (!vditorInitialized.value) {
+                        initVditor();
+                    } else if (vditor.value) {
+                        vditor.value.setValue(formData.value.content || '');
+                    }
                 }
-                
-                .dark .vditor-toolbar,
-                [class*="-dark"] .vditor-toolbar {
-                    background-color: var(--md-sys-color-surface-variant);
-                    border-bottom: 1px solid var(--md-sys-color-outline);
-                }
-            `;
-        },
-
-        destroyVditor() {
-            if (this.vditor) {
-                this.vditor.destroy();
-                this.vditor = null;
-                this.vditorInitialized = false;
             }
-        },
+        );
 
-        handleConfirm() {
-            // 确保从编辑器获取最新内容
-            if (this.vditor) {
-                this.formData.content = this.vditor.getValue();
+        onMounted(() => {
+            if (props.modelValue) {
+                initVditor();
             }
 
-            const updatedData = {
-                ...this.cardData,
-                title: this.formData.title.trim(),
-                content: this.formData.content.trim(),
-                tags: this.formData.tags.split(',').map(tag => tag.trim()).filter(Boolean),
-                date: this.formData.date
-            };
+            document.addEventListener('theme-change', handleThemeChangeEvent);
+        });
 
-            this.$emit('confirm', updatedData);
-            this.handleClose();
-        },
+        onBeforeUnmount(() => {
+            document.removeEventListener('theme-change', handleThemeChangeEvent);
 
-        handleClose() {
-            this.$emit('update:modelValue', false);
-
-            // 在模态窗口关闭时清理编辑器状态，确保下次重新初始化
-            if (this.vditor) {
-                // 保存编辑器内容到 formData 以避免内容丢失
-                this.formData.content = this.vditor.getValue();
-
-                // 销毁编辑器实例并重置标志
-                this.vditor.destroy();
-                this.vditor = null;
-                this.vditorInitialized = false;
+            if (vditor.value) {
+                vditor.value.destroy();
+                vditor.value = null;
             }
-        },
+        });
+
+        const handleThemeChangeEvent = (event: Event) => {
+            const isDarkMode = (event as CustomEvent).detail.isDarkMode;
+            if (vditor.value) {
+                vditor.value.setTheme(isDarkMode ? 'dark' : 'classic');
+            }
+        };
+
+        return {
+            formData,
+            handleConfirm,
+            handleClose,
+            initVditor,
+            vditor
+        };
     }
-}
+});
 </script>
 
 <style scoped>
