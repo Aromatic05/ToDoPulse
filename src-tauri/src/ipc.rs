@@ -5,6 +5,7 @@ use tauri::Manager;
 use tauri::State;
 
 use crate::aigc::gen_tag;
+use crate::data::Priority;
 use crate::data::{self, Event, EventMetadata, FEvent, FList, List, Tag};
 use crate::storage::{Repository, StorageState};
 use crate::utils::{event_to_fevent, list_exists, tag_exists};
@@ -13,14 +14,16 @@ use crate::utils::{event_to_fevent, list_exists, tag_exists};
 pub async fn add_event(
     state: State<'_, StorageState>,
     title: &str,
-    content: &str,
-    task_time: u64,
-    tag: Option<Vec<String>>,
+    listid: Option<&str>,
+    priority: Priority,
+    ddl: Option<u64>,
     app: State<'_, tauri::AppHandle>,
-    color: Option<&str>,
-    icon: &str,
 ) -> Result<Event, String> {
-    let metadata = EventMetadata::new();
+    let mut metadata = EventMetadata::new();
+    metadata.list = match listid {
+        Some(id) => Some(id.parse::<u8>().map_err(|e| e.to_string())?),
+        None => None,
+    };
     let content_path = app
         .path()
         .data_dir()
@@ -30,27 +33,19 @@ pub async fn add_event(
         fs::create_dir_all(&content_path).map_err(|e| e.to_string())?
     };
     let content_path = content_path.join(format!("{}.md", title));
-    fs::write(&content_path, content).map_err(|e| e.to_string())?;
     let mut new_event = Event {
         metadata,
         title: title.to_string(),
         content: content_path.to_string_lossy().to_string(),
-        task_time,
+        task_time: ddl,
         finished: false,
-        priority: data::Priority::Undefined,
-        color: match color {
-            Some(color) => color.to_string(),
-            None => "Undefined".to_string(),
-        },
-        icon: icon.to_string(),
+        priority: priority,
+        color: "default".to_string(),
+        icon: "default".to_string(),
     };
-    if let Some(tag_value) = tag {
-        new_event.metadata.tag = Some(tag_value);
-    } else {
-        new_event.metadata.tag = gen_tag(state.clone(), &content_path)
-            .await
-            .map_err(|e| e.to_string())?;
-    }
+    new_event.metadata.tag = gen_tag(state.clone(), &content_path)
+        .await
+        .map_err(|e| e.to_string())?;
     let mut guard = state.0.lock().unwrap();
     let storage = guard.deref_mut();
     Repository::<Event>::add(storage, &new_event).map_err(|e| e.to_string())?;
@@ -70,6 +65,50 @@ pub async fn get_event(
         return Ok(Some(f_event));
     }
     Ok(None)
+}
+
+#[tauri::command]
+pub async fn event_content(state: State<'_, StorageState>,uuid: &str) -> Result<String, String> {
+    let mut guard = state.0.lock().unwrap();
+    let storage = guard.deref_mut();
+    let event = Repository::<Event>::get_by_name(storage, uuid).map_err(|e| e.to_string())?;
+    if let Some(event) = event {
+        let content = fs::read_to_string(&event.content).map_err(|e| e.to_string())?;
+        return Ok(content);
+    }
+    Ok("".to_string())
+}
+
+#[tauri::command]
+pub async fn write_content(
+    state: State<'_, StorageState>,
+    uuid: &str,
+    content: String,
+) -> Result<(), String> {
+    let mut guard = state.0.lock().unwrap();
+    let storage = guard.deref_mut();
+    let event = Repository::<Event>::get_by_name(storage, uuid).map_err(|e| e.to_string())?;
+    if let Some(event) = event {
+        fs::write(&event.content, content).map_err(|e| e.to_string())?;
+        return Ok(());
+    }
+    Err("Event not found".to_string())
+}
+
+#[tauri::command]
+pub async fn update_event(state: State<'_, StorageState>, event: FEvent) -> Result<(), String> {
+    let mut guard = state.0.lock().unwrap();
+    let storage = guard.deref_mut();
+    let event = Repository::<Event>::get_by_name(storage, &event.id).map_err(|e| e.to_string())?;
+    if let Some(mut event) = event {
+        event.title = event.title;
+        event.finished = event.finished;
+        event.priority = event.priority;
+        event.task_time = event.task_time;
+        Repository::<Event>::add(storage, &event).map_err(|e| e.to_string())?;
+        return Ok(());
+    }
+    Err("Event not found".to_string())
 }
 
 #[tauri::command]

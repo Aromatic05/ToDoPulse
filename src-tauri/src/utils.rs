@@ -4,8 +4,8 @@ use tauri::State;
 
 use crate::data::{Event, FEvent};
 use crate::data::{List, Tag};
-use crate::storage::{Entity, Repository, StorageState, Storage};
-use crate::time::{date, time};
+use crate::storage::{Entity, Repository, Storage, StorageState};
+use crate::time;
 
 pub fn event_to_fevent(event: &Event) -> FEvent {
     FEvent {
@@ -14,11 +14,17 @@ pub fn event_to_fevent(event: &Event) -> FEvent {
             None => "Undefined".to_string(),
             Some(listid) => listid.to_string(),
         },
-        time: time(event.task_time),
-        date: date(event.task_time),
+        time: match event.task_time {
+            None => "Undefined".to_string(),
+            Some(time) => time::time(time),
+        },
+        date: match event.task_time {
+            None => "Undefined".to_string(),
+            Some(time) => time::date(time),
+        },
         tag: event.metadata.tag.clone(),
         title: event.title.clone(),
-        create: date(event.metadata.timestamp),
+        create: time::date(event.metadata.timestamp),
         finished: event.finished,
         priority: event.priority.clone(),
         color: event.color.clone(),

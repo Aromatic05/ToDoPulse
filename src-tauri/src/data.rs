@@ -21,6 +21,12 @@ pub struct EventMetadata {
     pub tag: Option<Vec<String>>,
 }
 
+#[derive(Serialize, Deserialize, Clone)]
+pub struct Time {
+    pub date: String,
+    pub time: String,
+}
+
 impl EventMetadata {
     pub fn new() -> Self {
         Self {
@@ -45,7 +51,7 @@ pub struct Event {
     pub metadata: EventMetadata,
     pub title: String,
     pub content: String,
-    pub task_time: u64,
+    pub task_time: Option<u64>,
     pub finished: bool,
     pub priority: Priority,
     pub icon: String,

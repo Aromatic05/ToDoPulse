@@ -2,7 +2,6 @@ mod ipc;
 mod storage;
 mod aigc;
 mod config;
-mod filter;
 mod data;
 mod debug;
 mod time;
@@ -28,6 +27,9 @@ pub fn run() -> std::io::Result<()> {
         .invoke_handler(tauri::generate_handler![
             ipc::add_event,
             ipc::get_event,
+            ipc::event_content,
+            ipc::write_content,
+            ipc::update_event,
             ipc::delete_event,
             ipc::new_list,
             ipc::get_lists,

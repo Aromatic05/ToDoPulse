@@ -21,6 +21,10 @@ pub trait Entity: Serialize + for<'de> Deserialize<'de> {
 pub trait Repository<T: Entity> {
     fn add(&self, entity: &T) -> Result<()>;
     fn delete(&self, name: &str) -> Result<()>;
+    #[allow(dead_code)]
+    fn update<F>(&self, id: &str, update_fn: F) -> Result<()>
+    where
+        F: FnOnce(&mut T) -> Result<()>;
     fn get_by_name(&self, name: &str) -> Result<Option<T>>;
     fn get_all(&self) -> Result<Vec<T>>;
 }
@@ -71,6 +75,18 @@ impl<T: Entity> Repository<T> for Storage {
         }
         txn.commit()?;
         Ok(())
+    }
+    fn update<F>(&self, name: &str, update_fn: F) -> Result<()>
+    where
+        F: FnOnce(&mut T) -> Result<()>,
+    {
+        if let Some(mut entity) = self.get_by_name(name)? {
+            update_fn(&mut entity)?;
+            self.add(&entity)?;
+            Ok(())
+        } else {
+            Err(anyhow::anyhow!("Entity not found"))
+        }
     }
     fn get_by_name(&self, name: &str) -> Result<Option<T>> {
         let txn = self.db.begin_read()?;

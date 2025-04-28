@@ -1,6 +1,8 @@
 import { v4 as uuidv4 } from 'uuid';
 import { FEvent } from 'src-tauri/bindings/FEvent';
 import { Priority } from 'src-tauri/bindings/Priority';
+import { FList } from 'src-tauri/bindings/FList';
+import { invoke } from '@tauri-apps/api/core';
 
 // export type FEvent = { 
 //     id: string, 
@@ -101,7 +103,7 @@ const eventsData: Record<string, FEvent[]> = {
 export async function getEventsBylistid(listid: string): Promise<FEvent[]> {
     // 返回指定列表的事件，如果列表不存在则返回空数组
     console.log(listid);
-    return [...(eventsData[listid] || [])];
+    return invoke('list_content', { listid });
 }
 
 /**
@@ -116,30 +118,17 @@ export async function addEvent(
     listid: string,
     title: string,
     priority: Priority = "Medium",
-    date: string = new Date().toISOString().substring(0, 10),
-    time: string = '12:00',
-    create: string = new Date().toISOString().substring(0, 10)
+    date: string = "",
+    time: string = "",
 ): Promise<FEvent[]> {
     // 确保该列表的事件数组存在
     if (!eventsData[listid]) {
         eventsData[listid] = [];
     }
+    
+    // 此处的参数不代表真实情况，请自行修改
+    invoke('add_event', { listid, title, priority, date, time})
 
-    const newEvent: FEvent = {
-        id: uuidv4(),
-        title,
-        finished: false,
-        priority,
-        date,
-        time,
-        create,
-        color: '#3498db',
-        icon: 'Event',
-        listid,
-        tag: [],
-    };
-
-    eventsData[listid].push(newEvent);
     console.log(`Service: New event "${title}" added to list ${listid}`);
 
     return [...eventsData[listid]];

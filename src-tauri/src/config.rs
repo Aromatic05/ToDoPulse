@@ -41,6 +41,24 @@ pub fn parse(app: &tauri::AppHandle) -> Result<(), String> {
         .config_dir()
         .map_err(|e| e.to_string())?
         .join("config.toml");
+    if !config_path.exists() {
+        fs::create_dir_all(config_path.parent().unwrap()).map_err(|e| e.to_string())?;
+        fs::write(
+            &config_path,
+            r#"
+          [theme]
+          color = "blue"
+          [info]
+          switch = true
+          time = ["08:00", "12:00", "18:00"]
+          [model]
+          switch = false
+          name = "gpt-3.5-turbo"
+          tokens = "4096"
+          "#,
+        )
+        .map_err(|e| e.to_string())?;
+    }
     let config_str = fs::read_to_string(config_path).map_err(|e| e.to_string())?;
     let config: Config = toml::from_str(&config_str).map_err(|e| e.to_string())?;
 
