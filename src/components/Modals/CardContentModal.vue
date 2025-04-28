@@ -42,10 +42,11 @@
 </template>
 
 <script lang="ts">
-import { defineComponent, Teleport, ref, watch, onMounted, onBeforeUnmount } from 'vue';
+import { defineComponent, ref, watch, onMounted, onBeforeUnmount } from 'vue';
 import Vditor from 'vditor';
 import 'vditor/dist/index.css';
 import type { FEvent } from 'src-tauri/bindings/FEvent';
+import { getEventContent } from '@/services/ListDataService';
 
 export default defineComponent({
     name: 'CardContentModal',
@@ -79,9 +80,14 @@ export default defineComponent({
             color: props.cardData.color || ''
         });
 
+        const content = ref<string | null>(null);
+        (async () => {
+            content.value = await getEventContent(formData.value.id); // 获取内容
+        })();
+
         const initVditor = () => {
             if (vditorInitialized.value && vditor.value) {
-                vditor.value.setValue(formData.value.content || '');
+                vditor.value.setValue(content.value || ''); // 设置内容
                 return;
             }
 
@@ -99,12 +105,12 @@ export default defineComponent({
                 mode: 'wysiwyg',
                 after: () => {
                     vditorInitialized.value = true;
-                    if (formData.value.content) {
-                        vditor.value?.setValue(formData.value.content);
+                    if (content.value) {
+                        vditor.value?.setValue(content.value);
                     }
                 },
                 input: (value: string) => {
-                    formData.value.content = value;
+                    content.value = value;
                 }
             });
         };
@@ -115,7 +121,7 @@ export default defineComponent({
 
         const handleConfirm = () => {
             if (vditor.value) {
-                formData.value.content = vditor.value.getValue();
+                content.value = vditor.value.getValue();
             }
 
             emit('confirm', formData.value); // 直接传递 FEvent 类型的 formData
@@ -143,7 +149,7 @@ export default defineComponent({
                     if (!vditorInitialized.value) {
                         initVditor();
                     } else if (vditor.value) {
-                        vditor.value.setValue(formData.value.content || '');
+                        vditor.value.setValue(content.value || '');
                     }
                 }
             }

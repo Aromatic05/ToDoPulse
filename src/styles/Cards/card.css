@@ -134,6 +134,12 @@
     transform: translate(-50%, -50%);
 }
 
+/* 完成状态的卡片样式 */
+.card-checkbox:checked + .card-title {
+    text-decoration: line-through;
+    opacity: 0.7;
+}
+
 /* 悬停状态 */
 .card-checkbox:hover {
     border-color: var(--md-sys-color-primary);
@@ -153,10 +159,4 @@
     font-size: 14px;
     white-space: nowrap;
     margin-left: 8px;
-}
-
-/* 完成状态的卡片样式 */
-.card-checkbox:checked + .card-title {
-    text-decoration: line-through;
-    opacity: 0.7;
 }

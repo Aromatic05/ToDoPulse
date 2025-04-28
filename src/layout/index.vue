@@ -26,11 +26,11 @@ import Topbar from '@/layout/Topbar.vue'
 import SettingsPanel from '@/components/SettingsPanel.vue'
 
 // 动态导入视图组件
-import TimelineView from '@/views/TimelineView.vue'
-import CalendarView from '@/views/CalendarView.vue'
-import TagsView from '@/views/TagsView.vue'
-import ListView from '@/views/ListView.vue'
-import DefaultView from '@/views/DefaultView.vue'
+import TimelineView from '@/components/Views/TimelineView.vue'
+import CalendarView from '@/components/Views/CalendarView.vue'
+import TagsView from '@/components/Views/TagsView.vue'
+import ListView from '@/components/Views/ListView.vue'
+import DefaultView from '@/components/Views/DefaultView.vue'
 
 const rail = ref(false)
 const showSettings = ref(false)

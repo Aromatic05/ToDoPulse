@@ -214,3 +214,14 @@ export async function deleteEvent(EventId: string, listid: string): Promise<FEve
 
     return [...Events];
 }
+
+export async function getEventContent(EventId: string): Promise<string> {
+    const allEvents = Object.values(eventsData).flat();
+    const Event = allEvents.find(t => t.id === EventId);
+
+    if (Event) {
+        return JSON.stringify(Event, null, 2);
+    } else {
+        return 'Event not found';
+    }
+}

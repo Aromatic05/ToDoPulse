@@ -9,7 +9,11 @@
             </v-col>
         </v-row>
 
-        <v-data-table :headers="headers" :items="Events" :items-per-page="10" class="elevation-1 rounded">
+        <v-data-table 
+          :headers="headers" 
+          :items="Events" 
+          :items-per-page="10" 
+          class="elevation-1 rounded material-table">
             <template v-slot:item="{ item }">
                 <tr>
                     <td colspan="5" class="pa-2">
@@ -198,7 +202,68 @@ async function handleEventUpdate(updatedData: any, originalEvent: FEvent) {
 
 <style scoped>
 .list-view {
-    max-width: 1000px;
-    margin: 0 auto;
+  max-width: 1000px;
+  margin: 0 auto;
+}
+
+/* 使用Material Design变量适配v-data-table */
+:deep(.v-data-table) {
+  /* 表格背景使用与卡片相同的表面容器颜色 */
+  background-color: var(--md-sys-color-surface-container) !important;
+  color: var(--md-sys-color-on-surface) !important;
+  border-radius: 18px;
+  border: 1px solid var(--md-sys-color-outline-variant);
+  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.08);
+  transition: all 0.3s ease;
+}
+
+/* 表头样式 */
+:deep(.v-data-table__header) {
+  background-color: var(--md-sys-color-surface-container-high) !important;
+}
+
+:deep(.v-data-table__header th) {
+  color: var(--md-sys-color-on-surface) !important;
+  font-weight: 600;
+  border-bottom: 1px solid var(--md-sys-color-outline-variant) !important;
+}
+
+/* 表格行 */
+:deep(.v-data-table__row) {
+  transition: background-color 0.2s ease;
+  border-bottom: 1px solid var(--md-sys-color-outline-variant) !important;
+}
+
+:deep(.v-data-table__row:hover) {
+  background-color: var(--md-sys-color-surface-container-high) !important;
+}
+
+/* 分页控件 */
+:deep(.v-data-table-footer) {
+  background-color: var(--md-sys-color-surface-container) !important;
+  color: var(--md-sys-color-on-surface) !important;
+}
+
+:deep(.v-pagination__item) {
+  color: var(--md-sys-color-on-surface) !important;
+}
+
+:deep(.v-pagination__item--active) {
+  background-color: var(--md-sys-color-primary) !important;
+  color: var(--md-sys-color-on-primary) !important;
+}
+
+/* 无数据提示 */
+:deep(.v-data-table__empty-wrapper) {
+  color: var(--md-sys-color-on-surface-variant) !important;
+}
+
+/* 如果表格有阴影，可以使用与卡片一致的阴影样式 */
+:deep(.elevation-1) {
+  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.08) !important;
+}
+
+:deep(.elevation-1:hover) {
+  box-shadow: 0 4px 15px rgba(0, 0, 0, 0.12) !important;
 }
 </style>

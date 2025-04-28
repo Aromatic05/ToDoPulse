@@ -1,36 +1,7 @@
 import { reactive } from 'vue';
 import { v4 as uuidv4 } from 'uuid';
 
-// 定义类型接口 - 按照新的定义
-export interface TimelineItem {
-    id: string;
-    title: string;
-    isCompleted: boolean;
-    content: string;
-    priority: '高' | '中' | '低';
-    time: string;
-    date: string;
-    dateColor: string;
-    color: string;
-    icon: string;
-    listId: string;
-    tags: string[];
-}
-
-export interface EventCardData {
-    id: string;
-    title: string;
-    isCompleted: boolean;
-    content: string;
-    priority?: '高' | '中' | '低'; 
-    time: string;
-    date: string;
-    dateColor: string;
-    color: string;
-    icon: string;
-    listId: string;
-    tags: string[];
-}
+import { FEvent } from 'src-tauri/bindings/FEvent';
 
 export interface TimelineGroup {
     id: string;
@@ -41,8 +12,8 @@ export interface TimelineGroup {
 }
 
 // 定义按组分类的数据集合类型
-export interface GroupedTimelineItems {
-    [key: string]: TimelineItem[];
+export interface GroupedFEvents {
+    [key: string]: FEvent[];
 }
 
 class TimelineDataService {
@@ -80,98 +51,107 @@ class TimelineDataService {
     ]);
 
     // 所有时间线项目数据 - 修改为使用UUID作为listId
-    private timelineItems = reactive<GroupedTimelineItems>({
-        'today': [
+    private FEvents: Record<string, FEvent[]> = {
+        "today": [
             {
                 id: uuidv4(),
-                title: '完成项目规划',
-                content: '讨论并确定项目范围、目标和里程碑',
-                priority: '高',
-                time: '09:00',
-                date: '2025-04-26',
-                dateColor: 'var(--md-sys-color-primary)',
-                color: 'primary',
-                icon: 'mdi-file-document',
-                isCompleted: true,
-                listId: this.LIST_IDS.WORK,
-                tags: ['today', 'work', 'high-priority']
-            },
-            {
-                id: uuidv4(),
-                title: '团队会议',
-                content: '周会：讨论本周工作进展和问题',
-                priority: '中',
-                time: '14:00',
-                date: '2025-04-26',
-                dateColor: 'var(--md-sys-color-secondary)',
-                color: 'secondary',
-                icon: 'mdi-account-group',
-                isCompleted: false,
-                listId: this.LIST_IDS.MEETINGS,
-                tags: ['today', 'meeting']
-            }
-        ],
-        'tomorrow': [
-            {
-                id: uuidv4(),
-                title: '提交代码审查',
-                content: '提交新功能的代码审查请求',
-                priority: '中',
-                time: '10:30',
-                date: '2025-04-27',
-                dateColor: 'var(--md-sys-color-success)',
-                color: 'success',
-                icon: 'mdi-code-tags',
-                isCompleted: false,
-                listId: this.LIST_IDS.WORK,
-                tags: ['tomorrow', 'code-review']
-            },
-            {
-                id: uuidv4(),
-                title: 'UI设计评审',
-                content: '评审新界面设计和用户体验改进',
-                priority: '中',
-                time: '15:00',
-                date: '2025-04-27',
-                dateColor: 'var(--md-sys-color-info)',
-                color: 'info',
-                icon: 'mdi-palette',
-                isCompleted: false,
-                listId: this.LIST_IDS.DESIGN,
-                tags: ['tomorrow', 'design']
-            }
-        ],
-        'next-week': [
-            {
-                id: uuidv4(),
-                title: '项目进度汇报',
-                content: '向管理层汇报项目进展情况',
-                priority: '高',
-                time: '11:00',
+                title: '完成项目方案',
+                finished: false,
+                priority: "High",
                 date: '2025-04-28',
-                dateColor: 'var(--md-sys-color-warning)',
-                color: 'warning',
-                icon: 'mdi-chart-timeline',
-                isCompleted: false,
-                listId: this.LIST_IDS.MEETINGS,
-                tags: ['next-week', 'report']
+                time: '18:00',
+                create: "2025-04-20",
+                color: '#f1c40f',
+                icon: 'work',
+                listid: "4788325718170490349",
+                tag: ['项目', '文档'],
             },
             {
                 id: uuidv4(),
-                title: '产品发布准备',
-                content: '准备产品发布材料和营销内容',
-                priority: '低',
-                time: '09:30',
+                title: '准备周会演示',
+                finished: true,
+                priority: "Medium",
+                date: '2025-04-26',
+                time: '10:00',
+                create: "2025-04-20",
+                color: '#3498db',
+                icon: 'presentation',
+                listid: "4788325718170490349",
+                tag: ['会议', '演示']
+            },
+            {
+                id: uuidv4(),
+                title: '回复客户邮件',
+                finished: false,
+                priority: "High",
+                date: '2025-04-25',
+                time: '14:30',
+                create: "2025-04-20",
+                color: '#e74c3c',
+                icon: 'email',
+                listid: "4788325718170490349",
+                tag: ['客户', '邮件']
+            }
+        ],
+    
+        // 个人列表的事件
+        "tomorrow": [
+            {
+                id: uuidv4(),
+                title: '更新项目文档',
+                finished: false,
+                priority: "Low",
                 date: '2025-04-30',
-                dateColor: 'var(--md-sys-color-error)',
-                color: 'error',
-                icon: 'mdi-rocket-launch',
-                isCompleted: false,
-                listId: this.LIST_IDS.MARKETING,
-                tags: ['next-week', 'release']
+                time: '12:00',
+                create: "2025-04-20",
+                color: '#9b59b6',
+                icon: 'document',
+                listid: "2",
+                tag: ['文档', '更新']
+            },
+            {
+                id: uuidv4(),
+                title: '购买生日礼物',
+                finished: false,
+                priority: "Medium",
+                date: '2025-05-05',
+                time: '15:00',
+                create: "2025-04-20",
+                color: '#1abc9c',
+                icon: 'gift',
+                listid: "2",
+                tag: ['生日', '购物']
+            }
+        ], 
+        "next-week": [
+            {
+                id: uuidv4(),
+                title: '更新项目文档',
+                finished: false,
+                priority: "Low",
+                date: '2025-04-30',
+                time: '12:00',
+                create: "2025-04-20",
+                color: '#9b59b6',
+                icon: 'document',
+                listid: "2",
+                tag: ['文档', '更新']
+            },
+            {
+                id: uuidv4(),
+                title: '购买生日礼物',
+                finished: false,
+                priority: "Medium",
+                date: '2025-05-05',
+                time: '15:00',
+                create: "2025-04-20",
+                color: '#1abc9c',
+                icon: 'gift',
+                listid: "2",
+                tag: ['生日', '购物']
             }
         ]
-    });
+    };
 
     // 获取时间线组
     getTimelineGroups(): TimelineGroup[] {
@@ -193,32 +173,17 @@ class TimelineDataService {
         return false;
     }
 
-    // 获取今天的事项 - 直接返回对应分组的数组
-    getTodayItems(): TimelineItem[] {
-        return this.timelineItems['today'] || [];
-    }
-
-    // 获取明天的事项
-    getTomorrowItems(): TimelineItem[] {
-        return this.timelineItems['tomorrow'] || [];
-    }
-
-    // 获取下周的事项
-    getNextWeekItems(): TimelineItem[] {
-        return this.timelineItems['next-week'] || [];
-    }
-
     // 获取指定组的事项
-    getItemsByGroup(dateGroup: string): TimelineItem[] {
-        return this.timelineItems[dateGroup] || [];
+    getItemsByGroup(dateGroup: string): FEvent[] {
+        return this.FEvents[dateGroup] || [];
     }
 
     // 将timeline数据格式转换为EventCard所需的格式
-    formatCardData(item: TimelineItem, dateGroup: string): EventCardData {
+    formatCardData(item: FEvent, dateGroup: string): FEvent {
         // 确保tags包含dateGroup
-        const tags = [...(item.tags || [])];
-        if (!tags.includes(dateGroup)) {
-            tags.push(dateGroup);
+        const tag = [...(item.tag || [])];
+        if (!tag.includes(dateGroup)) {
+            tag.push(dateGroup);
         }
         // if (!tags.includes(item.listId) && item.listId) {
         //     tags.push(item.listId);
@@ -226,7 +191,7 @@ class TimelineDataService {
 
         return {
             ...item,
-            tags
+            tag
         };
     }
 
@@ -244,8 +209,8 @@ class TimelineDataService {
     }
 
     // 更新项目
-    updateItem(updatedData: EventCardData, dateGroup: string): void {
-        const items = this.timelineItems[dateGroup];
+    updateItem(updatedData: FEvent, dateGroup: string): void {
+        const items = this.FEvents[dateGroup];
         if (!items) return;
         
         const index = items.findIndex(item => item.id === updatedData.id);
@@ -259,22 +224,22 @@ class TimelineDataService {
     }
     
     // 添加新项目 - 使用UUID作为ID
-    addItem(item: Omit<TimelineItem, 'id'>, dateGroup: string): string {
-        if (!this.timelineItems[dateGroup]) {
-            this.timelineItems[dateGroup] = [];
+    addItem(item: Omit<FEvent, 'id'>, dateGroup: string): string {
+        if (!this.FEvents[dateGroup]) {
+            this.FEvents[dateGroup] = [];
         }
         
         // 生成唯一UUID
         const newId = uuidv4();
         
-        const newItem: TimelineItem = { ...item, id: newId };
-        this.timelineItems[dateGroup].push(newItem);
+        const newItem: FEvent = { ...item, id: newId };
+        this.FEvents[dateGroup].push(newItem);
         return newId;
     }
     
     // 删除项目
     deleteItem(id: string, dateGroup: string): boolean {
-        const items = this.timelineItems[dateGroup];
+        const items = this.FEvents[dateGroup];
         if (!items) return false;
         
         const index = items.findIndex(item => item.id === id);
@@ -287,15 +252,15 @@ class TimelineDataService {
     
     // 跨分组移动项目
     moveItem(id: string, fromGroup: string, toGroup: string): boolean {
-        const fromItems = this.timelineItems[fromGroup];
+        const fromItems = this.FEvents[fromGroup];
         if (!fromItems) return false;
         
         const index = fromItems.findIndex(item => item.id === id);
         if (index === -1) return false;
         
         // 确保目标组存在
-        if (!this.timelineItems[toGroup]) {
-            this.timelineItems[toGroup] = [];
+        if (!this.FEvents[toGroup]) {
+            this.FEvents[toGroup] = [];
         }
         
         // 复制项目并从源组删除
@@ -303,33 +268,33 @@ class TimelineDataService {
         fromItems.splice(index, 1);
         
         // 更新标签，添加新分组标签并移除旧分组标签
-        const tags = item.tags.filter(tag => tag !== fromGroup);
-        if (!tags.includes(toGroup)) {
-            tags.push(toGroup);
+        const tag = (item.tag || []).filter(tag => tag !== fromGroup);
+        if (!tag.includes(toGroup)) {
+            tag.push(toGroup);
         }
-        item.tags = tags;
+        item.tag = tag;
         
         // 添加到目标组
-        this.timelineItems[toGroup].push(item);
+        this.FEvents[toGroup].push(item);
         return true;
     }
     
     // 根据列表ID筛选项目
-    getItemsByList(listId: string): TimelineItem[] {
-        return Object.values(this.timelineItems)
+    getItemsByList(listId: string): FEvent[] {
+        return Object.values(this.FEvents)
             .flat()
-            .filter(item => item.listId === listId);
+            .filter(item => item.listid === listId);
     }
     
     // 获取所有的列表ID
     getListIds(): string[] {
         const allListIds = new Set<string>();
         
-        Object.values(this.timelineItems)
+        Object.values(this.FEvents)
             .flat()
             .forEach(item => {
-                if (item.listId) {
-                    allListIds.add(item.listId);
+                if (item.listid) {
+                    allListIds.add(item.listid);
                 }
             });
             
@@ -337,11 +302,11 @@ class TimelineDataService {
     }
     
     // 按优先级排序项目
-    sortItemsByPriority(items: TimelineItem[]): TimelineItem[] {
+    sortItemsByPriority(items: FEvent[]): FEvent[] {
         const priorityWeight = {
-            '高': 3,
-            '中': 2,
-            '低': 1
+            'High': 3,
+            'Medium': 2,
+            'Low': 1
         };
         
         return [...items].sort((a, b) => 

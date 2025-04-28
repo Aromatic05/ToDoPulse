@@ -22,7 +22,7 @@
                     :icon="item.icon"
                     size="small" 
                     density="compact">
-                    <EventCard :data="formatCardData(item, group.dateGroup)" @update="(data: EventCardData) => updateItem(data, group.dateGroup)" />
+                    <EventCard :data="formatCardData(item, group.dateGroup)" @update="(data: FEvent) => updateItem(data, group.dateGroup)" />
                 </v-timeline-item>
             </template>
         </v-timeline>
@@ -32,23 +32,24 @@
 <script setup lang="ts">
 import { computed } from 'vue'
 import EventCard from '@/components/Cards/EventCard.vue'
-import timelineService, { TimelineItem, EventCardData } from '@/services/TimelineDataService'
+import timelineService from '@/services/TimelineDataService'
+import { FEvent } from 'src-tauri/bindings/FEvent';
 
 // 使用服务获取时间线组数据
 const timelineGroups = computed(() => timelineService.getTimelineGroups());
 
 // 获取特定组的项目
-const getItemsByGroup = (dateGroup: string): TimelineItem[] => {
+const getItemsByGroup = (dateGroup: string): FEvent[] => {
     return timelineService.getItemsByGroup(dateGroup);
 };
 
 // 使用服务的格式转换函数，添加明确的类型定义
-const formatCardData = (item: TimelineItem, dateGroup: string): EventCardData => {
+const formatCardData = (item: FEvent, dateGroup: string): FEvent => {
     return timelineService.formatCardData(item, dateGroup);
 };
 
 // 使用服务的更新函数，添加明确的类型定义
-const updateItem = (updatedData: EventCardData, dateGroup: string): void => {
+const updateItem = (updatedData: FEvent, dateGroup: string): void => {
     timelineService.updateItem(updatedData, dateGroup);
 };
 </script>
