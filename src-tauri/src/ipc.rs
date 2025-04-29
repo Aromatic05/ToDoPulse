@@ -21,7 +21,7 @@ pub async fn add_event(
 ) -> Result<Event, String> {
     let mut metadata = EventMetadata::new();
     metadata.list = match listid {
-        Some(id) => Some(id.parse::<u8>().map_err(|e| e.to_string())?),
+        Some(id) => Some(id.parse::<u64>().map_err(|e| e.to_string())?),
         None => None,
     };
     let content_path = app
@@ -53,22 +53,7 @@ pub async fn add_event(
 }
 
 #[tauri::command]
-pub async fn get_event(
-    state: State<'_, StorageState>,
-    uuid: &str,
-) -> Result<Option<FEvent>, String> {
-    let mut guard = state.0.lock().unwrap();
-    let storage = guard.deref_mut();
-    let event = Repository::<Event>::get_by_name(storage, uuid).map_err(|e| e.to_string())?;
-    if let Some(event) = event {
-        let f_event = event_to_fevent(&event);
-        return Ok(Some(f_event));
-    }
-    Ok(None)
-}
-
-#[tauri::command]
-pub async fn event_content(state: State<'_, StorageState>,uuid: &str) -> Result<String, String> {
+pub async fn event_content(state: State<'_, StorageState>, uuid: &str) -> Result<String, String> {
     let mut guard = state.0.lock().unwrap();
     let storage = guard.deref_mut();
     let event = Repository::<Event>::get_by_name(storage, uuid).map_err(|e| e.to_string())?;
@@ -96,7 +81,7 @@ pub async fn write_content(
 }
 
 #[tauri::command]
-pub async fn update_event(state: State<'_, StorageState>, event: FEvent) -> Result<(), String> {
+pub async fn put_event(state: State<'_, StorageState>, event: FEvent) -> Result<(), String> {
     let mut guard = state.0.lock().unwrap();
     let storage = guard.deref_mut();
     let event = Repository::<Event>::get_by_name(storage, &event.id).map_err(|e| e.to_string())?;
@@ -157,19 +142,28 @@ pub async fn get_lists(state: State<'_, StorageState>) -> Result<Vec<data::FList
 }
 
 #[tauri::command]
-pub async fn list_content(state: State<'_, StorageState>, listid: &str) -> Result<FEvent, String> {
+pub async fn list_content(
+    state: State<'_, StorageState>,
+    listid: &str,
+) -> Result<Vec<FEvent>, String> {
     if !list_exists(&state, listid) {
         Err("List not found".to_string())
     } else {
         let mut guard = state.0.lock().unwrap();
         let storage = guard.deref_mut();
-        let event = Repository::<Event>::get_by_name(storage, listid).map_err(|e| e.to_string())?;
-        if let Some(event) = event {
-            let f_event = event_to_fevent(&event);
-            Ok(f_event)
-        } else {
-            Err("Event not found".to_string())
-        }
+        let evnets = Repository::<Event>::filter(storage, |event| {
+            if let Some(list) = event.metadata.list {
+                list.to_string() == listid
+            } else {
+                false
+            }
+        })
+        .map_err(|e| e.to_string())?;
+        let f_events: Vec<FEvent> = evnets
+            .into_iter()
+            .map(|event| event_to_fevent(&event))
+            .collect();
+        Ok(f_events)
     }
 }
 

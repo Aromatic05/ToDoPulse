@@ -17,7 +17,7 @@ const TAG_TABLE: Table = TableDefinition::new("tag");
 pub struct EventMetadata {
     pub uuid: String,
     pub timestamp: u64,
-    pub list: Option<u8>,
+    pub list: Option<u64>,
     pub tag: Option<Vec<String>>,
 }
 

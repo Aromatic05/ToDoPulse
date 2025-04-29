@@ -26,6 +26,9 @@ pub trait Repository<T: Entity> {
     where
         F: FnOnce(&mut T) -> Result<()>;
     fn get_by_name(&self, name: &str) -> Result<Option<T>>;
+    fn filter<F>(&self, filter_fn: F) -> Result<Vec<T>>
+    where
+        F: Fn(&T) -> bool;
     fn get_all(&self) -> Result<Vec<T>>;
 }
 
@@ -87,6 +90,22 @@ impl<T: Entity> Repository<T> for Storage {
         } else {
             Err(anyhow::anyhow!("Entity not found"))
         }
+    }
+    fn filter<F>(&self, filter_fn: F) -> Result<Vec<T>>
+    where
+        F: Fn(&T) -> bool,
+    {
+        let txn = self.db.begin_read()?;
+        let storage = txn.open_table(T::table_def())?;
+        let mut result = Vec::new();
+        for entry in storage.iter()? {
+            let (_, value) = entry?;
+            let entity: T = serde_json::from_slice(value.value())?;
+            if filter_fn(&entity) {
+                result.push(entity);
+            }
+        }
+        Ok(result)
     }
     fn get_by_name(&self, name: &str) -> Result<Option<T>> {
         let txn = self.db.begin_read()?;
