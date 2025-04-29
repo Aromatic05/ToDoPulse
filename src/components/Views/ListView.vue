@@ -97,7 +97,9 @@ async function loadListData() {
         try {
             // 获取列表信息
             const lists = await getLists();
+            console.log('listview获取列表:', lists);
             const currentList = lists.find(list => list.id === listId.value);
+            console.log('listview当前列表:', currentList);
 
             if (currentList) {
                 listTitle.value = currentList.title;

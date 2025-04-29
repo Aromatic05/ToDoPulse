@@ -27,11 +27,11 @@ const lists = ref<any[]>([]);
 const initLists = async () => {
     try {
         lists.value = await getLists();
-        console.log(getLists());
+        console.log('Breadcrumbs获取列表:', lists.value);
         // 数据加载后立即检查当前URL
         checkCurrentRoute();
     } catch (error) {
-        console.error('获取列表失败:', error);
+        console.error('Breadcrumbs获取列表失败:', error);
     }
 };
 

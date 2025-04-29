@@ -3,6 +3,7 @@ import { FEvent } from 'src-tauri/bindings/FEvent';
 import { Priority } from 'src-tauri/bindings/Priority';
 import { FList } from 'src-tauri/bindings/FList';
 import { invoke } from '@tauri-apps/api/core';
+import { tr } from 'vuetify/locale';
 
 // export type FEvent = { 
 //     id: string, 
@@ -102,36 +103,45 @@ const eventsData: Record<string, FEvent[]> = {
  */
 export async function getEventsBylistid(listid: string): Promise<FEvent[]> {
     // 返回指定列表的事件，如果列表不存在则返回空数组
-    console.log(listid);
-    return invoke('list_content', { listid });
+    console.log("getEventsBylistid", listid);
+    try {
+        const listEvents = await invoke<FEvent[]>('list_content', { listid: listid });
+        console.log("listEvents", listEvents);
+    return listEvents;
+    } catch (error) {    
+        console.error('getEventsBylistid获取列表失败:', error);  
+        return [];
+    }
+    
 }
 
 /**
  * 添加新事件
  * @param listid 列表ID
  * @param title 事件标题
- * @param date 日期
- * @param time 时间
+ * @param timestamp 事件时间戳
  * @returns Promise<FEvent[]> 返回更新后的事件列表
  */
 export async function addEvent(
     listid: string,
     title: string,
     priority: Priority = "Medium",
-    date: string = "",
-    time: string = "",
+    timestamp: string = "",
 ): Promise<FEvent[]> {
-    // 确保该列表的事件数组存在
-    if (!eventsData[listid]) {
-        eventsData[listid] = [];
+    try {
+        const lists = await invoke<FList[]>('get_lists');
+        if (lists.find(l => l.id === listid) === undefined) {
+            console.error(`列表ID ${listid} 不存在`);
+            return [];
+        }
+        // 此处的参数不代表真实情况，请自行修改
+        invoke('add_event', { listid: listid, title: title, priority: priority, ddl: timestamp })
+        console.log(`Service: New event "${title}" added to list ${listid}`);
+        return invoke('list_content', { listid });
+    } catch (error) {
+        console.error('获取列表失败:', error);  
+        return [];
     }
-    
-    // 此处的参数不代表真实情况，请自行修改
-    invoke('add_event', { listid, title, priority, date, time})
-
-    console.log(`Service: New event "${title}" added to list ${listid}`);
-
-    return [...eventsData[listid]];
 }
 
 /**

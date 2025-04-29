@@ -16,7 +16,7 @@ pub async fn add_event(
     title: &str,
     listid: Option<&str>,
     priority: Priority,
-    ddl: Option<u64>,
+    ddl: Option<&str>,
     app: State<'_, tauri::AppHandle>,
 ) -> Result<Event, String> {
     let mut metadata = EventMetadata::new();
@@ -37,9 +37,12 @@ pub async fn add_event(
         metadata,
         title: title.to_string(),
         content: content_path.to_string_lossy().to_string(),
-        task_time: ddl,
+        task_time: match ddl {
+            None => None,
+            Some(t) => Some(t.parse::<u64>().map_err(|e| e.to_string())?),
+        },
         finished: false,
-        priority: priority,
+        priority,
         color: "default".to_string(),
         icon: "default".to_string(),
     };
