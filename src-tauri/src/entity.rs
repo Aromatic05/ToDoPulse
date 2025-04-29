@@ -1,8 +1,17 @@
+pub mod event;
+pub mod list;
+pub mod tag;
+
+use std::sync::Mutex;
+
 use anyhow::{Ok, Result};
 use redb::{self, Database, ReadableTable, TableDefinition};
 use serde::{Deserialize, Serialize};
-use std::sync::Mutex;
 use tauri::Manager;
+
+pub use event::{Event, FEvent};
+pub use list::List;
+pub use tag::{get_tags, Tag};
 
 type Table = TableDefinition<'static, &'static [u8], &'static [u8]>;
 
@@ -10,10 +19,8 @@ const LIST_TABLE: Table = TableDefinition::new("lists");
 const EVENT_TABLE: Table = TableDefinition::new("events");
 const TAG_TABLE: Table = TableDefinition::new("tag");
 
-pub struct StorageState(pub Mutex<Storage>);
-
-pub trait Entity: Serialize + for<'de> Deserialize<'de> {
-    fn table_def() -> Table;
+pub trait Entity: Clone + Serialize + for<'de> Deserialize<'de> {
+    fn table_def() -> TableDefinition<'static, &'static [u8], &'static [u8]>;
     fn id_bytes(&self) -> Vec<u8>;
     fn value(&self) -> Vec<u8>;
 }
@@ -31,6 +38,8 @@ pub trait Repository<T: Entity> {
         F: Fn(&T) -> bool;
     fn get_all(&self) -> Result<Vec<T>>;
 }
+
+pub struct StorageState(pub Mutex<Storage>);
 
 #[allow(dead_code)]
 pub struct Storage {
@@ -68,6 +77,7 @@ impl<T: Entity> Repository<T> for Storage {
         txn.commit()?;
         Ok(())
     }
+
     fn delete(&self, name: &str) -> Result<()> {
         let txn = self.db.begin_write()?;
         let table = T::table_def();
@@ -79,6 +89,7 @@ impl<T: Entity> Repository<T> for Storage {
         txn.commit()?;
         Ok(())
     }
+
     fn update<F>(&self, name: &str, update_fn: F) -> Result<()>
     where
         F: FnOnce(&mut T) -> Result<()>,
@@ -91,6 +102,7 @@ impl<T: Entity> Repository<T> for Storage {
             Err(anyhow::anyhow!("Entity not found"))
         }
     }
+
     fn filter<F>(&self, filter_fn: F) -> Result<Vec<T>>
     where
         F: Fn(&T) -> bool,
@@ -107,6 +119,7 @@ impl<T: Entity> Repository<T> for Storage {
         }
         Ok(result)
     }
+
     fn get_by_name(&self, name: &str) -> Result<Option<T>> {
         let txn = self.db.begin_read()?;
         let table = T::table_def();
@@ -120,6 +133,7 @@ impl<T: Entity> Repository<T> for Storage {
         }
         Ok(None)
     }
+
     fn get_all(&self) -> Result<Vec<T>> {
         let txn = self.db.begin_read()?;
         let table = T::table_def();

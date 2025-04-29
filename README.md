@@ -68,19 +68,28 @@ ToDoLists 是一个基于 Tauri 框架的跨平台桌面/移动端应用，不�
 
 配置采用toml文件。以下是一个配置文件示例。
 ```toml
-[Theme]
-color = 'blue'
 [Info]
-switch = true
+[Info.table]
+switch = false
 time = [
   "12:00",
   "13:00",
 ]
+[Info,email]
+switch = false
+time = [
+  "12:00",
+  "13:00",
+]
+[Interface]
+dark = false
+compact = false
+[Personal]
+lang = "zh-CN"
 [Model]
 switch = false
 name = "deepseek-v3"
 tokens = " "
-prompt = "你是一个优秀的助手"
 ```
 
 ## 6.开发与构建指南

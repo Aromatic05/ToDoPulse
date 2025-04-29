@@ -1,14 +1,93 @@
-use redb::Result;
+use chrono::Utc;
+use redb::{self, TableDefinition};
+use serde::{Deserialize, Serialize};
 use std::fs;
 use std::ops::DerefMut;
-use tauri::Manager;
-use tauri::State;
+use tauri::{Manager, State};
+use ts_rs::TS;
+use uuid::Uuid;
 
 use crate::aigc::gen_tag;
-use crate::data::Priority;
-use crate::data::{self, Event, EventMetadata, FEvent, FList, List, Tag};
-use crate::storage::{Repository, StorageState};
-use crate::utils::{event_to_fevent, list_exists, tag_exists};
+use crate::entity::{Repository, StorageState};
+
+use super::Entity;
+
+type Table = TableDefinition<'static, &'static [u8], &'static [u8]>;
+
+const EVENT_TABLE: Table = TableDefinition::new("events");
+
+#[derive(Serialize, Deserialize, Clone, PartialEq)]
+pub struct EventMetadata {
+    pub uuid: String,
+    pub timestamp: u64,
+    pub list: Option<u64>,
+    pub tag: Option<Vec<String>>,
+}
+
+#[derive(Serialize, Deserialize, Clone)]
+pub struct Time {
+    pub date: String,
+    pub time: String,
+}
+
+impl EventMetadata {
+    pub fn new() -> Self {
+        Self {
+            uuid: Uuid::new_v4().to_string(),
+            timestamp: Utc::now().timestamp_millis() as u64,
+            tag: None,
+            list: None,
+        }
+    }
+}
+
+#[derive(Serialize, Deserialize, TS, Clone)]
+pub enum Priority {
+    Low,
+    Medium,
+    High,
+    Undefined,
+}
+
+#[derive(Serialize, Deserialize, Clone)]
+pub struct Event {
+    pub metadata: EventMetadata,
+    pub title: String,
+    pub content: String,
+    pub task_time: Option<u64>,
+    pub finished: bool,
+    pub priority: Priority,
+    pub icon: String,
+    pub color: String,
+}
+
+#[derive(Serialize, Deserialize, TS, Clone)]
+#[ts(export)]
+pub struct FEvent {
+    pub id: String,
+    pub time: String,
+    pub date: String,
+    pub listid: String,
+    pub tag: Option<Vec<String>>,
+    pub title: String,
+    pub create: String,
+    pub finished: bool,
+    pub priority: Priority,
+    pub icon: String,
+    pub color: String,
+}
+
+impl Entity for Event {
+    fn table_def() -> Table {
+        EVENT_TABLE
+    }
+    fn id_bytes(&self) -> Vec<u8> {
+        self.metadata.uuid.as_bytes().to_vec()
+    }
+    fn value(&self) -> Vec<u8> {
+        serde_json::to_vec(self).unwrap()
+    }
+}
 
 #[tauri::command]
 pub async fn add_event(
@@ -24,7 +103,8 @@ pub async fn add_event(
         Some(id) => Some(id.parse::<u64>().map_err(|e| e.to_string())?),
         None => None,
     };
-    let content_path = app
+    let app_handle = app.inner();
+    let content_path = app_handle
         .path()
         .data_dir()
         .map_err(|e| e.to_string())?
@@ -104,97 +184,5 @@ pub async fn delete_event(state: State<'_, StorageState>, uuid: &str) -> Result<
     let mut guard = state.0.lock().unwrap();
     let storage = guard.deref_mut();
     Repository::<Event>::delete(storage, uuid).map_err(|e| e.to_string())?;
-    Ok(())
-}
-
-#[tauri::command]
-pub async fn new_list(
-    state: State<'_, StorageState>,
-    title: &str,
-    icon: &str,
-) -> Result<List, String> {
-    let mut guard = state.0.lock().unwrap();
-    let storage = guard.deref_mut();
-    let new_list = data::List::new(title, icon);
-    Repository::<data::List>::add(storage, &new_list).map_err(|e| e.to_string())?;
-    Ok(new_list.clone())
-}
-
-#[tauri::command]
-pub async fn delete_list(state: State<'_, StorageState>, title: String) -> Result<(), String> {
-    let mut guard = state.0.lock().unwrap();
-    let storage = guard.deref_mut();
-    Repository::<data::List>::delete(storage, &title).map_err(|e| e.to_string())?;
-    Ok(())
-}
-
-#[tauri::command]
-pub async fn get_lists(state: State<'_, StorageState>) -> Result<Vec<data::FList>, String> {
-    let mut guard = state.0.lock().unwrap();
-    let storage = guard.deref_mut();
-    let lists = Repository::<data::List>::get_all(storage).map_err(|e| e.to_string())?;
-    let f_lists: Vec<FList> = lists
-        .into_iter()
-        .map(|list| FList {
-            id: list.id.to_string(),
-            title: list.title,
-            icon: list.icon,
-        })
-        .collect();
-    Ok(f_lists)
-}
-
-#[tauri::command]
-pub async fn list_content(
-    state: State<'_, StorageState>,
-    listid: &str,
-) -> Result<Vec<FEvent>, String> {
-    if !list_exists(&state, listid) {
-        Err("List not found".to_string())
-    } else {
-        let mut guard = state.0.lock().unwrap();
-        let storage = guard.deref_mut();
-        let evnets = Repository::<Event>::filter(storage, |event| {
-            if let Some(list) = event.metadata.list {
-                list.to_string() == listid
-            } else {
-                false
-            }
-        })
-        .map_err(|e| e.to_string())?;
-        let f_events: Vec<FEvent> = evnets
-            .into_iter()
-            .map(|event| event_to_fevent(&event))
-            .collect();
-        Ok(f_events)
-    }
-}
-
-#[tauri::command]
-pub async fn add_tag(
-    state: State<'_, StorageState>,
-    tag: String,
-    color: data::TagColor,
-) -> Result<(), String> {
-    if tag_exists(&state, &tag) {
-        return Ok(());
-    }
-    let tag = Tag::new(tag, color);
-    state.0.lock().unwrap().add(&tag).map_err(|e| e.to_string())
-}
-
-#[tauri::command]
-pub async fn get_tags(state: State<'_, StorageState>) -> Result<Vec<Tag>, String> {
-    let mut guard = state.0.lock().unwrap();
-    let storage = guard.deref_mut();
-    let tags = Repository::<Tag>::get_all(storage).map_err(|e| e.to_string())?;
-    Ok(tags)
-}
-
-#[tauri::command]
-pub async fn delete_tag(state: State<'_, StorageState>, tag: String) -> Result<(), String> {
-    let mut guard = state.0.lock().unwrap();
-    let storage = guard.deref_mut();
-    Repository::<Tag>::delete(storage, &tag).map_err(|e| e.to_string())?;
     Ok(())
 }

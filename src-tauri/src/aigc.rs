@@ -6,8 +6,7 @@ use std::path::PathBuf;
 use tauri::State;
 
 use crate::config::{get_api_key, use_llm};
-use crate::ipc::get_tags;
-use crate::storage::StorageState;
+use crate::entity::{get_tags, StorageState};
 
 #[derive(Serialize, Deserialize)]
 struct Message {

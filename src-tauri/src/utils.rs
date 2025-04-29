@@ -1,10 +1,14 @@
-use std::hash::{Hash, Hasher};
+// 标准库导入
 use std::ops::DerefMut;
+
+// 外部库导入
 use tauri::State;
 
-use crate::data::{Event, FEvent};
-use crate::data::{List, Tag};
-use crate::storage::{Entity, Repository, Storage, StorageState};
+// 项目内部导入
+use crate::entity::{
+    Event, FEvent, List, Tag,         // 数据类型
+    Entity, Repository, Storage, StorageState  // 存储和实体接口
+};
 use crate::time;
 
 pub fn event_to_fevent(event: &Event) -> FEvent {
@@ -32,17 +36,14 @@ pub fn event_to_fevent(event: &Event) -> FEvent {
     }
 }
 
-fn exists<T>(state: &State<'_, StorageState>, name: &str) -> bool
+fn exists<T>(state: &State<'_, StorageState>, id: &str) -> bool
 where
     T: Entity + 'static,
 {
-    let mut hash = std::collections::hash_map::DefaultHasher::new();
-    name.hash(&mut hash);
-    let hash = hash.finish();
     let mut guard = state.0.lock().unwrap();
     let storage = guard.deref_mut();
 
-    let item: Option<T> = Repository::<T>::get_by_name(storage, &hash.to_string())
+    let item: Option<T> = Repository::<T>::get_by_name(storage, &id.to_string())
         .map_err(|e| e.to_string())
         .unwrap();
 
