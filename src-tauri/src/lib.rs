@@ -6,7 +6,9 @@ mod aigc; // AI 生成内容相关功能
 mod config; // 配置管理
 mod debug; // 调试工具
 mod utils; // 通用工具函数
+mod info; // 通知
 
+use entity::{event, list, tag};
 use entity::{Storage, StorageState};
 use std::sync::Mutex;
 use tauri::Manager;
@@ -26,18 +28,19 @@ pub fn run() -> std::io::Result<()> {
             Ok(())
         })
         .invoke_handler(tauri::generate_handler![
-            entity::event::add_event,
-            entity::event::event_content,
-            entity::event::write_content,
-            entity::event::put_event,
-            entity::event::delete_event,
-            entity::list::new_list,
-            entity::list::get_lists,
-            entity::list::delete_list,
-            entity::list::list_content,
-            entity::tag::add_tag,
-            entity::tag::get_tags,
-            entity::tag::delete_tag,
+            event::add_event,
+            event::event_content,
+            event::write_content,
+            event::put_event,
+            event::delete_event,
+            list::new_list,
+            list::get_lists,
+            list::delete_list,
+            list::rename_list,
+            list::list_content,
+            tag::add_tag,
+            tag::get_tags,
+            tag::delete_tag,
         ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");

@@ -114,3 +114,25 @@ pub async fn list_content(
         Ok(f_events)
     }
 }
+
+#[tauri::command]
+pub async fn rename_list(
+    state: State<'_, StorageState>,
+    listid: &str,
+    new: &str,
+) -> Result<(), String> {
+    if !list_exists(&state, listid) {
+        return Err("List not found".to_string());
+    }
+    let mut guard = state.0.lock().unwrap();
+    let storage = guard.deref_mut();
+    Repository::<List>::update(storage, new, |list| {
+        list.title = new.to_string();
+        let mut hasher = std::collections::hash_map::DefaultHasher::new();
+        new.hash(&mut hasher);
+        list.id = hasher.finish();
+        Ok(())
+    })
+    .map_err(|e| e.to_string())?;
+    Ok(())
+}
