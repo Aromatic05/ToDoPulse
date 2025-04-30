@@ -5,8 +5,8 @@ mod aigc; // AI 生成内容相关功能
 
 mod config; // 配置管理
 mod debug; // 调试工具
-mod utils; // 通用工具函数
-mod info; // 通知
+mod info;
+mod utils; // 通用工具函数 // 通知
 
 use entity::{event, list, tag};
 use entity::{Storage, StorageState};
@@ -19,8 +19,9 @@ pub use entity::{Event, List, Tag};
 pub fn run() -> std::io::Result<()> {
     tauri::Builder::default()
         .setup(|app| {
+            let app_instance = entity::App::new(app.handle());
             let storage = Storage::new(app.handle())?;
-            app.manage(StorageState(Mutex::new(storage)));
+            app.manage(StorageState(Mutex::new(storage), Mutex::new(app_instance)));
             match config::parse(app.handle()) {
                 Ok(_) => println!("Config parsed successfully"),
                 Err(e) => eprintln!("Failed to parse config: {}", e),

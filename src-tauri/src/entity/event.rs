@@ -61,6 +61,22 @@ pub struct Event {
     pub color: String,
 }
 
+impl Event {
+    pub fn new(title: &str, content: &str) -> Self {
+        let metadata = EventMetadata::new();
+        Self {
+            metadata,
+            title: title.to_string(),
+            content: content.to_string(),
+            task_time: None,
+            finished: false,
+            priority: Priority::Undefined,
+            icon: "default".to_string(),
+            color: "default".to_string(),
+        }
+    }
+}
+
 #[derive(Serialize, Deserialize, TS, Clone)]
 #[ts(export)]
 pub struct FEvent {
@@ -96,23 +112,25 @@ pub async fn add_event(
     listid: Option<&str>,
     priority: Priority,
     ddl: Option<&str>,
-    app: State<'_, tauri::AppHandle>,
 ) -> Result<Event, String> {
     let mut metadata = EventMetadata::new();
     metadata.list = match listid {
         Some(id) => Some(id.parse::<u64>().map_err(|e| e.to_string())?),
         None => None,
     };
-    let app_handle = app.inner();
-    let content_path = app_handle
-        .path()
-        .data_dir()
-        .map_err(|e| e.to_string())?
-        .join("events");
-    if !content_path.exists() {
-        fs::create_dir_all(&content_path).map_err(|e| e.to_string())?
+    let content_path = {
+        let app = state.1.lock().unwrap();
+        let app = app.handle();
+        let path = app
+            .path()
+            .data_dir()
+            .map_err(|e| e.to_string())?
+            .join("events");
+        if !path.exists() {
+            fs::create_dir_all(&path).map_err(|e| e.to_string())?
+        };
+        path.join(format!("{}.md", title))
     };
-    let content_path = content_path.join(format!("{}.md", title));
     let mut new_event = Event {
         metadata,
         title: title.to_string(),

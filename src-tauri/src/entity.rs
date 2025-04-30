@@ -33,9 +33,10 @@ pub trait Repository<T: Entity> {
     fn get_all(&self) -> Result<Vec<T>>;
 }
 
-pub struct StorageState(pub Mutex<Storage>);
+pub struct StorageState<R = tauri::Wry>(pub Mutex<Storage>, pub Mutex<App<R>>)
+where
+    R: tauri_runtime::Runtime<tauri::EventLoopMessage>;
 
-#[allow(dead_code)]
 pub struct Storage {
     db: Database,
 }
@@ -44,6 +45,22 @@ impl Storage {
     pub fn new(app: &tauri::AppHandle) -> Result<Self> {
         let db = connect_to_db(app)?;
         Ok(Self { db })
+    }
+}
+
+pub struct App<R = tauri::Wry>
+where
+    R: tauri_runtime::Runtime<tauri::EventLoopMessage>,
+{
+    app: tauri::AppHandle<R>,
+}
+
+impl<R: tauri::Runtime> App<R> {
+    pub fn new(app: &tauri::AppHandle<R>) -> Self {
+        Self { app: app.clone() }
+    }
+    pub fn handle(&self) -> &tauri::AppHandle<R> {
+        &self.app
     }
 }
 
@@ -149,29 +166,33 @@ fn connect_to_db(app: &tauri::AppHandle) -> Result<Database> {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use std::sync::Mutex;
-    use tempfile::tempdir;
     use std::ops::DerefMut;
+    use std::sync::Mutex;
+    use tauri::test::{mock_app, MockRuntime};
+    use tempfile::tempdir;
 
     // 创建一个帮助函数来初始化测试环境
-    fn setup_test_db() -> (StorageState, tempfile::TempDir) {
+    fn setup() -> (StorageState<MockRuntime>, tempfile::TempDir) {
         // 创建临时目录用于测试数据库
         let temp_dir = tempdir().unwrap();
         let db_path = temp_dir.path().join("test.db");
 
         // 创建测试数据库
         let db = redb::Database::create(db_path).unwrap();
-
+        let app = mock_app();
+        let app_handle = app.app_handle();
         // 创建存储状态
         let storage = crate::entity::Storage { db };
-        let state = StorageState(Mutex::new(storage));
-
+        let state = StorageState::<MockRuntime>(
+            Mutex::new(storage),
+            Mutex::new(App::<MockRuntime>::new(&app_handle)),
+        );
         (state, temp_dir)
     }
 
     #[tokio::test]
     async fn test_get_by_name() {
-        let (state, _temp_dir) = setup_test_db();
+        let (state, _temp_dir) = setup();
         let list = List::new("Test List", "icon.png");
         let mut guard = state.0.lock().unwrap();
         let storage = guard.deref_mut();
@@ -180,5 +201,20 @@ mod tests {
         let result = Repository::<List>::get_by_name(storage, &list.id.to_string()).unwrap();
         assert!(result.is_some());
         assert_eq!(result.unwrap().title, "Test List");
+    }
+
+    #[tokio::test]
+    async fn test_filter() {
+        let (state, _temp_dir) = setup();
+        let list1 = List::new("Test List 1", "icon1.png");
+        let list2 = List::new("Test List 2", "icon2.png");
+        let mut guard = state.0.lock().unwrap();
+        let storage = guard.deref_mut();
+        Repository::<List>::add(storage, &list1).unwrap();
+        Repository::<List>::add(storage, &list2).unwrap();
+
+        let result = Repository::<List>::filter(storage, |l| l.title.contains("1")).unwrap();
+        assert_eq!(result.len(), 1);
+        assert_eq!(result[0].title, "Test List 1");
     }
 }
