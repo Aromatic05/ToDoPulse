@@ -1,0 +1,67 @@
+use anyhow::Result;
+use std::path::{Path, PathBuf};
+use std::sync::OnceLock;
+use tauri::Manager;
+
+const APP_NAME: &str = "ToDoPulse";
+const DB_NAME: &str = "data.db";
+
+static APP_PATHS: OnceLock<AppPaths> = OnceLock::new();
+
+pub struct AppPaths {
+    data_dir: PathBuf,
+    config_dir: PathBuf,
+    log_dir: PathBuf,
+}
+
+impl AppPaths {
+    pub fn init(app: &tauri::AppHandle) -> Result<()> {
+        if APP_PATHS.get().is_some() {
+            return Ok(());
+        }
+
+        let data_dir = app.path().data_dir()?.join(APP_NAME);
+        let config_dir = app.path().config_dir()?.join(APP_NAME);
+        let log_dir = app.path().app_log_dir()?.join(APP_NAME);
+
+        ensure_dir_exists(&data_dir)?;
+        ensure_dir_exists(&config_dir)?;
+        ensure_dir_exists(&log_dir)?;
+
+        let paths = AppPaths {
+            data_dir,
+            config_dir,
+            log_dir,
+        };
+
+        match APP_PATHS.set(paths) {
+            Ok(_) => Ok(()),
+            Err(_) => Err(anyhow::anyhow!("Failed to initialize app paths")),
+        }
+    }
+
+    pub fn get() -> &'static AppPaths {
+        APP_PATHS
+            .get()
+            .expect("AppPaths not initialized. Call AppPaths::init() first")
+    }
+
+    pub fn data_dir() -> &'static PathBuf {
+        &Self::get().data_dir
+    }
+
+    pub fn config_dir() -> &'static PathBuf {
+        &Self::get().config_dir
+    }
+
+    pub fn log_dir() -> &'static PathBuf {
+        &Self::get().log_dir
+    }
+}
+
+fn ensure_dir_exists(path: &Path) -> Result<()> {
+    if !path.exists() {
+        std::fs::create_dir_all(path)?;
+    }
+    Ok(())
+}

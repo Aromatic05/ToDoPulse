@@ -7,14 +7,14 @@ use std::sync::Mutex;
 use anyhow::{Ok, Result};
 use redb::{self, Database, ReadableTable, TableDefinition};
 use serde::{Deserialize, Serialize};
-use tauri::Manager;
+
+use crate::path::AppPaths;
 
 pub use event::{Event, FEvent};
 pub use list::List;
 pub use tag::{get_tags, Tag};
 
-const APP_NAME: &str = "ToDoPulse";
-const TABLE_NAME: &str = "data.db";
+const DB_NAME: &str = "data.db";
 
 pub trait Entity: Clone + Serialize + for<'de> Deserialize<'de> {
     fn table_def() -> TableDefinition<'static, &'static [u8], &'static [u8]>;
@@ -45,8 +45,8 @@ pub struct Storage {
 }
 
 impl Storage {
-    pub fn new(app: &tauri::AppHandle) -> Result<Self> {
-        let db = connect_to_db(app)?;
+    pub fn new() -> Result<Self> {
+        let db = connect_to_db()?;
         Ok(Self { db })
     }
 }
@@ -153,15 +153,8 @@ impl<T: Entity> Repository<T> for Storage {
     }
 }
 
-fn connect_to_db(app: &tauri::AppHandle) -> Result<Database> {
-    let data_dir = app.path().data_dir()?.join(APP_NAME);
-    if !data_dir.exists() {
-        std::fs::create_dir_all(&data_dir)?;
-    }
-    let db_path = data_dir.join(TABLE_NAME);
-    if !db_path.exists() {
-        std::fs::create_dir_all(&data_dir)?;
-    }
+fn connect_to_db() -> Result<Database> {
+    let db_path = AppPaths::data_dir().join(DB_NAME);
     let db = Database::create(db_path)?;
     Ok(db)
 }
@@ -173,6 +166,7 @@ mod tests {
     use std::sync::Mutex;
     use tauri::test::{mock_app, MockRuntime};
     use tempfile::tempdir;
+    use tauri::Manager;
 
     // 创建一个帮助函数来初始化测试环境
     fn setup() -> (StorageState<MockRuntime>, tempfile::TempDir) {

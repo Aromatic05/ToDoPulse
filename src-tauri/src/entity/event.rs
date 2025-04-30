@@ -9,6 +9,7 @@ use uuid::Uuid;
 
 use crate::aigc::gen_tag;
 use crate::entity::{Repository, StorageState};
+use crate::path::AppPaths;
 
 use super::Entity;
 
@@ -118,19 +119,7 @@ pub async fn add_event(
         Some(id) => Some(id.parse::<u64>().map_err(|e| e.to_string())?),
         None => None,
     };
-    let content_path = {
-        let app = state.1.lock().unwrap();
-        let app = app.handle();
-        let path = app
-            .path()
-            .data_dir()
-            .map_err(|e| e.to_string())?
-            .join("events");
-        if !path.exists() {
-            fs::create_dir_all(&path).map_err(|e| e.to_string())?
-        };
-        path.join(format!("{}.md", title))
-    };
+    let content_path = AppPaths::get_data_dir().join(format!("{}.md", title));
     let mut new_event = Event {
         metadata,
         title: title.to_string(),

@@ -3,8 +3,12 @@ use once_cell::sync::Lazy;
 use serde::Deserialize;
 use std::fs;
 use std::sync::Mutex;
-use tauri::Manager;
 use toml;
+
+use crate::path::AppPaths;
+
+const CONFIG_FILE: &str = "config.toml";
+const BACK_UP_CONFIG_FILE: &str = "config_backup.toml";
 
 #[derive(Deserialize)]
 #[allow(dead_code)]
@@ -35,12 +39,9 @@ struct Config {
 
 static CONFIG: Lazy<Mutex<Option<Config>>> = Lazy::new(|| Mutex::new(None));
 
-pub fn parse(app: &tauri::AppHandle) -> Result<(), String> {
-    let config_path = app
-        .path()
-        .config_dir()
-        .map_err(|e| e.to_string())?
-        .join("config.toml");
+pub fn parse() -> Result<(), String> {
+    let config_path = AppPaths::config_dir().join(CONFIG_FILE);
+    let backup_path = AppPaths::config_dir().join(BACK_UP_CONFIG_FILE);
     if !config_path.exists() {
         fs::create_dir_all(config_path.parent().unwrap()).map_err(|e| e.to_string())?;
         fs::write(
