@@ -1,12 +1,12 @@
+use std::ops::DerefMut;
+
 mod entity; // 核心数据实体和存储定义
 mod utils; // 通用工具函数
-
-mod aigc; // AI 生成内容相关功能
 
 mod debug; // 调试工具
 mod function; // 功能
 
-use entity::{event, list, tag};
+use entity::{event, list, tag, Repository};
 use entity::{Storage, StorageState};
 use std::sync::Mutex;
 use tauri::Manager;
@@ -22,6 +22,7 @@ pub fn run() -> std::io::Result<()> {
             let app_instance = entity::App::new(app.handle());
             let storage = Storage::new()?;
             app.manage(StorageState(Mutex::new(storage), Mutex::new(app_instance)));
+            init_table(&app.state::<StorageState>());
             match utils::config::parse() {
                 Ok(_) => {}
                 Err(e) => {
@@ -49,4 +50,13 @@ pub fn run() -> std::io::Result<()> {
         .expect("error while running tauri application");
 
     Ok(())
+}
+
+fn init_table(state: &StorageState) -> () {
+    let mut guard = state.0.lock().unwrap();
+    let storage = guard.deref_mut();
+    Repository::<Event>::ensure_table_exists(storage).ok();
+    Repository::<List>::ensure_table_exists(storage).ok();
+    Repository::<Tag>::ensure_table_exists(storage).ok();
+    ()
 }

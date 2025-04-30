@@ -10,7 +10,7 @@ use serde::{Deserialize, Serialize};
 
 use crate::utils::path::AppPaths;
 
-pub use event::{Event, FEvent, EventMetadata, Priority};
+pub use event::{Event, FEvent};
 pub use list::List;
 pub use tag::{get_tags, Tag};
 
@@ -25,6 +25,7 @@ pub trait Entity: Clone + Serialize + for<'de> Deserialize<'de> {
 pub trait Repository<T: Entity> {
     fn add(&self, entity: &T) -> Result<()>;
     fn delete(&self, name: &str) -> Result<()>;
+    fn ensure_table_exists(&self) -> Result<()>;
     #[allow(dead_code)]
     fn update<F>(&self, id: &str, update_fn: F) -> Result<()>
     where
@@ -91,6 +92,14 @@ impl<T: Entity> Repository<T> for Storage {
             let key = name.as_bytes();
             t.remove(key)?;
         }
+        txn.commit()?;
+        Ok(())
+    }
+
+    fn ensure_table_exists(&self) -> Result<()> {
+        let txn = self.db.begin_write()?;
+        let table = T::table_def();
+        txn.open_table(table)?;
         txn.commit()?;
         Ok(())
     }
@@ -167,8 +176,8 @@ mod tests {
     use std::ops::DerefMut;
     use std::sync::Mutex;
     use tauri::test::{mock_app, MockRuntime};
-    use tempfile::tempdir;
     use tauri::Manager;
+    use tempfile::tempdir;
 
     // 创建一个帮助函数来初始化测试环境
     fn setup() -> (StorageState<MockRuntime>, tempfile::TempDir) {

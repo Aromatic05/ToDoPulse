@@ -7,8 +7,8 @@ use tauri::State;
 use ts_rs::TS;
 use uuid::Uuid;
 
-use crate::aigc::gen_tag;
-use crate::entity::{Entity, Repository, StorageState};
+use super::{Entity, Repository, StorageState};
+use crate::function::gen_tag;
 use crate::utils::AppPaths;
 
 type Table = TableDefinition<'static, &'static [u8], &'static [u8]>;
@@ -171,8 +171,7 @@ pub async fn write_content(
 }
 
 #[tauri::command]
-pub async fn put_event(state: State<'_, StorageState>, 
-f_event: FEvent) -> Result<(), String> {
+pub async fn put_event(state: State<'_, StorageState>, f_event: FEvent) -> Result<(), String> {
     let mut guard = state.0.lock().unwrap();
     let storage = guard.deref_mut();
     let old_event =
