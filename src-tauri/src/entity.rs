@@ -51,6 +51,7 @@ impl Storage {
     }
 }
 
+#[allow(dead_code)]
 pub struct App<R = tauri::Wry>
 where
     R: tauri_runtime::Runtime<tauri::EventLoopMessage>,
@@ -62,6 +63,7 @@ impl<R: tauri::Runtime> App<R> {
     pub fn new(app: &tauri::AppHandle<R>) -> Self {
         Self { app: app.clone() }
     }
+    #[allow(dead_code)]
     pub fn handle(&self) -> &tauri::AppHandle<R> {
         &self.app
     }

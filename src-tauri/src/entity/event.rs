@@ -3,7 +3,7 @@ use redb::{self, TableDefinition};
 use serde::{Deserialize, Serialize};
 use std::fs;
 use std::ops::DerefMut;
-use tauri::{Manager, State};
+use tauri::State;
 use ts_rs::TS;
 use uuid::Uuid;
 
@@ -119,7 +119,7 @@ pub async fn add_event(
         Some(id) => Some(id.parse::<u64>().map_err(|e| e.to_string())?),
         None => None,
     };
-    let content_path = AppPaths::get_data_dir().join(format!("{}.md", title));
+    let content_path = AppPaths::data_dir().join(format!("{}.md", title));
     let mut new_event = Event {
         metadata,
         title: title.to_string(),
