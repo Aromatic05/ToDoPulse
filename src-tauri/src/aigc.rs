@@ -5,7 +5,7 @@ use std::fs;
 use std::path::PathBuf;
 use tauri::State;
 
-use crate::utils::config::{get_api_key, use_llm};
+use crate::utils::{get_api_key, use_llm};
 use crate::entity::{get_tags, StorageState};
 
 #[derive(Serialize, Deserialize)]

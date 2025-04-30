@@ -118,6 +118,7 @@ pub async fn add_event(
         None => None,
     };
     let content_path = AppPaths::data_dir().join(format!("{}.md", title));
+    fs::write(&content_path, "").map_err(|e| e.to_string())?;
     let mut new_event = Event {
         metadata,
         title: title.to_string(),
@@ -170,7 +171,8 @@ pub async fn write_content(
 }
 
 #[tauri::command]
-pub async fn put_event(state: State<'_, StorageState>, f_event: FEvent) -> Result<(), String> {
+pub async fn put_event(state: State<'_, StorageState>, 
+f_event: FEvent) -> Result<(), String> {
     let mut guard = state.0.lock().unwrap();
     let storage = guard.deref_mut();
     let old_event =

@@ -8,32 +8,26 @@ use toml;
 use crate::utils::path::AppPaths;
 
 const CONFIG_FILE: &str = "config.toml";
-const BACK_UP_CONFIG_FILE: &str = "config_backup.toml";
 
 #[derive(Deserialize)]
-#[allow(dead_code)]
 struct Theme {
-    color: String,
+    _color: String,
 }
 #[derive(Deserialize)]
-#[allow(dead_code)]
 struct Model {
     switch: bool,
     name: String,
-    tokens: String,
-    prompt: String,
+    _tokens: String,
 }
 #[derive(Deserialize)]
-#[allow(dead_code)]
 struct Info {
-    switch: bool,
-    time: Option<Vec<String>>,
+    _switch: bool,
+    _time: Option<Vec<String>>,
 }
 #[derive(Deserialize)]
-#[allow(dead_code)]
 struct Config {
-    theme: Theme,
-    info: Info,
+    _theme: Theme,
+    _info: Info,
     model: Model,
 }
 
@@ -41,7 +35,6 @@ static CONFIG: Lazy<Mutex<Option<Config>>> = Lazy::new(|| Mutex::new(None));
 
 pub fn parse() -> Result<(), String> {
     let config_path = AppPaths::config_dir().join(CONFIG_FILE);
-    let backup_path = AppPaths::config_dir().join(BACK_UP_CONFIG_FILE);
     if !config_path.exists() {
         fs::create_dir_all(config_path.parent().unwrap()).map_err(|e| e.to_string())?;
         fs::write(
@@ -80,6 +73,14 @@ pub fn use_llm() -> bool {
     let config_lock = CONFIG.lock().unwrap();
     if let Some(config) = &*config_lock {
         return config.model.switch;
+    }
+    false
+}
+
+pub fn use_info() -> bool {
+    let config_lock = CONFIG.lock().unwrap();
+    if let Some(config) = &*config_lock {
+        return config._info._switch;
     }
     false
 }

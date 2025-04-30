@@ -57,12 +57,12 @@ export async function addEvent(
  * @returns Promise<FEvent[]> 返回更新后的事件列表
  */
 export async function updateEvent(
-    Event : FEvent,
+    fEvent : FEvent,
 ): Promise<FEvent[]> {
-    if (Event) {
-        console.log("updateEvent", Event);
-        invoke( 'put_event', { event: Event });
-        return invoke('list_content', { listid :Event.listid });
+    if (fEvent) {
+        console.log("updateEvent", fEvent);
+        invoke( 'put_event', { fEvent });
+        return invoke('list_content', { listid :fEvent.listid });
     } else {
         console.error('Service: updateEvent: Event not found');
         return [];

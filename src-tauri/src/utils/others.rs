@@ -6,7 +6,7 @@ use tauri::State;
 
 // 项目内部导入
 use crate::entity::{
-    Event, FEvent, List, Tag, EventMetadata  ,    // 数据类型
+    Event, FEvent, List, Tag,      // 数据类型
     Entity, Repository, Storage, StorageState  // 存储和实体接口
 };
 use crate::utils::time;
