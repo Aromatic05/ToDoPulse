@@ -8,8 +8,8 @@ use ts_rs::TS;
 use uuid::Uuid;
 
 use crate::aigc::gen_tag;
-use crate::entity::{Repository, StorageState, Entity};
-use crate::utils::path::AppPaths;
+use crate::entity::{Entity, Repository, StorageState};
+use crate::utils::AppPaths;
 
 type Table = TableDefinition<'static, &'static [u8], &'static [u8]>;
 
@@ -122,7 +122,11 @@ pub async fn add_event(
         metadata,
         title: title.to_string(),
         content: content_path.to_string_lossy().to_string(),
-        task_time: if ddl.is_empty() {None} else {ddl.parse::<u64>().ok()},
+        task_time: if ddl.is_empty() {
+            None
+        } else {
+            ddl.parse::<u64>().ok()
+        },
         finished: false,
         priority,
         color: "default".to_string(),
@@ -166,16 +170,21 @@ pub async fn write_content(
 }
 
 #[tauri::command]
-pub async fn put_event(state: State<'_, StorageState>, event: FEvent) -> Result<(), String> {
+pub async fn put_event(state: State<'_, StorageState>, f_event: FEvent) -> Result<(), String> {
     let mut guard = state.0.lock().unwrap();
     let storage = guard.deref_mut();
-    let event = Repository::<Event>::get_by_name(storage, &event.id).map_err(|e| e.to_string())?;
-    if let Some(mut event) = event {
-        event.title = event.title;
-        event.finished = event.finished;
-        event.priority = event.priority;
-        event.task_time = event.task_time;
-        Repository::<Event>::add(storage, &event).map_err(|e| e.to_string())?;
+    let old_event =
+        Repository::<Event>::get_by_name(storage, &f_event.id).map_err(|e| e.to_string())?;
+    if let Some(mut new) = old_event {
+        new.metadata.tag = f_event.tag;
+        new.title = f_event.title;
+        new.task_time = f_event.time.parse::<u64>().ok();
+        new.finished = f_event.finished;
+        new.priority = f_event.priority;
+        new.color = f_event.color;
+        new.icon = f_event.icon;
+        new.metadata.list = f_event.listid.parse::<u64>().ok();
+        Repository::<Event>::add(storage, &new).map_err(|e| e.to_string())?;
         return Ok(());
     }
     Err("Event not found".to_string())

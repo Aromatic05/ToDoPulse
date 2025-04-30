@@ -10,7 +10,7 @@ use serde::{Deserialize, Serialize};
 
 use crate::utils::path::AppPaths;
 
-pub use event::{Event, FEvent};
+pub use event::{Event, FEvent, EventMetadata, Priority};
 pub use list::List;
 pub use tag::{get_tags, Tag};
 
