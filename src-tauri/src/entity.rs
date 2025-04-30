@@ -13,6 +13,9 @@ pub use event::{Event, FEvent};
 pub use list::List;
 pub use tag::{get_tags, Tag};
 
+const APP_NAME: &str = "ToDoPulse";
+const TABLE_NAME: &str = "data.db";
+
 pub trait Entity: Clone + Serialize + for<'de> Deserialize<'de> {
     fn table_def() -> TableDefinition<'static, &'static [u8], &'static [u8]>;
     fn id_bytes(&self) -> Vec<u8>;
@@ -125,7 +128,7 @@ impl<T: Entity> Repository<T> for Storage {
         let table = T::table_def();
         {
             let t = txn.open_table(table)?;
-            let key = name.parse::<u64>()?.to_le_bytes().to_vec();
+            let key = name.as_bytes().to_vec();
             if let Some(value) = t.get(&key[..])? {
                 let name = serde_json::from_slice(value.value())?;
                 return Ok(Some(name));
@@ -151,11 +154,11 @@ impl<T: Entity> Repository<T> for Storage {
 }
 
 fn connect_to_db(app: &tauri::AppHandle) -> Result<Database> {
-    let data_dir = app.path().data_dir()?.join("events");
+    let data_dir = app.path().data_dir()?.join(APP_NAME);
     if !data_dir.exists() {
         std::fs::create_dir_all(&data_dir)?;
     }
-    let db_path = data_dir.join("events.db");
+    let db_path = data_dir.join(TABLE_NAME);
     if !db_path.exists() {
         std::fs::create_dir_all(&data_dir)?;
     }
@@ -193,14 +196,21 @@ mod tests {
     #[tokio::test]
     async fn test_get_by_name() {
         let (state, _temp_dir) = setup();
-        let list = List::new("Test List", "icon.png");
         let mut guard = state.0.lock().unwrap();
         let storage = guard.deref_mut();
-        Repository::<List>::add(storage, &list).unwrap();
 
+        let list = List::new("Test List", "icon.png");
+        Repository::<List>::add(storage, &list).unwrap();
         let result = Repository::<List>::get_by_name(storage, &list.id.to_string()).unwrap();
         assert!(result.is_some());
         assert_eq!(result.unwrap().title, "Test List");
+
+        let event = Event::new("Test Event", "Test Content");
+        Repository::<Event>::add(storage, &event).unwrap();
+        let result =
+            Repository::<Event>::get_by_name(storage, &event.metadata.uuid.to_string()).unwrap();
+        assert!(result.is_some());
+        assert_eq!(result.unwrap().title, "Test Event");
     }
 
     #[tokio::test]

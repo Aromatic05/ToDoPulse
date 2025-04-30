@@ -111,7 +111,7 @@ pub async fn add_event(
     title: &str,
     listid: Option<&str>,
     priority: Priority,
-    ddl: Option<&str>,
+    ddl: &str,
 ) -> Result<Event, String> {
     let mut metadata = EventMetadata::new();
     metadata.list = match listid {
@@ -135,10 +135,7 @@ pub async fn add_event(
         metadata,
         title: title.to_string(),
         content: content_path.to_string_lossy().to_string(),
-        task_time: match ddl {
-            None => None,
-            Some(t) => Some(t.parse::<u64>().map_err(|e| e.to_string())?),
-        },
+        task_time: if ddl.is_empty() {None} else {ddl.parse::<u64>().ok()},
         finished: false,
         priority,
         color: "default".to_string(),

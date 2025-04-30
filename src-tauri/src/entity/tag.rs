@@ -37,7 +37,7 @@ impl Entity for Tag {
         TAG_TABLE
     }
     fn id_bytes(&self) -> Vec<u8> {
-        self.id.to_le_bytes().to_vec()
+        self.id.to_string().into_bytes()
     }
     fn value(&self) -> Vec<u8> {
         serde_json::to_vec(self).unwrap()
