@@ -1,19 +1,16 @@
 mod entity; // 核心数据实体和存储定义
-mod time; // 时间处理工具
+mod utils; // 通用工具函数
 
 mod aigc; // AI 生成内容相关功能
 
-mod config; // 配置管理
 mod debug; // 调试工具
-mod info;
-mod utils; // 通用工具函数 // 通知
-mod path; // 应用路径管理
+mod function; // 功能
 
 use entity::{event, list, tag};
 use entity::{Storage, StorageState};
 use std::sync::Mutex;
 use tauri::Manager;
-use path::AppPaths;
+use utils::AppPaths;
 
 pub use entity::{Event, List, Tag};
 
@@ -21,11 +18,11 @@ pub use entity::{Event, List, Tag};
 pub fn run() -> std::io::Result<()> {
     tauri::Builder::default()
         .setup(|app| {
+            AppPaths::init(app.handle())?;
             let app_instance = entity::App::new(app.handle());
             let storage = Storage::new()?;
             app.manage(StorageState(Mutex::new(storage), Mutex::new(app_instance)));
-            AppPaths::init(app.handle())?;
-            match config::parse() {
+            match utils::config::parse() {
                 Ok(_) => {}
                 Err(e) => {
                     eprintln!("Error parsing config: {}", e);

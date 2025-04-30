@@ -8,7 +8,7 @@ use anyhow::{Ok, Result};
 use redb::{self, Database, ReadableTable, TableDefinition};
 use serde::{Deserialize, Serialize};
 
-use crate::path::AppPaths;
+use crate::utils::path::AppPaths;
 
 pub use event::{Event, FEvent};
 pub use list::List;

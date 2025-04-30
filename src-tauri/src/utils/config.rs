@@ -5,7 +5,7 @@ use std::fs;
 use std::sync::Mutex;
 use toml;
 
-use crate::path::AppPaths;
+use crate::utils::path::AppPaths;
 
 const CONFIG_FILE: &str = "config.toml";
 const BACK_UP_CONFIG_FILE: &str = "config_backup.toml";

@@ -8,10 +8,8 @@ use ts_rs::TS;
 use uuid::Uuid;
 
 use crate::aigc::gen_tag;
-use crate::entity::{Repository, StorageState};
-use crate::path::AppPaths;
-
-use super::Entity;
+use crate::entity::{Repository, StorageState, Entity};
+use crate::utils::path::AppPaths;
 
 type Table = TableDefinition<'static, &'static [u8], &'static [u8]>;
 

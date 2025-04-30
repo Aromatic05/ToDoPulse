@@ -4,7 +4,6 @@ use std::sync::OnceLock;
 use tauri::Manager;
 
 const APP_NAME: &str = "ToDoPulse";
-const DB_NAME: &str = "data.db";
 
 static APP_PATHS: OnceLock<AppPaths> = OnceLock::new();
 
