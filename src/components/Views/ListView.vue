@@ -9,31 +9,15 @@
             </v-col>
         </v-row>
 
-        <v-data-table 
-          :headers="headers" 
-          :items="Events" 
-          :items-per-page="10" 
-          class="elevation-1 rounded material-table">
+        <v-data-table :headers="headers" :items="Events" :items-per-page="10"
+            class="elevation-1 rounded material-table">
             <template v-slot:item="{ item }">
                 <tr>
                     <td colspan="5" class="pa-2">
-                        <ListCard 
-                            :data="{ 
-                                id: item.id, 
-                                title: item.title, 
-                                date: item.date, 
-                                time: item.time || '', 
-                                listid: item.listid || '', 
-                                tag: item.tag || [],
-                                create: item.create || '',
-                                finished: item.finished,
-                                priority: item.priority || 'Low',
-                                icon: item.icon || '',
-                                color: getPriorityColor(item.priority)
-                            }" 
-                            @update="handleEventUpdate($event, item)"
-                            @delete="deleteFEvent(item)"
-                        />
+                        <ListCard :data="{
+                            ...item,
+                            color: getPriorityColor(item.priority)
+                        }" @update="handleEventUpdate($event)" @delete="deleteFEvent(item)" />
                     </td>
                 </tr>
             </template>
@@ -47,10 +31,9 @@
 <script setup lang="ts">
 import { ref, computed, watch } from 'vue'
 import { getLists } from '@/services/GetListsService.ts';
-import { getEventsBylistid, addEvent, toggleEventStatus, updateEvent, deleteEvent } from '@/services/ListDataService';
+import { getEventsBylistid, addEvent, updateEvent, deleteEvent } from '@/services/ListDataService';
 import ListCard from '@/components/Cards/ListCard.vue';  // 导入ListCard组件
 import type { FEvent } from 'src-tauri/bindings/FEvent';
-// import { Priority } from 'src-tauri/bindings/Priority';
 
 // 添加这个类型定义
 type HeaderAlign = 'start' | 'end' | 'center';
@@ -178,23 +161,11 @@ async function deleteFEvent(Event: FEvent) {
 }
 
 // 添加处理ListCard更新的函数
-async function handleEventUpdate(updatedData: any, originalEvent: FEvent) {
+async function handleEventUpdate(updatedData: FEvent) {
     if (listId.value) {
         try {
-            // 处理完成状态切换
-            if (updatedData.Finished !== originalEvent.finished) {
-                Events.value = await toggleEventStatus(originalEvent.id, listId.value, updatedData.finished);
-                return;
-            }
-            
-            // 处理其他更新
-            const updatedFields = { 
-                title: updatedData.title, 
-                priority: updatedData.tags?.[0] || originalEvent.priority, 
-                date: updatedData.date || originalEvent.date,
-            };
-            
-            Events.value = await updateEvent(originalEvent.id, listId.value, updatedFields);
+            console.log(`更新任务: ${updatedData.title}`, updatedData);
+            Events.value = await updateEvent(updatedData);
         } catch (error) {
             console.error('更新任务失败:', error);
         }
@@ -204,68 +175,74 @@ async function handleEventUpdate(updatedData: any, originalEvent: FEvent) {
 
 <style scoped>
 .list-view {
-  max-width: 1000px;
-  margin: 0 auto;
+    max-width: 1000px;
+    margin: 0 auto;
 }
 
 /* 使用Material Design变量适配v-data-table */
 :deep(.v-data-table) {
-  /* 表格背景使用与卡片相同的表面容器颜色 */
-  background-color: var(--md-sys-color-surface-container) !important;
-  color: var(--md-sys-color-on-surface) !important;
-  border-radius: 18px;
-  border: 1px solid var(--md-sys-color-outline-variant);
-  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.08);
-  transition: all 0.3s ease;
+    /* 表格背景使用与卡片相同的表面容器颜色 */
+    background-color: var(--md-sys-color-surface-container) !important;
+    color: var(--md-sys-color-on-surface) !important;
+    border-radius: 18px;
+    border: 1px solid var(--md-sys-color-outline-variant);
+    box-shadow: 0 2px 10px rgba(0, 0, 0, 0.08);
+    transition: all 0.3s ease;
 }
 
 /* 表头样式 */
 :deep(.v-data-table__header) {
-  background-color: var(--md-sys-color-surface-container-high) !important;
+    background-color: var(--md-sys-color-surface-container-high) !important;
 }
 
 :deep(.v-data-table__header th) {
-  color: var(--md-sys-color-on-surface) !important;
-  font-weight: 600;
-  border-bottom: 1px solid var(--md-sys-color-outline-variant) !important;
+    color: var(--md-sys-color-on-surface) !important;
+    font-weight: 600;
+    border-bottom: 1px solid var(--md-sys-color-outline-variant) !important;
 }
 
 /* 表格行 */
 :deep(.v-data-table__row) {
-  transition: background-color 0.2s ease;
-  border-bottom: 1px solid var(--md-sys-color-outline-variant) !important;
+    transition: background-color 0.2s ease;
+    border-bottom: 1px solid var(--md-sys-color-outline-variant) !important;
+}
+
+/* 表格行中的单元格 */
+:deep(.v-data-table__row td) {
+    padding-top: 4px !important;
+    padding-bottom: 4px !important;
 }
 
 :deep(.v-data-table__row:hover) {
-  background-color: var(--md-sys-color-surface-container-high) !important;
+    background-color: var(--md-sys-color-surface-container-high) !important;
 }
 
 /* 分页控件 */
 :deep(.v-data-table-footer) {
-  background-color: var(--md-sys-color-surface-container) !important;
-  color: var(--md-sys-color-on-surface) !important;
+    background-color: var(--md-sys-color-surface-container) !important;
+    color: var(--md-sys-color-on-surface) !important;
 }
 
 :deep(.v-pagination__item) {
-  color: var(--md-sys-color-on-surface) !important;
+    color: var(--md-sys-color-on-surface) !important;
 }
 
 :deep(.v-pagination__item--active) {
-  background-color: var(--md-sys-color-primary) !important;
-  color: var(--md-sys-color-on-primary) !important;
+    background-color: var(--md-sys-color-primary) !important;
+    color: var(--md-sys-color-on-primary) !important;
 }
 
 /* 无数据提示 */
 :deep(.v-data-table__empty-wrapper) {
-  color: var(--md-sys-color-on-surface-variant) !important;
+    color: var(--md-sys-color-on-surface-variant) !important;
 }
 
 /* 如果表格有阴影，可以使用与卡片一致的阴影样式 */
 :deep(.elevation-1) {
-  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.08) !important;
+    box-shadow: 0 2px 10px rgba(0, 0, 0, 0.08) !important;
 }
 
 :deep(.elevation-1:hover) {
-  box-shadow: 0 4px 15px rgba(0, 0, 0, 0.12) !important;
+    box-shadow: 0 4px 15px rgba(0, 0, 0, 0.12) !important;
 }
 </style>

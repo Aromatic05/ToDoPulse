@@ -1,100 +1,7 @@
-import { v4 as uuidv4 } from 'uuid';
 import { FEvent } from 'src-tauri/bindings/FEvent';
 import { Priority } from 'src-tauri/bindings/Priority';
 import { FList } from 'src-tauri/bindings/FList';
 import { invoke } from '@tauri-apps/api/core';
-import { tr } from 'vuetify/locale';
-
-// export type FEvent = { 
-//     id: string, 
-//     time: string, 
-//     date: string, 
-//     listid: string, 
-//     tag: Array<string> | null, 
-//     title: string, 
-//     create: string, 
-//     finished: boolean, 
-//     priority: Priority, 
-//     icon: string, 
-//     color: string, 
-// };
-
-
-// 模拟事件数据，按列表ID组织
-const eventsData: Record<string, FEvent[]> = {
-    // 工作列表的事件
-    "4788325718170490349": [
-        {
-            id: uuidv4(),
-            title: '完成项目方案',
-            finished: false,
-            priority: "High",
-            date: '2025-04-28',
-            time: '18:00',
-            create: "2025-04-20",
-            color: '#f1c40f',
-            icon: 'work',
-            listid: "4788325718170490349",
-            tag: ['项目', '文档'],
-        },
-        {
-            id: uuidv4(),
-            title: '准备周会演示',
-            finished: true,
-            priority: "Medium",
-            date: '2025-04-26',
-            time: '10:00',
-            create: "2025-04-20",
-            color: '#3498db',
-            icon: 'presentation',
-            listid: "4788325718170490349",
-            tag: ['会议', '演示']
-        },
-        {
-            id: uuidv4(),
-            title: '回复客户邮件',
-            finished: false,
-            priority: "High",
-            date: '2025-04-25',
-            time: '14:30',
-            create: "2025-04-20",
-            color: '#e74c3c',
-            icon: 'email',
-            listid: "4788325718170490349",
-            tag: ['客户', '邮件']
-        }
-    ],
-
-    // 个人列表的事件
-    "2": [
-        {
-            id: uuidv4(),
-            title: '更新项目文档',
-            finished: false,
-            priority: "Low",
-            date: '2025-04-30',
-            time: '12:00',
-            create: "2025-04-20",
-            color: '#9b59b6',
-            icon: 'document',
-            listid: "2",
-            tag: ['文档', '更新']
-        },
-        {
-            id: uuidv4(),
-            title: '购买生日礼物',
-            finished: false,
-            priority: "Medium",
-            date: '2025-05-05',
-            time: '15:00',
-            create: "2025-04-20",
-            color: '#1abc9c',
-            icon: 'gift',
-            listid: "2",
-            tag: ['生日', '购物']
-        }
-    ]
-};
 
 /**
  * 根据列表ID获取事件
@@ -126,7 +33,7 @@ export async function addEvent(
     listid: string,
     title: string,
     priority: Priority = "Medium",
-    timestamp: string = "",
+    timestamp: string = Date.now().toString(),
 ): Promise<FEvent[]> {
     try {
         const lists = await invoke<FList[]>('get_lists');
@@ -137,7 +44,7 @@ export async function addEvent(
         // 此处的参数不代表真实情况，请自行修改
         invoke('add_event', { listid: listid, title: title, priority: priority, ddl: timestamp })
         console.log(`Service: New event "${title}" added to list ${listid}`);
-        return invoke('list_content', { listid });
+        return invoke('list_content', { listid :listid });
     } catch (error) {
         console.error('获取列表失败:', error);  
         return [];
@@ -147,80 +54,32 @@ export async function addEvent(
 /**
  * 切换事件完成状态
  * @param EventId 事件ID
- * @param listid 列表ID
- * @param finished 完成状态
- * @returns Promise<FEvent[]> 返回更新后的事件列表
- */
-export async function toggleEventStatus(
-    EventId: string,
-    listid: string,
-    finished: boolean
-): Promise<FEvent[]> {
-    const Events = eventsData[listid] || [];
-    const Event = Events.find(t => t.id === EventId);
-
-    if (Event) {
-        Event.finished = finished;
-        console.log(`Service: Event "${Event.title}" status changed to: ${finished ? '已完成' : '未完成'}`);
-    }
-
-    return [...Events];
-}
-
-/**
- * 编辑事件
- * @param EventId 事件ID
- * @param listid 列表ID
- * @param updates 要更新的字段
  * @returns Promise<FEvent[]> 返回更新后的事件列表
  */
 export async function updateEvent(
-    EventId: string,
-    listid: string,
-    updates: Partial<Omit<FEvent, 'id' | 'listid'>>
+    Event : FEvent,
 ): Promise<FEvent[]> {
-    const Events = eventsData[listid] || [];
-    const Event = Events.find(t => t.id === EventId);
-
     if (Event) {
-        // 保证finished不会被设置为undefined
-        const safeUpdates = {
-            ...updates,
-            finished: updates.finished === undefined ? Event.finished : Boolean(updates.finished)
-        };
-
-        Object.assign(Event, safeUpdates);
-        console.log(`Service: Event "${Event.title}" updated, finished: ${Event.finished}`);
+        console.log("updateEvent", Event);
+        invoke( 'put_event', { event: Event });
+        return invoke('list_content', { listid :Event.listid });
+    } else {
+        console.error('Service: updateEvent: Event not found');
+        return [];
     }
-
-    return [...Events];
 }
 
 /**
  * 删除事件
  * @param EventId 事件ID
- * @param listid 列表ID
+ * @param ListId 列表ID
  * @returns Promise<FEvent[]> 返回更新后的事件列表
  */
-export async function deleteEvent(EventId: string, listid: string): Promise<FEvent[]> {
-    const Events = eventsData[listid] || [];
-    const index = Events.findIndex(t => t.id === EventId);
-
-    if (index !== -1) {
-        const [removedEvent] = Events.splice(index, 1);
-        console.log(`Service: Event "${removedEvent.title}" deleted`);
-    }
-
-    return [...Events];
+export async function deleteEvent(EventId: string, ListId: string): Promise<FEvent[]> {
+    invoke('delete_event', { uuid: EventId });
+    return invoke<FEvent[]>('list_content', { listid: ListId });
 }
 
 export async function getEventContent(EventId: string): Promise<string> {
-    const allEvents = Object.values(eventsData).flat();
-    const Event = allEvents.find(t => t.id === EventId);
-
-    if (Event) {
-        return JSON.stringify(Event, null, 2);
-    } else {
-        return 'Event not found';
-    }
+    return invoke<string>('event_content', { uuid: EventId });
 }
