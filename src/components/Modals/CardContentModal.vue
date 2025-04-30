@@ -17,7 +17,7 @@
                             </div>
                             <div class="form-group">
                                 <label for="tag">标签</label>
-                                <input id="tag" v-model="formData.tag" type="text" placeholder="用逗号分隔多个标签">
+                                <input id="tag" v-model="tagInput" type="text" placeholder="如: #重要 #今日">
                             </div>
                             <div class="form-group">
                                 <label for="date">日期</label>
@@ -46,7 +46,7 @@ import { defineComponent, ref, watch, onMounted, onBeforeUnmount } from 'vue';
 import Vditor from 'vditor';
 import 'vditor/dist/index.css';
 import type { FEvent } from 'src-tauri/bindings/FEvent';
-import { getEventContent } from '@/services/ListDataService';
+import { getEventContent, putEventContent } from '@/services/ListDataService';
 
 export default defineComponent({
     name: 'CardContentModal',
@@ -56,7 +56,7 @@ export default defineComponent({
             default: false
         },
         cardData: {
-            type: Object as () => FEvent, // 使用 FEvent 类型
+            type: Object as () => FEvent,
             required: true
         }
     },
@@ -75,14 +75,22 @@ export default defineComponent({
             tag: props.cardData.tag || [],
             create: props.cardData.create || '',
             finished: props.cardData.finished || false,
-            priority: props.cardData.priority || 'Low', // 假设默认优先级为 'Low'
+            priority: props.cardData.priority || 'Low',
             icon: props.cardData.icon || '',
             color: props.cardData.color || ''
         });
 
+        // 添加标签输入字段，将数组转换为 #标签 格式的字符串
+        const tagInput = ref(
+            (props.cardData.tag || [])
+                .filter(tag => tag && tag.trim() !== '')
+                .map(tag => tag.startsWith('#') ? tag : `#${tag}`)
+                .join(' ')
+        );
+
         const content = ref<string | null>(null);
         (async () => {
-            content.value = await getEventContent(formData.value.id); // 获取内容
+            content.value = await getEventContent(formData.value.id);
         })();
 
         const initVditor = () => {
@@ -119,13 +127,36 @@ export default defineComponent({
             return document.body.classList.contains('dark') || document.body.classList.toString().includes('-dark');
         };
 
-        const handleConfirm = () => {
-            if (vditor.value) {
-                content.value = vditor.value.getValue();
-            }
+        const handleConfirm = async () => {
+            try {
+                // 获取编辑器内容
+                if (vditor.value) {
+                    content.value = vditor.value.getValue();
+                    
+                    // 保存编辑器内容到后端
+                    if (formData.value.id && content.value !== null) {
+                        await putEventContent(formData.value.id, content.value);
+                        console.log('内容已保存');
+                    }
+                }
 
-            emit('confirm', formData.value); // 直接传递 FEvent 类型的 formData
-            handleClose();
+                // 解析标签字符串为数组
+                const tagArray = tagInput.value
+                    .split(/\s+/)
+                    .filter(tag => tag.trim() !== '')
+                    .map(tag => {
+                        // 确保每个标签都以 # 开头
+                        return tag.startsWith('#') ? tag.substring(1) : tag;
+                    });
+
+                // 更新 formData 中的 tag 数组
+                formData.value.tag = tagArray;
+
+                emit('confirm', formData.value);
+                handleClose();
+            } catch (error) {
+                console.error('保存内容失败:', error);
+            }
         };
 
         const handleClose = () => {
@@ -145,6 +176,12 @@ export default defineComponent({
                     formData.value = {
                         ...props.cardData // 使用 cardData 更新 formData
                     };
+
+                    // 更新标签输入字段
+                    tagInput.value = (props.cardData.tag || [])
+                        .filter(tag => tag && tag.trim() !== '')
+                        .map(tag => tag.startsWith('#') ? tag : `#${tag}`)
+                        .join(' ');
 
                     if (!vditorInitialized.value) {
                         initVditor();
@@ -181,6 +218,7 @@ export default defineComponent({
 
         return {
             formData,
+            tagInput, // 导出 tagInput 以便在模板中使用
             handleConfirm,
             handleClose,
             initVditor,

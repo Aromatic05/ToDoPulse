@@ -83,3 +83,8 @@ export async function deleteEvent(EventId: string, ListId: string): Promise<FEve
 export async function getEventContent(EventId: string): Promise<string> {
     return invoke<string>('event_content', { uuid: EventId });
 }
+
+export async function putEventContent(EventId: string, content: string): Promise<string> {
+    invoke('write_content', { uuid: EventId, content: content });
+    return invoke<string>('event_content', { uuid: EventId });
+}
