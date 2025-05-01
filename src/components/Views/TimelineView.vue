@@ -1,8 +1,7 @@
 <template>
     <div class="timeline-view">
-        <v-timeline side="end" align="start" class="timeline-force-left"
-            line-color=var(--md-sys-color-outline)>
-            
+        <v-timeline side="end" align="start" class="timeline-force-left" line-color=var(--md-sys-color-outline)>
+
             <template v-for="group in timelineGroups" :key="group.id">
                 <!-- 时间线组标题 - 从服务获取 -->
                 <v-timeline-item :dot-color="group.color" size="large" fill-dot>
@@ -15,14 +14,10 @@
                 </v-timeline-item>
 
                 <!-- 该组的所有项目 -->
-                <v-timeline-item 
-                    v-for="item in getItemsByGroup(group.dateGroup)" 
-                    :key="item.id" 
-                    :dot-color="item.color" 
-                    :icon="item.icon"
-                    size="small" 
-                    density="compact">
-                    <EventCard :data="formatCardData(item, group.dateGroup)" @update="(data: FEvent) => updateItem(data, group.dateGroup)" />
+                <v-timeline-item v-for="item in getItemsByGroup(group.dateGroup)" :key="item.id" :dot-color="item.color"
+                    :icon="item.icon" size="small" density="compact">
+                    <EventCard :data="formatCardData(item, group.dateGroup)"
+                        @update="(data: FEvent) => updateItem(data, group.dateGroup)" />
                 </v-timeline-item>
             </template>
         </v-timeline>
@@ -32,26 +27,13 @@
 <script setup lang="ts">
 import { computed } from 'vue'
 import EventCard from '@/components/Cards/EventCard.vue'
-import timelineService from '@/services/TimelineDataService'
+import { getTimelineGroups, getItemsByGroup, formatCardData, updateItem } from '@/services/TimelineDataService'
 import { FEvent } from 'src-tauri/bindings/FEvent';
 
 // 使用服务获取时间线组数据
-const timelineGroups = computed(() => timelineService.getTimelineGroups());
+const timelineGroups = computed(() => getTimelineGroups());
 
-// 获取特定组的项目
-const getItemsByGroup = (dateGroup: string): FEvent[] => {
-    return timelineService.getItemsByGroup(dateGroup);
-};
-
-// 使用服务的格式转换函数，添加明确的类型定义
-const formatCardData = (item: FEvent, dateGroup: string): FEvent => {
-    return timelineService.formatCardData(item, dateGroup);
-};
-
-// 使用服务的更新函数，添加明确的类型定义
-const updateItem = (updatedData: FEvent, dateGroup: string): void => {
-    timelineService.updateItem(updatedData, dateGroup);
-};
+// 其他方法直接使用导入的函数
 </script>
 
 <style scoped>

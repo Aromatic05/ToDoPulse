@@ -35,7 +35,7 @@
 <script setup lang="ts">
 import { ref, computed, watch } from 'vue';
 // 导入 createListAndStore 函数
-import { createList } from '@/services/GetListsService';
+import { createList } from '@/services/ListService';
 
 const props = defineProps({
     show: {

@@ -16,7 +16,7 @@
 
 <script setup lang="ts">
 import { ref, computed, onMounted, onUnmounted } from 'vue';
-import { getLists } from '@/services/GetListsService.ts';
+import { getLists } from '@/services/ListService';
 import { FList } from 'src-tauri/bindings/FList';
 
 // 当前列表数据

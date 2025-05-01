@@ -94,7 +94,7 @@
 import { ref, computed, reactive, nextTick, onMounted } from 'vue';
 import ListContextMenu from '@/components/ListContextMenu.vue';
 import AddListModal from '@/components/Modals/AddListModal.vue';
-import { getLists, renameList, deleteList } from '@/services/GetListsService.ts';
+import { getLists, renameList, deleteList } from '@/services/ListService';
 import { FList } from 'src-tauri/bindings/FList';
 
 const props = defineProps({

@@ -46,7 +46,7 @@ import { defineComponent, ref, watch, onBeforeUnmount, nextTick } from 'vue';
 import Vditor from 'vditor';
 import 'vditor/dist/index.css';
 import type { FEvent } from 'src-tauri/bindings/FEvent';
-import { getEventContent, putEventContent } from '@/services/ListDataService';
+import { getEventContent, putEventContent } from '@/services/EventService';
 
 export default defineComponent({
     name: 'CardContentModal',

@@ -30,8 +30,8 @@
 
 <script setup lang="ts">
 import { ref, computed, watch } from 'vue'
-import { getLists } from '@/services/GetListsService.ts';
-import { getEventsBylistid, addEvent, updateEvent, deleteEvent } from '@/services/ListDataService';
+import { getLists } from '@/services/ListService';
+import { getEventsBylistid, addEvent, updateEvent, deleteEvent } from '@/services/EventService';
 import ListCard from '@/components/Cards/ListCard.vue';  // 导入ListCard组件
 import type { FEvent } from 'src-tauri/bindings/FEvent';
 
