@@ -42,7 +42,7 @@
 </template>
 
 <script lang="ts">
-import { defineComponent, ref, watch, onMounted, onBeforeUnmount } from 'vue';
+import { defineComponent, ref, watch, onBeforeUnmount, nextTick } from 'vue';
 import Vditor from 'vditor';
 import 'vditor/dist/index.css';
 import type { FEvent } from 'src-tauri/bindings/FEvent';
@@ -63,9 +63,10 @@ export default defineComponent({
     emits: ['update:modelValue', 'confirm'],
     setup(props, { emit }) {
         const vditor = ref<Vditor | null>(null);
-        const vditorInitialized = ref(false);
+        const content = ref<string>('');
+        const isLoading = ref(false);
+        const isInitialized = ref(false); // 添加初始化状态标记
 
-        // 将 formData 定义为 ref<FEvent>
         const formData = ref<FEvent>({
             id: props.cardData.id || '',
             title: props.cardData.title || '',
@@ -80,40 +81,42 @@ export default defineComponent({
             color: props.cardData.color || ''
         });
 
-        // 添加标签输入字段，将数组转换为 #标签 格式的字符串
         const tagInput = ref(
-            (props.cardData.tag || [])
-                .filter(tag => tag && tag.trim() !== '')
-                .map(tag => tag.startsWith('#') ? tag : `#${tag}`)
-                .join(' ')
+            processTags(props.cardData.tag || [])
         );
 
-        const content = ref<string | null>(null);
-        (async () => {
-            content.value = await getEventContent(formData.value.id);
-        })();
+        const isDarkMode = (): boolean => {
+            return document.body.classList.contains('dark') || document.body.classList.toString().includes('-dark');
+        };
 
-        const initVditor = () => {
-            if (vditorInitialized.value && vditor.value) {
-                vditor.value.setValue(content.value || ''); // 设置内容
-                return;
+        // 新版初始化编辑器函数
+        const initEditor = async () => {
+            await nextTick();
+
+            // 销毁旧实例
+            if (vditor.value) {
+                vditor.value.destroy();
+                vditor.value = null;
+                isInitialized.value = false;
             }
 
+            console.log('正在初始化 Vditor 编辑器...');
+            
+            // 创建新实例
             vditor.value = new Vditor('vditor', {
                 height: 500,
                 width: '100%',
                 theme: isDarkMode() ? 'dark' : 'classic',
-                toolbarConfig: {
-                    pin: true
-                },
-                cache: {
-                    enable: false
-                },
+                toolbarConfig: { pin: true },
+                cache: { enable: false },
                 placeholder: '请输入内容...',
                 mode: 'wysiwyg',
                 after: () => {
-                    vditorInitialized.value = true;
+                    console.log('Vditor 初始化完成');
+                    isInitialized.value = true;
+                    // 设置初始内容
                     if (content.value) {
+                        console.log('设置编辑器内容');
                         vditor.value?.setValue(content.value);
                     }
                 },
@@ -123,8 +126,45 @@ export default defineComponent({
             });
         };
 
-        const isDarkMode = (): boolean => {
-            return document.body.classList.contains('dark') || document.body.classList.toString().includes('-dark');
+        // 改进内容加载函数
+        const loadContent = async () => {
+            if (!props.cardData.id) return;
+            
+            isLoading.value = true;
+            try {
+                console.log('加载内容, ID:', props.cardData.id);
+                const newContent = await getEventContent(props.cardData.id);
+                content.value = newContent || '';
+                console.log('内容已加载:', content.value ? '有内容' : '无内容');
+                
+                // 如果编辑器已初始化，立即更新内容
+                if (isInitialized.value && vditor.value) {
+                    console.log('更新已初始化的编辑器内容');
+                    vditor.value.setValue(content.value);
+                }
+            } catch (error) {
+                console.error('加载内容失败:', error);
+                content.value = '';
+            } finally {
+                isLoading.value = false;
+            }
+        };
+
+        // 新增处理模态框打开的函数
+        const handleOpen = async () => {
+            console.log('模态框打开');
+            
+            // 重置表单数据
+            formData.value = { ...props.cardData };
+            
+            // 更新标签
+            tagInput.value = processTags(props.cardData.tag || []);
+            
+            // 先加载内容
+            await loadContent();
+            
+            // 然后初始化编辑器
+            await initEditor();
         };
 
         const handleConfirm = async () => {
@@ -136,7 +176,6 @@ export default defineComponent({
                     // 保存编辑器内容到后端
                     if (formData.value.id && content.value !== null) {
                         await putEventContent(formData.value.id, content.value);
-                        console.log('内容已保存');
                     }
                 }
 
@@ -144,10 +183,7 @@ export default defineComponent({
                 const tagArray = tagInput.value
                     .split(/\s+/)
                     .filter(tag => tag.trim() !== '')
-                    .map(tag => {
-                        // 确保每个标签都以 # 开头
-                        return tag.startsWith('#') ? tag.substring(1) : tag;
-                    });
+                    .map(tag => tag.startsWith('#') ? tag.substring(1) : tag);
 
                 // 更新 formData 中的 tag 数组
                 formData.value.tag = tagArray;
@@ -160,73 +196,70 @@ export default defineComponent({
         };
 
         const handleClose = () => {
+            // 先发出事件，再销毁编辑器
             emit('update:modelValue', false);
-
-            if (vditor.value) {
-                vditor.value.destroy();
-                vditor.value = null;
-                vditorInitialized.value = false;
-            }
+            
+            // 确保编辑器被销毁
+            setTimeout(() => {
+                if (vditor.value) {
+                    console.log('销毁编辑器');
+                    vditor.value.destroy();
+                    vditor.value = null;
+                    isInitialized.value = false;
+                }
+            }, 10);
         };
 
+        // 简化 watch 逻辑
         watch(
             () => props.modelValue,
-            (val) => {
+            async (val) => {
                 if (val) {
-                    formData.value = {
-                        ...props.cardData // 使用 cardData 更新 formData
-                    };
-
-                    // 更新标签输入字段
-                    tagInput.value = (props.cardData.tag || [])
-                        .filter(tag => tag && tag.trim() !== '')
-                        .map(tag => tag.startsWith('#') ? tag : `#${tag}`)
-                        .join(' ');
-
-                    if (!vditorInitialized.value) {
-                        initVditor();
-                    } else if (vditor.value) {
-                        vditor.value.setValue(content.value || '');
-                    }
+                    await handleOpen();
                 }
-            }
+            },
+            { immediate: true }
         );
 
-        onMounted(() => {
-            if (props.modelValue) {
-                initVditor();
-            }
+        watch(
+            () => props.cardData,
+            (newVal) => {
+                if (props.modelValue) {
+                    formData.value = { ...newVal };
+                    tagInput.value = processTags(newVal.tag || []);
+                }
+            },
+            { deep: true }
+        );
 
-            document.addEventListener('theme-change', handleThemeChangeEvent);
-        });
-
+        // 移除不必要的 onMounted 逻辑，依赖 watch
         onBeforeUnmount(() => {
-            document.removeEventListener('theme-change', handleThemeChangeEvent);
-
             if (vditor.value) {
                 vditor.value.destroy();
                 vditor.value = null;
             }
         });
-
-        const handleThemeChangeEvent = (event: Event) => {
-            const isDarkMode = (event as CustomEvent).detail.isDarkMode;
-            if (vditor.value) {
-                vditor.value.setTheme(isDarkMode ? 'dark' : 'classic');
-            }
-        };
 
         return {
             formData,
-            tagInput, // 导出 tagInput 以便在模板中使用
+            tagInput,
+            isLoading,
             handleConfirm,
             handleClose,
-            initVditor,
-            vditor
+            vditorRef: ref(null) // 确保添加这个引用
         };
     }
 });
+
+// 辅助函数
+function processTags(tags: string[]): string {
+    return tags
+        .filter(tag => tag && tag.trim() !== '')
+        .map(tag => tag.startsWith('#') ? tag : `#${tag}`)
+        .join(' ');
+}
 </script>
+
 
 <style scoped>
 /* 弹窗样式 */
