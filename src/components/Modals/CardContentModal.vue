@@ -21,7 +21,19 @@
                             </div>
                             <div class="form-group">
                                 <label for="date">日期</label>
-                                <input id="date" v-model="formData.date" type="date">
+                                <div class="date-picker-container">
+                                    <input id="date" type="text" :value="formattedDate" readonly
+                                        @click="showDatePicker = !showDatePicker" placeholder="选择日期和时间"
+                                        class="date-input">
+                                    <div class="date-picker-popup" v-if="showDatePicker">
+                                        <div class="date-picker-content">
+                                            <VDatePicker v-model="dateValue" mode="dateTime"
+                                                @update:model-value="handleDateSelected"
+                                                :popover="{ visibility: 'click' }" :attributes="attributes"
+                                                hide-time-header is-expanded />
+                                        </div>
+                                    </div>
+                                </div>
                             </div>
                         </div>
 
@@ -42,7 +54,7 @@
 </template>
 
 <script lang="ts">
-import { defineComponent, ref, watch, onBeforeUnmount, nextTick } from 'vue';
+import { defineComponent, ref, watch, onBeforeUnmount, nextTick, computed } from 'vue';
 import Vditor from 'vditor';
 import 'vditor/dist/index.css';
 import type { FEvent } from 'src-tauri/bindings/FEvent';
@@ -62,6 +74,7 @@ export default defineComponent({
     },
     emits: ['update:modelValue', 'confirm'],
     setup(props, { emit }) {
+
         const vditor = ref<Vditor | null>(null);
         const content = ref<string>('');
         const isLoading = ref(false);
@@ -70,8 +83,7 @@ export default defineComponent({
         const formData = ref<FEvent>({
             id: props.cardData.id || '',
             title: props.cardData.title || '',
-            date: props.cardData.date || '',
-            time: props.cardData.time || '',
+            ddl: props.cardData.ddl || '',
             listid: props.cardData.listid || '',
             tag: props.cardData.tag || [],
             create: props.cardData.create || '',
@@ -84,6 +96,60 @@ export default defineComponent({
         const tagInput = ref(
             processTags(props.cardData.tag || [])
         );
+
+        const dateDisplay = computed({
+            get: () => {
+                // 如果ddl是时间戳字符串，转换为YYYY-MM-DD格式
+                if (formData.value.ddl) {
+                    try {
+                        const date = new Date(Number(formData.value.ddl));
+                        if (!isNaN(date.getTime())) {
+                            // 格式化为YYYY-MM-DD
+                            return date.toISOString().split('T')[0];
+                        }
+                    } catch (e) {
+                        console.error('日期转换错误:', e);
+                    }
+                }
+                return ''; // 如果没有日期或转换失败则返回空
+            },
+            set: (dateString) => {
+                if (dateString) {
+                    // 将YYYY-MM-DD转换为时间戳字符串
+                    const date = new Date(dateString);
+                    formData.value.ddl = String(date.getTime());
+                    console.log('设置时间戳:', formData.value.ddl);
+                } else {
+                    formData.value.ddl = '';
+                }
+            }
+        });
+
+        // 日期值的响应式引用
+        const dateValue = computed({
+            get: () => {
+                if (formData.value.ddl) {
+                    try {
+                        const timestamp = Number(formData.value.ddl);
+                        if (!isNaN(timestamp)) {
+                            return new Date(timestamp);
+                        }
+                    } catch (e) {
+                        console.error('日期转换错误:', e);
+                    }
+                }
+                return null; // 如果无效或没有日期则返回null
+            },
+            set: (date: Date | null) => {
+                if (date instanceof Date && !isNaN(date.getTime())) {
+                    // 将Date对象转换为时间戳字符串
+                    formData.value.ddl = String(date.getTime());
+                    console.log('设置时间戳:', formData.value.ddl);
+                } else {
+                    formData.value.ddl = '';
+                }
+            }
+        });
 
         const isDarkMode = (): boolean => {
             return document.body.classList.contains('dark') || document.body.classList.toString().includes('-dark');
@@ -101,7 +167,7 @@ export default defineComponent({
             }
 
             console.log('正在初始化 Vditor 编辑器...');
-            
+
             // 创建新实例
             vditor.value = new Vditor('vditor', {
                 height: 500,
@@ -129,14 +195,14 @@ export default defineComponent({
         // 改进内容加载函数
         const loadContent = async () => {
             if (!props.cardData.id) return;
-            
+
             isLoading.value = true;
             try {
                 console.log('加载内容, ID:', props.cardData.id);
                 const newContent = await getEventContent(props.cardData.id);
                 content.value = newContent || '';
                 console.log('内容已加载:', content.value ? '有内容' : '无内容');
-                
+
                 // 如果编辑器已初始化，立即更新内容
                 if (isInitialized.value && vditor.value) {
                     console.log('更新已初始化的编辑器内容');
@@ -153,16 +219,16 @@ export default defineComponent({
         // 新增处理模态框打开的函数
         const handleOpen = async () => {
             console.log('模态框打开');
-            
+
             // 重置表单数据
             formData.value = { ...props.cardData };
-            
+
             // 更新标签
             tagInput.value = processTags(props.cardData.tag || []);
-            
+
             // 先加载内容
             await loadContent();
-            
+
             // 然后初始化编辑器
             await initEditor();
         };
@@ -172,7 +238,7 @@ export default defineComponent({
                 // 获取编辑器内容
                 if (vditor.value) {
                     content.value = vditor.value.getValue();
-                    
+
                     // 保存编辑器内容到后端
                     if (formData.value.id && content.value !== null) {
                         await putEventContent(formData.value.id, content.value);
@@ -198,7 +264,7 @@ export default defineComponent({
         const handleClose = () => {
             // 先发出事件，再销毁编辑器
             emit('update:modelValue', false);
-            
+
             // 确保编辑器被销毁
             setTimeout(() => {
                 if (vditor.value) {
@@ -238,7 +304,79 @@ export default defineComponent({
                 vditor.value.destroy();
                 vditor.value = null;
             }
+            window.removeEventListener('click', closePickerOnOutsideClick);
         });
+
+        // 添加日期选择器控制变量
+        const showDatePicker = ref(false);
+
+        // 格式化日期显示
+        const formattedDate = computed(() => {
+            if (!formData.value.ddl) return '';
+            try {
+                const date = new Date(Number(formData.value.ddl));
+                if (isNaN(date.getTime())) return '';
+
+                // 格式化为 YYYY-MM-DD HH:MM
+                const year = date.getFullYear();
+                const month = String(date.getMonth() + 1).padStart(2, '0');
+                const day = String(date.getDate()).padStart(2, '0');
+                const hours = String(date.getHours()).padStart(2, '0');
+                const minutes = String(date.getMinutes()).padStart(2, '0');
+
+                return `${year}-${month}-${day} ${hours}:${minutes}`;
+            } catch (e) {
+                console.error('日期格式化错误:', e);
+                return '';
+            }
+        });
+
+        // 处理日期选择完成
+        const handleDateSelected = (date: Date | null) => {
+            if (date) {
+                showDatePicker.value = false;
+            }
+        };
+
+        // 添加点击外部关闭日期选择器
+        const closePickerOnOutsideClick = (e: MouseEvent) => {
+            if (showDatePicker.value) {
+                const datePickerContainer = document.querySelector('.date-picker-container');
+                const datePickerPopup = document.querySelector('.date-picker-popup');
+
+                if (datePickerContainer && datePickerPopup) {
+                    if (!datePickerContainer.contains(e.target as Node) &&
+                        !datePickerPopup.contains(e.target as Node)) {
+                        showDatePicker.value = false;
+                    }
+                }
+            }
+        };
+
+        watch(
+            () => showDatePicker.value,
+            (val) => {
+                if (val) {
+                    nextTick(() => {
+                        window.addEventListener('click', closePickerOnOutsideClick);
+                    });
+                } else {
+                    window.removeEventListener('click', closePickerOnOutsideClick);
+                }
+            }
+        );
+
+        // 定义日期选择器属性
+        const attributes = [
+            {
+                key: 'today',
+                highlight: {
+                    color: 'var(--md-sys-color-primary)',
+                    fillMode: 'light',
+                },
+                dates: new Date(),
+            },
+        ];
 
         return {
             formData,
@@ -246,7 +384,13 @@ export default defineComponent({
             isLoading,
             handleConfirm,
             handleClose,
-            vditorRef: ref(null) // 确保添加这个引用
+            vditorRef: ref(null),
+            dateValue, // 返回新的日期值计算属性
+            dateDisplay, // 添加到返回值
+            showDatePicker,
+            formattedDate,
+            handleDateSelected,
+            attributes
         };
     }
 });
@@ -432,6 +576,40 @@ function processTags(tags: string[]): string {
         min-height: 400px;
     }
 }
+
+.date-picker-container {
+    position: relative;
+}
+
+.date-input {
+    width: 100%;
+    padding: 0.5rem;
+    border: 1px solid var(--md-sys-color-outline);
+    border-radius: 4px;
+    margin-bottom: 1rem;
+    background: var(--md-sys-color-surface);
+    color: var(--md-sys-color-on-surface);
+    cursor: pointer;
+}
+
+.date-picker-popup {
+    position: absolute;
+    top: 100%;
+    left: 0;
+    width: 100%;
+    background: var(--md-sys-color-surface);
+    border: 1px solid var(--md-sys-color-outline);
+    border-radius: 4px;
+    z-index: 10003;
+}
+
+.date-picker-content {
+    padding: 1rem;
+}
+
+:deep(.vc-popover-content-wrapper) {
+    margin: 0px !important;
+}
 </style>
 
 <style>
@@ -476,9 +654,10 @@ function processTags(tags: string[]): string {
 [class*="-dark"] .vditor-sv {
     background-color: var(--md-sys-color-surface);
 }
-</style>
 
-/* 添加这个全局样式到您的App.vue或main.css中 */
-#app {
-isolation: isolate; /* 创建新的堆叠上下文 */
+.vc-container {
+    --vc-bg-selected: var(--md-sys-color-primary);
+    --vc-accent-600: var(--md-sys-color-primary);
+    border-radius: 4px;
 }
+</style>

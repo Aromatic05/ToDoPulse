@@ -1,4 +1,6 @@
 import { createApp } from 'vue'
+import { setupCalendar, Calendar, DatePicker } from 'v-calendar';
+import 'v-calendar/style.css';
 import App from './App.vue'
 
 // Vuetify
@@ -16,5 +18,9 @@ const vuetify = createVuetify({
 
 // Create app
 const app = createApp(App)
+
+app.use(setupCalendar, {})
+app.component('VCalendar', Calendar)
+// app.component('VDatePicker', DatePicker)
 app.use(vuetify)
 app.mount('#app')

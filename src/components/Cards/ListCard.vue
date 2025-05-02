@@ -22,9 +22,9 @@
 
             <!-- 截止日期列 -->
             <div class="card-column date-column">
-                <span v-if="localData.date" class="card-date"
-                    :style="{ color: localData.dateColor || 'var(--md-sys-color-on-surface-variant)' }">
-                    {{ localData.date }}
+                <span v-if="localData.ddl" class="card-date"
+                    :style="{ color: localData.color || 'var(--md-sys-color-on-surface-variant)' }">
+                    {{ convertTimestampToDate(localData.ddl) }}
                 </span>
             </div>
 
@@ -59,6 +59,7 @@
 <script lang="ts">
 import CardContentModal from '@/components/Modals/CardContentModal.vue';
 import { FEvent } from 'src-tauri/bindings/FEvent';
+import { convertTimestampToDate, convertTimestampToTime } from '@/services/DateTimeService';
 
 export default {
     name: 'ListCard',
@@ -84,6 +85,13 @@ export default {
         };
     },
     methods: {
+        convertTimestampToDate(timestamp: string | undefined): string | null {
+            console.log('Converting timestamp to date:', timestamp);
+            return timestamp ? convertTimestampToDate(timestamp) : null;
+        },
+        convertTimestampToTime(timestamp: string | undefined): string | null {
+            return timestamp ? convertTimestampToTime(timestamp) : null;
+        },
         handleComplete() {
             this.localData.finished = !this.localData.finished;
             this.$emit('toggleStatus', {

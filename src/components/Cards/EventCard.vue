@@ -3,9 +3,9 @@
         <div class="card-content-row">
             <input type="checkbox" :checked="localData.finished" @click.stop="handleComplete()" class="card-checkbox"/>
             <h3 class="card-title" :class="{ 'completed-task': localData.finished }">{{ localData.title }}</h3>
-            <span v-if="localData.time" class="card-time"
+            <span v-if="convertTimestampToTime(localData.ddl)" class="card-time"
                 :style="{ color: localData.color || 'var(--md-sys-color-on-surface-variant)' }">
-                {{ localData.date }}
+                {{ convertTimestampToTime(localData.ddl) }}
             </span>
         </div>
         <div v-if="localData.tag?.length" class="card-tags">
@@ -19,6 +19,7 @@
 <script lang="ts">
 import CardContentModal from '@/components/Modals/CardContentModal.vue'
 import { FEvent } from 'src-tauri/bindings/FEvent';
+import { convertTimestampToDate, convertTimestampToTime } from '@/services/DateTimeService';
 
 export default {
     name: 'EventCard',
@@ -44,6 +45,12 @@ export default {
         }
     },
     methods: {
+        convertTimestampToDate(timestamp: string | undefined): string | null {
+            return timestamp ? convertTimestampToDate(timestamp) : null;
+        },
+        convertTimestampToTime(timestamp: string | undefined): string | null {
+            return timestamp ? convertTimestampToTime(timestamp) : null;
+        },
         handleCardClick() {
             this.showModal = true
         },
