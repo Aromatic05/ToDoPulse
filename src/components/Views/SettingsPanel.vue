@@ -45,32 +45,31 @@
                             <h3 class="text-h6 mb-5">数据导出</h3>
 
                             <v-row>
-                                <v-col cols="12">
+                                <v-col cols="12" md="6">
                                     <v-select v-model="selectedExportFormat" :items="exportFormats" label="导出格式"
                                         variant="outlined" density="compact" class="mb-4"></v-select>
                                 </v-col>
-                                
-                                <!-- 添加导出路径选择 -->
-                                <v-col cols="12" class="mb-2">
-                                    <v-text-field
-                                        v-model="exportPath"
-                                        label="导出路径"
-                                        readonly
-                                        density="compact"
-                                        variant="outlined"
-                                        :append-inner-icon="'mdi-folder-open'"
-                                        @click:append-inner="selectExportPath"
-                                    ></v-text-field>
-                                </v-col>
-
                                 <v-col cols="12" md="6">
+                                    <v-select v-model="exportFilter" :items="exportFilterOptions" label="导出筛选"
+                                        variant="outlined" density="compact" class="mb-4"></v-select>
+                                </v-col>
+                                
+                                <!-- 导出路径选择已移除 -->
+
+                                <v-col cols="12" md="4">
                                     <v-btn block color="primary" @click="exportAllEvents" :loading="exporting"
                                         class="mb-3">
                                         导出全部事件
                                     </v-btn>
                                 </v-col>
+                                <v-col cols="12" md="4">
+                                    <v-btn block color="info" @click="exportFilteredEvents" :loading="exporting"
+                                        class="mb-3">
+                                        按筛选导出
+                                    </v-btn>
+                                </v-col>
 
-                                <v-col cols="12" md="6">
+                                <v-col cols="12" md="4">
                                     <v-btn block outlined @click="showExportDialog = true" :disabled="exporting"
                                         class="mb-3">
                                         选择事件导出
@@ -120,10 +119,8 @@
 <script setup lang="ts">
 import { ref, onMounted } from 'vue';
 import { SettingService } from '@/services/SettingService';
-// 修改这一行，使用正确的导入语句
-import { open } from '@tauri-apps/plugin-dialog';
-// 或者使用这种导入方式
-// import { dialog } from '@tauri-apps/api';
+import type { FEvent } from 'src-tauri/bindings/FEvent';
+// 导入statements已移除
 
 // 设置状态
 const darkMode = ref(false);
@@ -140,12 +137,18 @@ const exportFormats = [
     { title: 'JSON (.json)', value: 'json' },
     { title: 'Markdown (.md)', value: 'markdown' }
 ];
-const exportPath = ref(''); // 新增导出路径变量
+const exportFilter = ref('all');
+const exportFilterOptions = [
+    { title: '全部事件', value: 'all' },
+    { title: '已完成事件', value: 'completed' },
+    { title: '未完成事件', value: 'pending' }
+];
+// 导出路径变量已移除
 const exporting = ref(false);
-const exportResult = ref(null);
+const exportResult = ref<{success: boolean; message: string} | null>(null);
 const showExportDialog = ref(false);
-const selectedEvents = ref([]);
-const eventList = ref([]);
+const selectedEvents = ref<any[]>([]);
+const eventList = ref<any[]>([]);
 const eventHeaders = [
     { title: '标题', key: 'title' },
     { title: '创建日期', key: 'create' },
@@ -161,8 +164,6 @@ onMounted(async () => {
     // 加载可导出的事件列表
     try {
         eventList.value = await SettingService.getExportableEvents();
-        // 获取默认导出路径
-        exportPath.value = await SettingService.getDefaultExportPath();
     } catch (error) {
         console.error('初始化失败', error);
     }
@@ -181,21 +182,20 @@ const saveSettings = () => {
     });
 };
 
-// 选择导出路径
-const selectExportPath = async () => {
+// 选择导出路径函数已移除
+
+// 选择导出文件保存位置
+const selectSavePathForExport = async (filename: string, format: string) => {
     try {
-        // 使用 Tauri 对话框打开目录选择器
-        const selected = await open({
-            directory: true,
-            multiple: false,
-            title: '选择导出目录'
-        });
-        
-        if (selected !== null) {
-            exportPath.value = selected;
+        // 使用新增的后端API选择文件保存位置
+        const selectedPath = await SettingService.selectSavePath(filename, format);
+        if (selectedPath) {
+            return selectedPath;
         }
+        return null;
     } catch (error) {
-        console.error('选择路径失败', error);
+        console.error('选择保存路径失败', error);
+        return null;
     }
 };
 
@@ -203,18 +203,32 @@ const selectExportPath = async () => {
 const exportAllEvents = async () => {
     exporting.value = true;
     try {
-        const result = await SettingService.exportAllEvents(
-            selectedExportFormat.value, 
-            exportPath.value // 传递选择的路径
-        );
-        exportResult.value = {
-            success: true,
-            message: `成功导出到文件: ${result}`
-        };
-    } catch (error) {
+        // 先让用户选择保存位置
+        const filename = 'all_todopulse_events';
+        const format = selectedExportFormat.value;
+        const customPath = await selectSavePathForExport(filename, format);
+        
+        if (customPath) {
+            // 用户选择了保存位置
+            const result = await SettingService.exportAllEvents(
+                format,
+                customPath // 使用用户选择的保存路径
+            );
+            exportResult.value = {
+                success: true,
+                message: `成功导出到文件: ${result}`
+            };
+        } else {
+            // 用户取消选择且没有默认路径
+            exportResult.value = {
+                success: false,
+                message: '未选择保存位置'
+            };
+        }
+    } catch (error: any) {
         exportResult.value = {
             success: false,
-            message: `导出失败: ${error.toString()}`
+            message: `导出失败: ${error?.toString() || '未知错误'}`
         };
     } finally {
         exporting.value = false;
@@ -229,20 +243,102 @@ const exportSelectedEvents = async () => {
     showExportDialog.value = false;
 
     try {
-        const eventIds = selectedEvents.value.map(event => event.id);
-        const result = await SettingService.exportEvents(
-            eventIds, 
-            selectedExportFormat.value,
-            exportPath.value // 传递选择的路径
-        );
-        exportResult.value = {
-            success: true,
-            message: `成功导出到文件: ${result}`
-        };
-    } catch (error) {
+        // 先让用户选择保存位置
+        const filename = 'selected_events';
+        const format = selectedExportFormat.value;
+        const customPath = await selectSavePathForExport(filename, format);
+        
+        if (customPath) {
+            const eventIds = selectedEvents.value.map((event: any) => event.id);
+            const result = await SettingService.exportEvents(
+                eventIds,
+                selectedExportFormat.value,
+                customPath // 使用用户选择的路径
+            );
+            exportResult.value = {
+                success: true,
+                message: `成功导出到文件: ${result}`
+            };
+        } else {
+            // 用户取消选择且没有默认路径
+            exportResult.value = {
+                success: false,
+                message: '未选择保存位置'
+            };
+        }
+    } catch (error: any) {
         exportResult.value = {
             success: false,
-            message: `导出失败: ${error.toString()}`
+            message: `导出失败: ${error?.toString() || '未知错误'}`
+        };
+    } finally {
+        exporting.value = false;
+    }
+};
+
+// 导出按筛选条件过滤的事件
+const exportFilteredEvents = async () => {
+    exporting.value = true;
+    try {
+        // 确定文件名和格式
+        let filename;
+        switch (exportFilter.value) {
+            case 'completed':
+                filename = 'completed_events';
+                break;
+            case 'pending':
+                filename = 'pending_events';
+                break;
+            default:
+                filename = 'all_events';
+        }
+        
+        const format = selectedExportFormat.value;
+        const customPath = await selectSavePathForExport(filename, format);
+        
+        if (customPath) {
+            let result;
+            // 使用用户选择的路径
+            const savePath = customPath;
+            
+            switch (exportFilter.value) {
+                case 'completed':
+                    result = await SettingService.exportEventsByStatus(
+                        true,
+                        selectedExportFormat.value,
+                        savePath
+                    );
+                    break;
+                case 'pending':
+                    result = await SettingService.exportEventsByStatus(
+                        false,
+                        selectedExportFormat.value,
+                        savePath
+                    );
+                    break;
+                default:
+                    // 默认导出全部
+                    result = await SettingService.exportAllEvents(
+                        selectedExportFormat.value,
+                        savePath
+                    );
+            }
+            
+            exportResult.value = {
+                success: true,
+                message: `成功导出到文件: ${result}`
+            };
+        } else {
+            // 用户取消选择且没有默认路径
+            exportResult.value = {
+                success: false,
+                message: '未选择保存位置'
+            };
+        }
+    } catch (error: any) {
+        exportResult.value = {
+            success: false,
+            message: `导出失败: ${error?.toString() || '未知错误'}`
         };
     } finally {
         exporting.value = false;
