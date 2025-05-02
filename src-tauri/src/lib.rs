@@ -14,9 +14,13 @@ use utils::AppPaths;
 
 pub use entity::{Event, List, Tag};
 
+use function::export::ics::{export_event_to_ics, export_events_to_ics};
+use tauri_plugin_dialog;
+
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() -> std::io::Result<()> {
     tauri::Builder::default()
+        .plugin(tauri_plugin_dialog::init())
         .setup(|app| {
             AppPaths::init(app.handle())?;
             let app_instance = entity::App::new(app.handle());
@@ -45,6 +49,8 @@ pub fn run() -> std::io::Result<()> {
             tag::add_tag,
             tag::get_tags,
             tag::delete_tag,
+            export_event_to_ics,
+            export_events_to_ics,
         ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");

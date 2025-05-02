@@ -23,7 +23,7 @@
 import { ref, computed, onMounted } from 'vue'
 import Sidebar from '@/layout/Sidebar.vue'
 import Topbar from '@/layout/Topbar.vue'
-import SettingsPanel from '@/components/SettingsPanel.vue'
+import SettingsPanel from '@/components/Views/SettingsPanel.vue'
 
 // 动态导入视图组件
 import TimelineView from '@/components/Views/TimelineView.vue'
