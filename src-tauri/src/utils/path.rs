@@ -11,6 +11,7 @@ pub struct AppPaths {
     data_dir: PathBuf,
     config_dir: PathBuf,
     log_dir: PathBuf,
+    export_dir: PathBuf,
 }
 
 impl AppPaths {
@@ -22,15 +23,18 @@ impl AppPaths {
         let data_dir = app.path().data_dir()?.join(APP_NAME);
         let config_dir = app.path().config_dir()?.join(APP_NAME);
         let log_dir = app.path().app_log_dir()?.join(APP_NAME);
+        let export_dir = app.path().document_dir()?.join(APP_NAME);
 
         ensure_dir_exists(&data_dir)?;
         ensure_dir_exists(&config_dir)?;
         ensure_dir_exists(&log_dir)?;
+        ensure_dir_exists(&export_dir)?;
 
         let paths = AppPaths {
             data_dir,
             config_dir,
             log_dir,
+            export_dir,
         };
 
         match APP_PATHS.set(paths) {
@@ -55,6 +59,10 @@ impl AppPaths {
 
     pub fn log_dir() -> &'static PathBuf {
         &Self::get().log_dir
+    }
+
+    pub fn export_dir() -> &'static PathBuf {
+        &Self::get().export_dir
     }
 }
 

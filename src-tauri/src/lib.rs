@@ -5,6 +5,7 @@ mod utils; // 通用工具函数
 
 mod debug; // 调试工具
 mod function; // 功能
+mod filter;
 
 use entity::{event, list, tag, Repository};
 use entity::{Storage, StorageState};
@@ -12,15 +13,10 @@ use std::sync::Mutex;
 use tauri::Manager;
 use utils::AppPaths;
 
-pub use entity::{Event, List, Tag};
+use entity::{Event, List, Tag};
 
-use function::export::ics::{
-    export_events_to_ics, export_event_to_ics, export_list_events_to_ics,
-    export_all_events_to_ics, export_events_by_date_range, export_events_by_status
-};
-use function::export::save::{
-    get_export_directory, save_export_file, select_save_path
-};
+use function::ics;
+use function::save;
 use tauri_plugin_dialog;
 
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
@@ -47,6 +43,7 @@ pub fn run() -> std::io::Result<()> {
             event::write_content,
             event::put_event,
             event::delete_event,
+            event::filter_events,
             list::new_list,
             list::get_lists,
             list::delete_list,
@@ -55,15 +52,15 @@ pub fn run() -> std::io::Result<()> {
             tag::add_tag,
             tag::get_tags,
             tag::delete_tag,
-            export_events_to_ics,
-            export_event_to_ics,
-            export_list_events_to_ics,
-            export_all_events_to_ics,
-            export_events_by_date_range,
-            export_events_by_status,
-            get_export_directory,
-            save_export_file,
-            select_save_path,
+            ics::export_events_to_ics,
+            ics::export_event_to_ics,
+            ics::export_list_events_to_ics,
+            ics::export_all_events_to_ics,
+            ics::export_events_by_date_range,
+            ics::export_events_by_status,
+            save::get_export_directory,
+            save::save_export_file,
+            save::select_save_path,
         ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");

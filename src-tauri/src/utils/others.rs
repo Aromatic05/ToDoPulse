@@ -15,7 +15,6 @@ use crate::entity::{
     StorageState, // 存储和实体接口
     Tag,          // 数据类型
 };
-use crate::utils::time;
 
 pub fn event_to_fevent(event: &Event) -> FEvent {
     FEvent {
@@ -24,17 +23,13 @@ pub fn event_to_fevent(event: &Event) -> FEvent {
             None => "Undefined".to_string(),
             Some(listid) => listid.to_string(),
         },
-        time: match event.task_time {
+        ddl: match event.task_time {
             None => "Undefined".to_string(),
-            Some(time) => time::time(time),
-        },
-        date: match event.task_time {
-            None => "Undefined".to_string(),
-            Some(time) => time::date(time),
+            Some(time) => time.to_string(),
         },
         tag: event.metadata.tag.clone(),
         title: event.title.clone(),
-        create: time::date(event.metadata.timestamp),
+        create: event.metadata.timestamp.to_string(),
         finished: event.finished,
         priority: event.priority.clone(),
         color: event.color.clone(),

@@ -149,18 +149,7 @@ impl<T: Entity> Repository<T> for Storage {
     }
 
     fn get_all(&self) -> Result<Vec<T>> {
-        let txn = self.db.begin_read()?;
-        let table = T::table_def();
-        {
-            let t = txn.open_table(table)?;
-            let mut result = Vec::new();
-            for entry in t.iter()? {
-                let (_, value) = entry?;
-                let entity: T = serde_json::from_slice(value.value())?;
-                result.push(entity);
-            }
-            return Ok(result);
-        }
+        self.filter(|_| true)
     }
 }
 

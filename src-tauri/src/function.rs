@@ -4,4 +4,5 @@ mod notify;
 
 pub use aigc::*;
 pub use export::*;
-use notify::*;
+pub use notify::*;
+pub use export::*;

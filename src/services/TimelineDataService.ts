@@ -3,6 +3,7 @@ import { v4 as uuidv4 } from 'uuid';
 
 import { FEvent } from 'src-tauri/bindings/FEvent';
 import { Priority } from 'src-tauri/bindings/Priority';
+import { time } from 'console';
 
 export interface TimelineGroup {
     id: string;
@@ -17,24 +18,30 @@ export interface GroupedFEvents {
     [key: string]: FEvent[];
 }
 
+const timeMap = {
+    TODAY: 'today',
+    TOMORROW: 'tomorrow',
+    NEXT_WEEK: 'next-week',
+} as const;
+
 // 时间线组标题数据
 const timelineGroups = reactive<TimelineGroup[]>([
     {
-        id: 'today',
+        id: timeMap.TODAY,
         title: "今天",
         iconName: "mdi-calendar-today",
         color: "primary",
         dateGroup: "today"
     },
     {
-        id: 'tomorrow',
+        id: timeMap.TOMORROW,
         title: "明天",
         iconName: "mdi-calendar-arrow-right",
         color: "secondary",
         dateGroup: "tomorrow"
     },
     {
-        id: 'next-week',
+        id: timeMap.NEXT_WEEK,
         title: "下周",
         iconName: "mdi-calendar-week",
         color: "info",
@@ -43,107 +50,11 @@ const timelineGroups = reactive<TimelineGroup[]>([
 ]);
 
 // 所有时间线项目数据 - 修改为使用UUID作为listId
-const FEvents: Record<string, FEvent[]> = {
-    "today": [
-        {
-            id: uuidv4(),
-            title: '完成项目方案',
-            finished: false,
-            priority: "High",
-            date: '2025-04-28',
-            time: '18:00',
-            create: "2025-04-20",
-            color: '#f1c40f',
-            icon: 'work',
-            listid: "4788325718170490349",
-            tag: ['项目', '文档'],
-        },
-        {
-            id: uuidv4(),
-            title: '准备周会演示',
-            finished: true,
-            priority: "Medium",
-            date: '2025-04-26',
-            time: '10:00',
-            create: "2025-04-20",
-            color: '#3498db',
-            icon: 'presentation',
-            listid: "4788325718170490349",
-            tag: ['会议', '演示']
-        },
-        {
-            id: uuidv4(),
-            title: '回复客户邮件',
-            finished: false,
-            priority: "High",
-            date: '2025-04-25',
-            time: '14:30',
-            create: "2025-04-20",
-            color: '#e74c3c',
-            icon: 'email',
-            listid: "4788325718170490349",
-            tag: ['客户', '邮件']
-        }
-    ],
+const FEvents: Record<string, FEvent[]> = {};
 
-    // 个人列表的事件
-    "tomorrow": [
-        {
-            id: uuidv4(),
-            title: '更新项目文档',
-            finished: false,
-            priority: "Low",
-            date: '2025-04-30',
-            time: '12:00',
-            create: "2025-04-20",
-            color: '#9b59b6',
-            icon: 'document',
-            listid: "2",
-            tag: ['文档', '更新']
-        },
-        {
-            id: uuidv4(),
-            title: '购买生日礼物',
-            finished: false,
-            priority: "Medium",
-            date: '2025-05-05',
-            time: '15:00',
-            create: "2025-04-20",
-            color: '#1abc9c',
-            icon: 'gift',
-            listid: "2",
-            tag: ['生日', '购物']
-        }
-    ], 
-    "next-week": [
-        {
-            id: uuidv4(),
-            title: '更新项目文档',
-            finished: false,
-            priority: "Low",
-            date: '2025-04-30',
-            time: '12:00',
-            create: "2025-04-20",
-            color: '#9b59b6',
-            icon: 'document',
-            listid: "2",
-            tag: ['文档', '更新']
-        },
-        {
-            id: uuidv4(),
-            title: '购买生日礼物',
-            finished: false,
-            priority: "Medium",
-            date: '2025-05-05',
-            time: '15:00',
-            create: "2025-04-20",
-            color: '#1abc9c',
-            icon: 'gift',
-            listid: "2",
-            tag: ['生日', '购物']
-        }
-    ]
-};
+function fetchFEvents(): void {
+    
+}
 
 // 获取时间线组
 export function getTimelineGroups(): TimelineGroup[] {

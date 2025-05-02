@@ -1,3 +1,4 @@
+use anyhow::Result;
 use chrono::Utc;
 use redb::{self, TableDefinition};
 use serde::{Deserialize, Serialize};
@@ -8,8 +9,9 @@ use ts_rs::TS;
 use uuid::Uuid;
 
 use super::{Entity, Repository, StorageState};
+use crate::filter::map_filter;
 use crate::function::gen_tag;
-use crate::utils::AppPaths;
+use crate::utils::{event_to_fevent, AppPaths};
 
 type Table = TableDefinition<'static, &'static [u8], &'static [u8]>;
 
@@ -80,12 +82,11 @@ impl Event {
 #[ts(export)]
 pub struct FEvent {
     pub id: String,
-    pub time: String,
-    pub date: String,
     pub listid: String,
     pub tag: Option<Vec<String>>,
     pub title: String,
     pub create: String,
+    pub ddl: String,
     pub finished: bool,
     pub priority: Priority,
     pub icon: String,
@@ -179,7 +180,7 @@ pub async fn put_event(state: State<'_, StorageState>, f_event: FEvent) -> Resul
     if let Some(mut new) = old_event {
         new.metadata.tag = f_event.tag;
         new.title = f_event.title;
-        new.task_time = f_event.time.parse::<u64>().ok();
+        new.task_time = f_event.ddl.parse::<u64>().ok();
         new.finished = f_event.finished;
         new.priority = f_event.priority;
         new.color = f_event.color;
@@ -197,4 +198,23 @@ pub async fn delete_event(state: State<'_, StorageState>, uuid: &str) -> Result<
     let storage = guard.deref_mut();
     Repository::<Event>::delete(storage, uuid).map_err(|e| e.to_string())?;
     Ok(())
+}
+
+#[tauri::command]
+pub async fn filter_events(
+    state: State<'_, StorageState>,
+    filter: &str,
+) -> Result<Vec<FEvent>, String> {
+    let mut guard = state.0.lock().unwrap();
+    let storage = guard.deref_mut();
+    let res = Repository::<Event>::filter(storage, map_filter(filter).unwrap());
+    match res {
+        Ok(events) => Ok(events
+            .into_iter()
+            .map(|event| event_to_fevent(&event))
+            .collect()),
+        Err(e) => {
+            return Err(e.to_string());
+        }
+    }
 }

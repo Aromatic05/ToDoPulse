@@ -1,28 +1,20 @@
 use std::path::{Path, PathBuf};
 use std::fs;
+
+use anyhow::Result;
 use tauri::{command, State, Manager};
 use tauri_plugin_dialog::DialogExt;
 
+use crate::utils::AppPaths;
 use crate::entity::StorageState;
 
 /// 获取导出目录路径
 #[tauri::command]
 pub async fn get_export_directory() -> Result<String, String> {
-    // 首先尝试从用户文档或桌面获取一个基础目录
-    let base_dir = dirs::document_dir()
-        .or_else(|| dirs::desktop_dir())
-        .unwrap_or_else(|| PathBuf::from("."));
-    
-    // 创建导出子目录
-    let export_dir = base_dir.join("ToDoPulse/exports");
-    
-    // 确保目录存在
-    if !export_dir.exists() {
-        fs::create_dir_all(&export_dir)
-            .map_err(|e| format!("无法创建导出目录: {}", e))?;
-    }
-    
-    Ok(export_dir.to_string_lossy().to_string())
+    Ok(AppPaths::export_dir()
+        .to_str()
+        .ok_or("无法转换导出目录路径为字符串")?
+        .to_string())
 }
 
 /// 打开文件选择对话框选择保存位置
