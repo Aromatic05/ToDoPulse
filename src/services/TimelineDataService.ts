@@ -1,9 +1,8 @@
-import { reactive } from 'vue';
-import { v4 as uuidv4 } from 'uuid';
+import { reactive, ref}from 'vue';
 
 import { FEvent } from 'src-tauri/bindings/FEvent';
 import { Priority } from 'src-tauri/bindings/Priority';
-import { time } from 'console';
+import { invoke } from '@tauri-apps/api/core';
 
 export interface TimelineGroup {
     id: string;
@@ -31,29 +30,65 @@ const timelineGroups = reactive<TimelineGroup[]>([
         title: "今天",
         iconName: "mdi-calendar-today",
         color: "primary",
-        dateGroup: "today"
+        dateGroup: timeMap.TODAY
     },
     {
         id: timeMap.TOMORROW,
         title: "明天",
         iconName: "mdi-calendar-arrow-right",
         color: "secondary",
-        dateGroup: "tomorrow"
+        dateGroup: timeMap.TOMORROW
     },
     {
         id: timeMap.NEXT_WEEK,
         title: "下周",
         iconName: "mdi-calendar-week",
         color: "info",
-        dateGroup: "next-week"
+        dateGroup: timeMap.NEXT_WEEK
     }
 ]);
 
 // 所有时间线项目数据 - 修改为使用UUID作为listId
 const FEvents: Record<string, FEvent[]> = {};
 
-function fetchFEvents(): void {
+// 添加一个标志来跟踪数据是否已加载
+const dataInitialized = ref(false);
+const dataLoadingPromise = ref<Promise<void> | null>(null);
+
+// 获取数据是否已加载
+export async function fetchFEvents(): Promise<void> {
+    if (dataLoadingPromise.value) {
+        return dataLoadingPromise.value;
+    }
+    const loadPromise = Promise.all(
+      Object.keys(timeMap).map(async (time) => {
+        const dateGroup = timeMap[time as keyof typeof timeMap];
+        try {
+            const events = await invoke('filter_events', { dateGroup });
+            FEvents[dateGroup] = events as FEvent[];
+        } catch (error) {
+            console.error(`Error fetching events for ${dateGroup}:`, error);
+            FEvents[dateGroup] = [];
+        }
+      })
+    ).then(() => {
+        dataInitialized.value = true;
+    });
     
+    dataLoadingPromise.value = loadPromise;
+    return loadPromise;
+}
+
+// 一个确保数据已加载的辅助函数
+async function ensureDataLoaded(): Promise<void> {
+  if (!dataInitialized.value) {
+    await fetchFEvents();
+  }
+}
+
+// 添加一个检查是否已初始化的导出函数
+export function isDataInitialized(): boolean {
+  return dataInitialized.value;
 }
 
 // 获取时间线组
@@ -77,7 +112,8 @@ export function updateTimelineGroup(id: string, updates: Partial<TimelineGroup>)
 }
 
 // 获取指定组的事项
-export function getItemsByGroup(dateGroup: string): FEvent[] {
+export async function getItemsByGroup(dateGroup: string): Promise<FEvent[]> {
+    await ensureDataLoaded();
     return FEvents[dateGroup] || [];
 }
 
@@ -109,7 +145,8 @@ export function getColorVariable(color: string): string {
 }
 
 // // 更新项目
-export function updateItem(updatedData: FEvent, dateGroup: string): void {
+export async function updateItem(updatedData: FEvent, dateGroup: string): Promise<void> {
+    await ensureDataLoaded();
     const items = FEvents[dateGroup];
     if (!items) return;
     

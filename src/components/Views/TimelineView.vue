@@ -14,10 +14,14 @@
                 </v-timeline-item>
 
                 <!-- 该组的所有项目 -->
-                <v-timeline-item v-for="item in getItemsByGroup(group.dateGroup)" :key="item.id" :dot-color="item.color"
-                    :icon="item.icon" size="small" density="compact">
+                <v-timeline-item v-for="item in groupItems[group.dateGroup] || []" 
+                                 :key="item.id" 
+                                 :dot-color="item.color"
+                                 :icon="item.icon" 
+                                 size="small" 
+                                 density="compact">
                     <EventCard :data="formatCardData(item, group.dateGroup)"
-                        @update="(data: FEvent) => updateItem(data, group.dateGroup)" />
+                        @update="(data: FEvent) => handleUpdateItem(data, group.dateGroup)" />
                 </v-timeline-item>
             </template>
         </v-timeline>
@@ -25,15 +29,40 @@
 </template>
 
 <script setup lang="ts">
-import { computed } from 'vue'
+import { computed, ref, onMounted } from 'vue'
 import EventCard from '@/components/Cards/EventCard.vue'
-import { getTimelineGroups, getItemsByGroup, formatCardData, updateItem } from '@/services/TimelineDataService'
+import { getTimelineGroups, getItemsByGroup, formatCardData, updateItem, fetchFEvents } from '@/services/TimelineDataService'
 import { FEvent } from 'src-tauri/bindings/FEvent';
 
 // 使用服务获取时间线组数据
 const timelineGroups = computed(() => getTimelineGroups());
+const groupItems = ref<Record<string, FEvent[]>>({});
+const isLoading = ref(true);
 
-// 其他方法直接使用导入的函数
+// 组件挂载时初始化数据
+onMounted(async () => {
+  isLoading.value = true;
+  try {
+    await fetchFEvents();
+    await loadAllGroupItems();
+  } finally {
+    isLoading.value = false;
+  }
+});
+
+// 加载所有组的数据
+async function loadAllGroupItems() {
+  for (const group of timelineGroups.value) {
+    groupItems.value[group.dateGroup] = await getItemsByGroup(group.dateGroup);
+  }
+}
+
+// 更新项目处理函数
+async function handleUpdateItem(data: FEvent, dateGroup: string) {
+  await updateItem(data, dateGroup);
+  // 更新本地数据以反映变化
+  groupItems.value[dateGroup] = await getItemsByGroup(dateGroup);
+}
 </script>
 
 <style scoped>
