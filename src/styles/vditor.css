@@ -1,0 +1,46 @@
+.vditor {
+    --vh: 1vh;
+    /* 修复移动端高度问题 */
+    border: 1px solid var(--md-sys-color-outline) !important;
+    border-radius: 4px !important;
+}
+
+/* 全局样式以优化 Vditor 在不同主题下的外观 */
+:root .vditor-toolbar {
+    border-bottom: 1px solid var(--md-sys-color-outline-variant);
+}
+
+:root .vditor {
+    border: 1px solid var(--md-sys-color-outline-variant);
+}
+
+.dark .vditor-toolbar,
+[class*="-dark"] .vditor-toolbar {
+    background-color: var(--md-sys-color-surface-variant);
+    border-bottom: 1px solid var(--md-sys-color-outline);
+}
+
+.dark .vditor-reset,
+[class*="-dark"] .vditor-reset {
+    color: var(--md-sys-color-on-surface);
+}
+
+.dark .vditor,
+[class*="-dark"] .vditor {
+    border-color: var(--md-sys-color-outline);
+}
+
+.dark .vditor-ir,
+[class*="-dark"] .vditor-ir,
+.dark .vditor-wysiwyg,
+[class*="-dark"] .vditor-wysiwyg,
+.dark .vditor-sv,
+[class*="-dark"] .vditor-sv {
+    background-color: var(--md-sys-color-surface);
+}
+
+.vc-container {
+    --vc-bg-selected: var(--md-sys-color-primary);
+    --vc-accent-600: var(--md-sys-color-primary);
+    border-radius: 4px;
+}

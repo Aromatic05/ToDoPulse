@@ -21,19 +21,18 @@
                             </div>
                             <div class="form-group">
                                 <label for="date">日期</label>
-                                <div class="date-picker-container">
-                                    <input id="date" type="text" :value="formattedDate" readonly
-                                        @click="showDatePicker = !showDatePicker" placeholder="选择日期和时间"
-                                        class="date-input">
-                                    <div class="date-picker-popup" v-if="showDatePicker">
-                                        <div class="date-picker-content">
-                                            <VDatePicker v-model="dateValue" mode="dateTime"
-                                                @update:model-value="handleDateSelected"
-                                                :popover="{ visibility: 'click' }" :attributes="attributes"
-                                                hide-time-header is-expanded />
-                                        </div>
-                                    </div>
-                                </div>
+                                <VDatePicker v-model="dateValue" mode="dateTime"
+                                    @update:model-value="handleDateSelected"
+                                    :popover="{ visibility: 'click' }" :attributes="attributes"
+                                    hide-time-header is-expanded
+                                    :min-date="new Date(2000, 0, 1)"
+                                    :max-date="new Date(2100, 11, 31)">
+                                    <template #default="slotProps">
+                                        <!-- @ts-ignore -->
+                                        <input id="date" type="text" :value="formattedDate" v-on="slotProps.inputEvents"
+                                            placeholder="选择日期和时间" class="date-input">
+                                    </template>
+                                </VDatePicker>
                             </div>
                         </div>
 
@@ -59,9 +58,20 @@ import Vditor from 'vditor';
 import 'vditor/dist/index.css';
 import type { FEvent } from 'src-tauri/bindings/FEvent';
 import { getEventContent, putEventContent } from '@/services/EventService';
+import { DatePicker } from 'v-calendar';
+
+// 为DatePicker的slot上下文添加类型声明
+interface DatePickerContext {
+  inputValue: string | { start: string; end: string };
+  inputEvents: object;
+  updateValue: (value: any) => void;
+}
 
 export default defineComponent({
     name: 'CardContentModal',
+    components: {
+        VDatePicker: DatePicker
+    },
     props: {
         modelValue: {
             type: Boolean,
@@ -132,19 +142,19 @@ export default defineComponent({
                     try {
                         const timestamp = Number(formData.value.ddl);
                         if (!isNaN(timestamp)) {
-                            return new Date(timestamp);
+                            const date = new Date(timestamp);
+                            // 额外检查确保返回有效日期
+                            return !isNaN(date.getTime()) ? date : null;
                         }
                     } catch (e) {
                         console.error('日期转换错误:', e);
                     }
                 }
-                return null; // 如果无效或没有日期则返回null
+                return null;
             },
             set: (date: Date | null) => {
                 if (date instanceof Date && !isNaN(date.getTime())) {
-                    // 将Date对象转换为时间戳字符串
                     formData.value.ddl = String(date.getTime());
-                    console.log('设置时间戳:', formData.value.ddl);
                 } else {
                     formData.value.ddl = '';
                 }
@@ -304,11 +314,7 @@ export default defineComponent({
                 vditor.value.destroy();
                 vditor.value = null;
             }
-            window.removeEventListener('click', closePickerOnOutsideClick);
         });
-
-        // 添加日期选择器控制变量
-        const showDatePicker = ref(false);
 
         // 格式化日期显示
         const formattedDate = computed(() => {
@@ -331,40 +337,10 @@ export default defineComponent({
             }
         });
 
-        // 处理日期选择完成
+        // 处理日期选择完成 - 保留函数但简化逻辑
         const handleDateSelected = (date: Date | null) => {
-            if (date) {
-                showDatePicker.value = false;
-            }
+            // 日期选择完成后的处理逻辑
         };
-
-        // 添加点击外部关闭日期选择器
-        const closePickerOnOutsideClick = (e: MouseEvent) => {
-            if (showDatePicker.value) {
-                const datePickerContainer = document.querySelector('.date-picker-container');
-                const datePickerPopup = document.querySelector('.date-picker-popup');
-
-                if (datePickerContainer && datePickerPopup) {
-                    if (!datePickerContainer.contains(e.target as Node) &&
-                        !datePickerPopup.contains(e.target as Node)) {
-                        showDatePicker.value = false;
-                    }
-                }
-            }
-        };
-
-        watch(
-            () => showDatePicker.value,
-            (val) => {
-                if (val) {
-                    nextTick(() => {
-                        window.addEventListener('click', closePickerOnOutsideClick);
-                    });
-                } else {
-                    window.removeEventListener('click', closePickerOnOutsideClick);
-                }
-            }
-        );
 
         // 定义日期选择器属性
         const attributes = [
@@ -374,7 +350,7 @@ export default defineComponent({
                     color: 'var(--md-sys-color-primary)',
                     fillMode: 'light',
                 },
-                dates: new Date(),
+                dates: new Date()
             },
         ];
 
@@ -387,7 +363,6 @@ export default defineComponent({
             vditorRef: ref(null),
             dateValue, // 返回新的日期值计算属性
             dateDisplay, // 添加到返回值
-            showDatePicker,
             formattedDate,
             handleDateSelected,
             attributes
@@ -576,88 +551,8 @@ function processTags(tags: string[]): string {
         min-height: 400px;
     }
 }
-
-.date-picker-container {
-    position: relative;
-}
-
-.date-input {
-    width: 100%;
-    padding: 0.5rem;
-    border: 1px solid var(--md-sys-color-outline);
-    border-radius: 4px;
-    margin-bottom: 1rem;
-    background: var(--md-sys-color-surface);
-    color: var(--md-sys-color-on-surface);
-    cursor: pointer;
-}
-
-.date-picker-popup {
-    position: absolute;
-    top: 100%;
-    left: 0;
-    width: 100%;
-    background: var(--md-sys-color-surface);
-    border: 1px solid var(--md-sys-color-outline);
-    border-radius: 4px;
-    z-index: 10003;
-}
-
-.date-picker-content {
-    padding: 1rem;
-}
-
-:deep(.vc-popover-content-wrapper) {
-    margin: 0px !important;
-}
 </style>
 
 <style>
-/* 全局样式，确保 Vditor 显示正常 */
-.vditor {
-    --vh: 1vh;
-    /* 修复移动端高度问题 */
-    border: 1px solid var(--md-sys-color-outline) !important;
-    border-radius: 4px !important;
-}
-
-/* 全局样式以优化 Vditor 在不同主题下的外观 */
-:root .vditor-toolbar {
-    border-bottom: 1px solid var(--md-sys-color-outline-variant);
-}
-
-:root .vditor {
-    border: 1px solid var(--md-sys-color-outline-variant);
-}
-
-.dark .vditor-toolbar,
-[class*="-dark"] .vditor-toolbar {
-    background-color: var(--md-sys-color-surface-variant);
-    border-bottom: 1px solid var(--md-sys-color-outline);
-}
-
-.dark .vditor-reset,
-[class*="-dark"] .vditor-reset {
-    color: var(--md-sys-color-on-surface);
-}
-
-.dark .vditor,
-[class*="-dark"] .vditor {
-    border-color: var(--md-sys-color-outline);
-}
-
-.dark .vditor-ir,
-[class*="-dark"] .vditor-ir,
-.dark .vditor-wysiwyg,
-[class*="-dark"] .vditor-wysiwyg,
-.dark .vditor-sv,
-[class*="-dark"] .vditor-sv {
-    background-color: var(--md-sys-color-surface);
-}
-
-.vc-container {
-    --vc-bg-selected: var(--md-sys-color-primary);
-    --vc-accent-600: var(--md-sys-color-primary);
-    border-radius: 4px;
-}
+@import '@/styles/vditor.css';
 </style>
