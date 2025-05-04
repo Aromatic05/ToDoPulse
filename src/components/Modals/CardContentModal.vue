@@ -21,16 +21,15 @@
                             </div>
                             <div class="form-group">
                                 <label for="date">日期</label>
-                                <VDatePicker v-model="dateValue" mode="dateTime"
-                                    @update:model-value="handleDateSelected"
-                                    :popover="{ visibility: 'click' }" :attributes="attributes"
-                                    hide-time-header is-expanded
-                                    :min-date="new Date(2000, 0, 1)"
-                                    :max-date="new Date(2100, 11, 31)">
-                                    <template #default="slotProps">
-                                        <!-- @ts-ignore -->
-                                        <input id="date" type="text" :value="formattedDate" v-on="slotProps.inputEvents"
-                                            placeholder="选择日期和时间" class="date-input">
+                                <VDatePicker v-model="dateValue" mode="dateTime" :popover="{
+                                    visibility: 'click',
+                                    placement: 'bottom',
+                                    isInteractive: true
+                                }" is-expanded :min-date="minDate" :max-date="maxDate">
+                                    <template #default="{ inputEvents }">
+                                        <input
+                                            :value="formData.ddl ? new Date(Number(formData.ddl)).toLocaleString() : ''"
+                                            v-on="inputEvents" placeholder="选择日期和时间" class="date-input" readonly />
                                     </template>
                                 </VDatePicker>
                             </div>
@@ -53,18 +52,20 @@
 </template>
 
 <script lang="ts">
-import { defineComponent, ref, watch, onBeforeUnmount, nextTick, computed } from 'vue';
+import { defineComponent, ref, watch, onBeforeUnmount, nextTick, computed, onErrorCaptured } from 'vue';
 import Vditor from 'vditor';
 import 'vditor/dist/index.css';
 import type { FEvent } from 'src-tauri/bindings/FEvent';
 import { getEventContent, putEventContent } from '@/services/EventService';
 import { DatePicker } from 'v-calendar';
+import 'v-calendar/dist/style.css'; // 添加这行确保样式正确加载
 
-// 为DatePicker的slot上下文添加类型声明
-interface DatePickerContext {
-  inputValue: string | { start: string; end: string };
-  inputEvents: object;
-  updateValue: (value: any) => void;
+declare module 'vditor' {
+    interface IVditor {
+        destroy: () => void;
+        getValue: () => string;
+        setValue: (content: string) => void;
+    }
 }
 
 export default defineComponent({
@@ -107,57 +108,11 @@ export default defineComponent({
             processTags(props.cardData.tag || [])
         );
 
-        const dateDisplay = computed({
-            get: () => {
-                // 如果ddl是时间戳字符串，转换为YYYY-MM-DD格式
-                if (formData.value.ddl) {
-                    try {
-                        const date = new Date(Number(formData.value.ddl));
-                        if (!isNaN(date.getTime())) {
-                            // 格式化为YYYY-MM-DD
-                            return date.toISOString().split('T')[0];
-                        }
-                    } catch (e) {
-                        console.error('日期转换错误:', e);
-                    }
-                }
-                return ''; // 如果没有日期或转换失败则返回空
-            },
-            set: (dateString) => {
-                if (dateString) {
-                    // 将YYYY-MM-DD转换为时间戳字符串
-                    const date = new Date(dateString);
-                    formData.value.ddl = String(date.getTime());
-                    console.log('设置时间戳:', formData.value.ddl);
-                } else {
-                    formData.value.ddl = '';
-                }
-            }
-        });
-
-        // 日期值的响应式引用
+        // 简化日期值的计算属性
         const dateValue = computed({
-            get: () => {
-                if (formData.value.ddl) {
-                    try {
-                        const timestamp = Number(formData.value.ddl);
-                        if (!isNaN(timestamp)) {
-                            const date = new Date(timestamp);
-                            // 额外检查确保返回有效日期
-                            return !isNaN(date.getTime()) ? date : null;
-                        }
-                    } catch (e) {
-                        console.error('日期转换错误:', e);
-                    }
-                }
-                return null;
-            },
+            get: () => formData.value.ddl ? new Date(Number(formData.value.ddl)) : null,
             set: (date: Date | null) => {
-                if (date instanceof Date && !isNaN(date.getTime())) {
-                    formData.value.ddl = String(date.getTime());
-                } else {
-                    formData.value.ddl = '';
-                }
+                formData.value.ddl = date ? date.getTime().toString() : ''
             }
         });
 
@@ -256,10 +211,15 @@ export default defineComponent({
                 }
 
                 // 解析标签字符串为数组
-                const tagArray = tagInput.value
-                    .split(/\s+/)
-                    .filter(tag => tag.trim() !== '')
-                    .map(tag => tag.startsWith('#') ? tag.substring(1) : tag);
+                const tagArray = Array.from(
+                    new Set(
+                        tagInput.value
+                            .split(/\s+/)
+                            .map(tag => tag.trim())
+                            .filter(tag => tag.length > 0 && tag.length <= 20)
+                            .map(tag => tag.startsWith('#') ? tag.slice(1) : tag)
+                    )
+                );
 
                 // 更新 formData 中的 tag 数组
                 formData.value.tag = tagArray;
@@ -316,43 +276,27 @@ export default defineComponent({
             }
         });
 
-        // 格式化日期显示
-        const formattedDate = computed(() => {
-            if (!formData.value.ddl) return '';
-            try {
-                const date = new Date(Number(formData.value.ddl));
-                if (isNaN(date.getTime())) return '';
+        // 定义日期范围常量
+        const minDate = new Date(2000, 0, 1);
+        const maxDate = new Date(2100, 11, 31);
 
-                // 格式化为 YYYY-MM-DD HH:MM
-                const year = date.getFullYear();
-                const month = String(date.getMonth() + 1).padStart(2, '0');
-                const day = String(date.getDate()).padStart(2, '0');
-                const hours = String(date.getHours()).padStart(2, '0');
-                const minutes = String(date.getMinutes()).padStart(2, '0');
-
-                return `${year}-${month}-${day} ${hours}:${minutes}`;
-            } catch (e) {
-                console.error('日期格式化错误:', e);
-                return '';
-            }
-        });
-
-        // 处理日期选择完成 - 保留函数但简化逻辑
+        // 简化的日期选择完成处理
         const handleDateSelected = (date: Date | null) => {
-            // 日期选择完成后的处理逻辑
+            if (date && !isNaN(date.getTime())) {
+                formData.value.ddl = date.getTime().toString();
+            } else {
+                formData.value.ddl = '';
+            }
         };
 
-        // 定义日期选择器属性
-        const attributes = [
-            {
-                key: 'today',
-                highlight: {
-                    color: 'var(--md-sys-color-primary)',
-                    fillMode: 'light',
-                },
-                dates: new Date()
-            },
-        ];
+        // 添加错误边界
+        onErrorCaptured((err) => {
+            if (String(err).includes('dayIndex')) {
+                console.warn('日历组件数据异常，已拦截:', err);
+                return false; // 阻止错误继续传播
+            }
+            return true;
+        });
 
         return {
             formData,
@@ -362,10 +306,9 @@ export default defineComponent({
             handleClose,
             vditorRef: ref(null),
             dateValue, // 返回新的日期值计算属性
-            dateDisplay, // 添加到返回值
-            formattedDate,
             handleDateSelected,
-            attributes
+            minDate,
+            maxDate
         };
     }
 });
@@ -550,6 +493,17 @@ function processTags(tags: string[]): string {
     .editor-section {
         min-height: 400px;
     }
+}
+
+.calendar-fallback {
+    padding: 8px 12px;
+    color: #666;
+    font-size: 13px;
+}
+
+.calendar-popover-content {
+    padding: 5px 10px;
+    font-size: 14px;
 }
 </style>
 
