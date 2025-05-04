@@ -64,10 +64,10 @@ pub async fn new_list(
 }
 
 #[tauri::command]
-pub async fn delete_list(state: State<'_, StorageState>, uuid: &str) -> Result<(), String> {
+pub async fn delete_list(state: State<'_, StorageState>, listid: &str) -> Result<(), String> {
     let mut guard = state.0.lock().unwrap();
     let storage = guard.deref_mut();
-    Repository::<List>::delete(storage, uuid).map_err(|e| e.to_string())?;
+    Repository::<List>::delete(storage, listid).map_err(|e| e.to_string())?;
     Ok(())
 }
 
@@ -120,7 +120,7 @@ pub async fn rename_list(
     }
     let mut guard = state.0.lock().unwrap();
     let storage = guard.deref_mut();
-    Repository::<List>::update(storage, new, |list| {
+    Repository::<List>::update(storage, listid, |list| {
         list.title = new.to_string();
         Ok(())
     })

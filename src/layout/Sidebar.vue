@@ -39,18 +39,18 @@
                 </template>
                 <template v-if="lists.length > 0">
                     <div v-for="(list, index) in lists" :key="index">
-                        <v-list-item 
-                            :id="`nav-list-${list.id}`" 
-                            :prepend-icon="list.icon" 
+                        <v-list-item
+                            :id="`nav-list-item-${list.id}`"
+                            :prepend-icon="list.icon"
                             :title="list.title"
-                            class="mx-1" 
-                            rounded="lg" 
+                            class="mx-1"
+                            rounded="lg"
                             color="var(--md-sys-color-primary)"
-                            @click.stop="handleClick(`list/${list.id}`)"
-                            @contextmenu.prevent="showContextMenu(list, index, $event.currentTarget)" 
+                            @click.stop="handleClick(`list-item/${list.id}`)"
+                            @contextmenu.prevent="showContextMenu(list, index, $event.currentTarget)"
                             link
-                            :ripple="true" 
-                            :href="`#list-${list.id}`">
+                            :ripple="true"
+                            :href="`#list-item-${list.id}`">
                         </v-list-item>
                     </div>
                     

@@ -48,8 +48,8 @@ const currentViewComponent = computed(() => {
         case 'settings':
             return SettingsPanel
         default:
-            // 处理 list/1, list/2 等路由
-            if (currentView.value.startsWith('list/')) {
+            // 处理不同格式的列表路由
+            if (currentView.value.startsWith('list/') || currentView.value.startsWith('list-item/')) {
                 return ListView
             }
             return DefaultView

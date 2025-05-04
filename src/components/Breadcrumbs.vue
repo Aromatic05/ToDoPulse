@@ -44,8 +44,15 @@ function checkCurrentRoute() {
         const listId = hash.replace('list/', '');
         updateListById(listId);
     } else if (hash.includes('list-')) {
-        // 兼容旧格式
-        const listId = hash.replace('list-', '');
+        // 兼容旧格式 - 处理list-xxx、list-view-xxx和list-item-xxx三种格式
+        let listId = hash;
+        if (hash.startsWith('list-view-')) {
+            listId = hash.replace('list-view-', '');
+        } else if (hash.startsWith('list-item-')) {
+            listId = hash.replace('list-item-', '');
+        } else {
+            listId = hash.replace('list-', '');
+        }
         updateListById(listId);
     } else if (hash === 'timeline') {
         currentList.value = null;
@@ -58,6 +65,9 @@ const updateFromEvent = (event: CustomEvent) => {
     
     if (route.startsWith('list/')) {
         const listId = route.replace('list/', '');
+        updateListById(listId);
+    } else if (route.startsWith('list-item/')) {
+        const listId = route.replace('list-item/', '');
         updateListById(listId);
     } else if (route === 'timeline') {
         currentList.value = null; // 重置当前列表

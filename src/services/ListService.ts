@@ -59,11 +59,21 @@ export async function createList(title: string, icon: string = 'mdi-format-list-
 export async function renameList(id: string, newTitle: string): Promise<FList[]> {
   const listItem = listsData.find(l => l.id === id);
   if (listItem) {
-    listItem.title = newTitle;
-    invoke('rename_list', { id: id, new: newTitle });
-    console.log(`Service: List ${id} renamed to ${newTitle}`);
+    try {
+      // 先调用后端接口
+      await invoke('rename_list', { listid: id, new: newTitle });
+      // 成功后再更新本地数据
+      listItem.title = newTitle;
+      console.log(`Service: List ${id} renamed to ${newTitle}`);
+    } catch (error) {
+      console.error(`Service: Error renaming list - ${error}`);
+      // 将错误传播给调用者
+      throw error;
+    }
   } else {
-    console.error(`Service: List ${id} not found for renaming`);
+    const error = `List ${id} not found for renaming`;
+    console.error(`Service: ${error}`);
+    throw new Error(error);
   }
 
   return [...listsData];
@@ -78,7 +88,7 @@ export async function deleteList(id: string): Promise<FList[]> {
   const index = listsData.findIndex(l => l.id === id);
   if (index !== -1) {
     listsData.splice(index, 1);
-    invoke('delete_list', { id: id });
+    invoke('delete_list', {  listid: id });
     console.log(`Service: List ${id} deleted`);
   } else {
     console.error(`Service: List ${id} not found for deletion`);

@@ -54,8 +54,13 @@ const props = defineProps({
 
 const listTitle = ref('我的列表')
 const listId = computed(() => {
-    const match = props.viewId.match(/list\/([^\/]+)/)
-    return match ? match[1] : null
+    let match;
+    if (props.viewId.startsWith('list/')) {
+        match = props.viewId.match(/list\/([^\/]+)/);
+    } else if (props.viewId.startsWith('list-item/')) {
+        match = props.viewId.match(/list-item\/([^\/]+)/);
+    }
+    return match ? match[1] : null;
 })
 
 // 使用服务获取数据，不再使用硬编码数据
