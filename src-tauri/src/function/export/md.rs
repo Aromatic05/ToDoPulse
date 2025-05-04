@@ -3,7 +3,7 @@ use std::ops::DerefMut;
 use tauri::State;
 use chrono::{TimeZone, Utc};
 
-use crate::entity::{Entity, Event, Repository, StorageState};
+use crate::entity::{Event, Repository, StorageState};
 
 /// 将单个事件转换为Markdown格式
 fn export_event_to_md(md: &mut String, event: &Event) -> Result<(), String> {

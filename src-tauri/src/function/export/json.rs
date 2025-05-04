@@ -3,7 +3,7 @@ use tauri::State;
 use serde_json::{json, Value};
 use chrono::{TimeZone, Utc};
 
-use crate::entity::{Entity, Event, Repository, StorageState};
+use crate::entity::{Event, Repository, StorageState};
 
 /// 将单个事件转换为JSON格式
 fn export_event_to_json(event: &Event) -> Result<Value, String> {

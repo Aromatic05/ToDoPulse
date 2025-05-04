@@ -11,25 +11,27 @@
                         <!-- 左侧表单字段 -->
                         <div class="form-section">
                             <h3>卡片详情</h3>
+                            <br>
                             <div class="form-group">
-                                <label for="title">标题</label>
-                                <input id="title" v-model="formData.title" type="text" placeholder="输入标题">
+                                <v-text-field clearable label="标题" id="title" v-model="formData.title" type="text"
+                                    placeholder="输入标题" variant="outlined"></v-text-field>
                             </div>
                             <div class="form-group">
-                                <label for="tag">标签</label>
-                                <input id="tag" v-model="tagInput" type="text" placeholder="如: #重要 #今日">
+                                <v-text-field clearable label="标签" id="tag" v-model="tagInput" type="text"
+                                    placeholder="如: #重要 #今日" variant="outlined"></v-text-field>
                             </div>
                             <div class="form-group">
-                                <label for="date">日期</label>
-                                <VDatePicker v-model="dateValue" mode="dateTime" :popover="{
-                                    visibility: 'click',
-                                    placement: 'bottom',
-                                    isInteractive: true
-                                }" is-expanded :min-date="minDate" :max-date="maxDate">
+                                <VDatePicker v-model="dateValue" mode="dateTime" is24hr :is-dark="isDarkMode()"
+                                    :popover="{
+                                        visibility: 'click',
+                                        placement: 'bottom',
+                                        isInteractive: true
+                                    }" is-expanded :min-date="minDate" :max-date="maxDate">
                                     <template #default="{ inputEvents }">
-                                        <input
+                                        <v-text-field clearable label="日期" v-model="formData.ddl"
                                             :value="formData.ddl ? new Date(Number(formData.ddl)).toLocaleString() : ''"
-                                            v-on="inputEvents" placeholder="选择日期和时间" class="date-input" readonly />
+                                            v-on="inputEvents" placeholder="选择日期和时间" class="date-input" readonly
+                                            variant="outlined"></v-text-field>
                                     </template>
                                 </VDatePicker>
                             </div>
@@ -58,7 +60,7 @@ import 'vditor/dist/index.css';
 import type { FEvent } from 'src-tauri/bindings/FEvent';
 import { getEventContent, putEventContent } from '@/services/EventService';
 import { DatePicker } from 'v-calendar';
-import 'v-calendar/dist/style.css'; // 添加这行确保样式正确加载
+import 'v-calendar/dist/style.css';
 
 declare module 'vditor' {
     interface IVditor {
@@ -89,7 +91,7 @@ export default defineComponent({
         const vditor = ref<Vditor | null>(null);
         const content = ref<string>('');
         const isLoading = ref(false);
-        const isInitialized = ref(false); // 添加初始化状态标记
+        const isInitialized = ref(false);
 
         const formData = ref<FEvent>({
             id: props.cardData.id || '',
@@ -147,7 +149,6 @@ export default defineComponent({
                     isInitialized.value = true;
                     // 设置初始内容
                     if (content.value) {
-                        console.log('设置编辑器内容');
                         vditor.value?.setValue(content.value);
                     }
                 },
@@ -163,14 +164,11 @@ export default defineComponent({
 
             isLoading.value = true;
             try {
-                console.log('加载内容, ID:', props.cardData.id);
                 const newContent = await getEventContent(props.cardData.id);
                 content.value = newContent || '';
-                console.log('内容已加载:', content.value ? '有内容' : '无内容');
 
                 // 如果编辑器已初始化，立即更新内容
                 if (isInitialized.value && vditor.value) {
-                    console.log('更新已初始化的编辑器内容');
                     vditor.value.setValue(content.value);
                 }
             } catch (error) {
@@ -181,36 +179,22 @@ export default defineComponent({
             }
         };
 
-        // 新增处理模态框打开的函数
         const handleOpen = async () => {
-            console.log('模态框打开');
-
-            // 重置表单数据
             formData.value = { ...props.cardData };
-
-            // 更新标签
             tagInput.value = processTags(props.cardData.tag || []);
-
-            // 先加载内容
             await loadContent();
-
-            // 然后初始化编辑器
             await initEditor();
         };
 
         const handleConfirm = async () => {
             try {
-                // 获取编辑器内容
                 if (vditor.value) {
                     content.value = vditor.value.getValue();
-
-                    // 保存编辑器内容到后端
                     if (formData.value.id && content.value !== null) {
                         await putEventContent(formData.value.id, content.value);
                     }
                 }
 
-                // 解析标签字符串为数组
                 const tagArray = Array.from(
                     new Set(
                         tagInput.value
@@ -221,7 +205,6 @@ export default defineComponent({
                     )
                 );
 
-                // 更新 formData 中的 tag 数组
                 formData.value.tag = tagArray;
 
                 emit('confirm', formData.value);
@@ -232,13 +215,9 @@ export default defineComponent({
         };
 
         const handleClose = () => {
-            // 先发出事件，再销毁编辑器
             emit('update:modelValue', false);
-
-            // 确保编辑器被销毁
             setTimeout(() => {
                 if (vditor.value) {
-                    console.log('销毁编辑器');
                     vditor.value.destroy();
                     vditor.value = null;
                     isInitialized.value = false;
@@ -305,10 +284,11 @@ export default defineComponent({
             handleConfirm,
             handleClose,
             vditorRef: ref(null),
-            dateValue, // 返回新的日期值计算属性
+            dateValue,
             handleDateSelected,
             minDate,
-            maxDate
+            maxDate,
+            isDarkMode
         };
     }
 });
@@ -324,187 +304,7 @@ function processTags(tags: string[]): string {
 
 
 <style scoped>
-/* 弹窗样式 */
-.modal-mask {
-    position: fixed;
-    top: 0;
-    left: 0;
-    width: 100vw;
-    /* 使用视口单位 */
-    height: 100vh;
-    background: rgba(0, 0, 0, 0.3);
-    /* 改为半透明黑色 */
-    display: flex;
-    justify-content: center;
-    align-items: center;
-    z-index: 99999;
-    transform: none !important;
-    /* 避免创建新的堆叠上下文 */
-    isolation: isolate;
-    /* 创建独立的堆叠上下文 */
-}
-
-.modal-container {
-    background: var(--md-sys-color-surface);
-    padding: 20px;
-    border-radius: 8px;
-    width: min(95%, 1200px);
-    /* 增加窗口最大宽度到 1200px */
-    max-height: 90vh;
-    overflow-y: auto;
-    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.33);
-    position: relative;
-    /* 确保容器也有相对定位 */
-    z-index: 10002;
-    /* 比mask更高一级 */
-}
-
-.modal-header {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    margin-bottom: 1rem;
-}
-
-.form-section h3 {
-    color: var(--md-sys-color-primary);
-    margin: 0;
-}
-
-.modal-header button {
-    background: none;
-    border: none;
-    font-size: 1.5em;
-    cursor: pointer;
-    color: var(--md-sys-color-on-surface);
-}
-
-.modal-body input {
-    width: 100%;
-    padding: 0.5rem;
-    border: 1px solid var(--md-sys-color-outline);
-    border-radius: 4px;
-    margin-bottom: 1rem;
-}
-
-.modal-footer {
-    display: flex;
-    justify-content: flex-end;
-    gap: 0.5rem;
-}
-
-.modal-footer button {
-    background: none;
-    padding: 0.5rem 1rem;
-    border-radius: 4px;
-    cursor: pointer;
-    transition: background 0.2s;
-    color: var(--md-sys-color-on-surface);
-}
-
-.confirm-btn {
-    background: var(--md-sys-color-primary);
-    color: white;
-    border: none;
-}
-
-.form-group {
-    margin-bottom: 16px;
-}
-
-.form-group label {
-    display: block;
-    margin-bottom: 8px;
-    color: var(--md-sys-color-on-surface);
-    font-weight: 500;
-}
-
-.form-group input,
-.form-group textarea {
-    width: 100%;
-    padding: 8px;
-    border: 1px solid var(--md-sys-color-outline);
-    border-radius: 4px;
-    background: var(--md-sys-color-surface);
-    color: var(--md-sys-color-on-surface);
-}
-
-.form-group textarea {
-    resize: vertical;
-    min-height: 100px;
-}
-
-.form-group input:focus,
-.form-group textarea:focus {
-    outline: none;
-    border-color: var(--md-sys-color-primary);
-}
-
-.editor-section label {
-    color: var(--md-sys-color-on-surface);
-    font-size: 16px;
-}
-
-.vditor {
-    border: 1px solid var(--md-sys-color-outline);
-    border-radius: 4px;
-    margin-bottom: 1rem;
-    flex-grow: 1;
-    /* 让编辑器填充可用空间 */
-    min-height: 530px;
-    /* 增加编辑器最小高度 */
-}
-
-.modal-layout {
-    display: flex;
-    flex-direction: row;
-    gap: 20px;
-    margin-bottom: 1rem;
-    min-height: 500px;
-    /* 增加最小高度 */
-}
-
-.form-section {
-    flex: 1;
-    min-width: 250px;
-    max-width: 350px;
-    /* 限制左侧宽度 */
-}
-
-.editor-section {
-    flex: 3;
-    /* 增加编辑器区域的比例 */
-    display: flex;
-    flex-direction: column;
-    min-height: 500px;
-    /* 增加编辑器区域最小高度 */
-}
-
-/* 移动端响应式布局 */
-@media (max-width: 768px) {
-    .modal-layout {
-        flex-direction: column;
-    }
-
-    .form-section {
-        max-width: 100%;
-    }
-
-    .editor-section {
-        min-height: 400px;
-    }
-}
-
-.calendar-fallback {
-    padding: 8px 12px;
-    color: #666;
-    font-size: 13px;
-}
-
-.calendar-popover-content {
-    padding: 5px 10px;
-    font-size: 14px;
-}
+@import '@/styles/Modals/contentmodal.css';
 </style>
 
 <style>

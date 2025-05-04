@@ -1,0 +1,181 @@
+/* 弹窗样式 */
+.modal-mask {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100vw;
+    /* 使用视口单位 */
+    height: 100vh;
+    background: rgba(0, 0, 0, 0.3);
+    /* 改为半透明黑色 */
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    z-index: 99999;
+    transform: none !important;
+    /* 避免创建新的堆叠上下文 */
+    isolation: isolate;
+    /* 创建独立的堆叠上下文 */
+}
+
+.modal-container {
+    background: var(--md-sys-color-surface);
+    padding: 20px;
+    border-radius: 8px;
+    width: min(95%, 1200px);
+    /* 增加窗口最大宽度到 1200px */
+    max-height: 90vh;
+    overflow-y: auto;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.33);
+    position: relative;
+    /* 确保容器也有相对定位 */
+    z-index: 10002;
+    /* 比mask更高一级 */
+}
+
+.modal-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 1rem;
+}
+
+.form-section h3 {
+    color: var(--md-sys-color-primary);
+    margin: 0;
+}
+
+.modal-header button {
+    background: none;
+    border: none;
+    font-size: 1.5em;
+    cursor: pointer;
+    color: var(--md-sys-color-on-surface);
+}
+
+.modal-body input {
+    width: 100%;
+    padding: 0.5rem;
+    border: 1px solid var(--md-sys-color-outline);
+    border-radius: 4px;
+    margin-bottom: 1rem;
+}
+
+.modal-footer {
+    display: flex;
+    justify-content: flex-end;
+    gap: 0.5rem;
+}
+
+.modal-footer button {
+    background: none;
+    padding: 0.5rem 1rem;
+    border-radius: 4px;
+    cursor: pointer;
+    transition: background 0.2s;
+    color: var(--md-sys-color-on-surface);
+}
+
+.confirm-btn {
+    background: var(--md-sys-color-primary);
+    color: white;
+    border: none;
+}
+
+.form-group {
+    margin-bottom: 16px;
+}
+
+.form-group label {
+    display: block;
+    margin-bottom: 8px;
+    color: var(--md-sys-color-on-surface);
+    font-weight: 500;
+}
+
+.form-group input,
+.form-group textarea {
+    width: 100%;
+    padding: 8px;
+    border: 1px solid var(--md-sys-color-outline);
+    border-radius: 4px;
+    background: var(--md-sys-color-surface);
+    color: var(--md-sys-color-on-surface);
+}
+
+.form-group textarea {
+    resize: vertical;
+    min-height: 100px;
+}
+
+.form-group input:focus,
+.form-group textarea:focus {
+    outline: none;
+    border-color: var(--md-sys-color-primary);
+}
+
+.editor-section label {
+    color: var(--md-sys-color-on-surface);
+    font-size: 16px;
+}
+
+.vditor {
+    border: 1px solid var(--md-sys-color-outline);
+    border-radius: 4px;
+    margin-bottom: 1rem;
+    flex-grow: 1;
+    /* 让编辑器填充可用空间 */
+    min-height: 530px;
+    /* 增加编辑器最小高度 */
+}
+
+.modal-layout {
+    display: flex;
+    flex-direction: row;
+    gap: 20px;
+    margin-bottom: 1rem;
+    min-height: 500px;
+    /* 增加最小高度 */
+}
+
+.form-section {
+    flex: 1;
+    min-width: 250px;
+    max-width: 350px;
+    /* 限制左侧宽度 */
+}
+
+.editor-section {
+    flex: 3;
+    /* 增加编辑器区域的比例 */
+    display: flex;
+    flex-direction: column;
+    min-height: 500px;
+    /* 增加编辑器区域最小高度 */
+}
+
+/* 移动端响应式布局 */
+@media (max-width: 768px) {
+    .modal-layout {
+        flex-direction: column;
+    }
+
+    .form-section {
+        max-width: 100%;
+    }
+
+    .editor-section {
+        min-height: 400px;
+    }
+}
+
+.calendar-fallback {
+    padding: 8px 12px;
+    color: #666;
+    font-size: 13px;
+}
+
+.calendar-popover-content {
+    padding: 5px 10px;
+    font-size: 14px;
+}

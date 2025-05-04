@@ -119,8 +119,6 @@
 <script setup lang="ts">
 import { ref, onMounted } from 'vue';
 import { SettingService } from '@/services/SettingService';
-import type { FEvent } from 'src-tauri/bindings/FEvent';
-// 导入statements已移除
 
 // 设置状态
 const darkMode = ref(false);

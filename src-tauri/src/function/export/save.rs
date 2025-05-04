@@ -2,11 +2,9 @@ use std::path::{Path, PathBuf};
 use std::fs;
 
 use anyhow::Result;
-use tauri::{command, State, Manager};
 use tauri_plugin_dialog::DialogExt;
 
 use crate::utils::AppPaths;
-use crate::entity::StorageState;
 
 /// 获取导出目录路径
 #[tauri::command]
