@@ -80,13 +80,10 @@ async function loadListData() {
         try {
             // 获取列表信息
             const lists = await getLists();
-            console.log('listview获取列表:', lists);
             const currentList = lists.find(list => list.id === listId.value);
-            console.log('listview当前列表:', currentList);
 
             if (currentList) {
                 listTitle.value = currentList.title;
-                console.log(`加载列表: ${currentList.title} (ID: ${currentList.id})`);
 
                 // 获取该列表的任务
                 Events.value = await getEventsBylistid(listId.value);
@@ -164,7 +161,6 @@ async function deleteFEvent(Event: FEvent) {
 async function handleEventUpdate(updatedData: FEvent) {
     if (listId.value) {
         try {
-            console.log(`更新任务: ${updatedData.title}`, updatedData);
             Events.value = await updateEvent(updatedData);
         } catch (error) {
             console.error('更新任务失败:', error);

@@ -9,11 +9,8 @@ import { invoke } from '@tauri-apps/api/core';
  * @returns Promise<FEvent[]> 返回事件列表
  */
 export async function getEventsBylistid(listid: string): Promise<FEvent[]> {
-    // 返回指定列表的事件，如果列表不存在则返回空数组
-    console.log("getEventsBylistid", listid);
     try {
         const listEvents = await invoke<FEvent[]>('list_content', { listid: listid });
-        console.log("listEvents", listEvents);
     return listEvents;
     } catch (error) {    
         console.error('getEventsBylistid获取列表失败:', error);  
@@ -43,7 +40,6 @@ export async function addEvent(
         }
         // 此处的参数不代表真实情况，请自行修改
         invoke('add_event', { listid: listid, title: title, priority: priority, ddl: timestamp })
-        console.log(`Service: New event "${title}" added to list ${listid}`);
         return invoke('list_content', { listid :listid });
     } catch (error) {
         console.error('获取列表失败:', error);  
@@ -60,7 +56,6 @@ export async function updateEvent(
     fEvent : FEvent,
 ): Promise<FEvent[]> {
     if (fEvent) {
-        console.log("updateEvent", fEvent);
         invoke( 'put_event', { fEvent });
         return invoke('list_content', { listid :fEvent.listid });
     } else {
@@ -81,6 +76,7 @@ export async function deleteEvent(EventId: string, ListId: string): Promise<FEve
 }
 
 export async function getEventContent(EventId: string): Promise<string> {
+    console.log(EventId);
     return invoke<string>('event_content', { uuid: EventId });
 }
 

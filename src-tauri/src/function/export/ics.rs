@@ -106,11 +106,7 @@ pub async fn export_list_events_to_ics(
 
         // 获取指定列表中的所有事件
         let filtered_events = Repository::<Event>::filter(storage, |event| {
-            if let Some(list) = event.metadata.list {
-                list.to_string() == list_id
-            } else {
-                false
-            }
+            event.metadata.list.as_ref().map_or(false, |list| list == list_id)
         })
         .map_err(|e| e.to_string())?;
 

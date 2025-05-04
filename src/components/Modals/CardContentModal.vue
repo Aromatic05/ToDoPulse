@@ -14,11 +14,11 @@
                             <br>
                             <div class="form-group">
                                 <v-text-field clearable label="标题" id="title" v-model="formData.title" type="text"
-                                    placeholder="输入标题" variant="outlined"></v-text-field>
+                                    placeholder="输入标题" variant="outlined" density="compact"></v-text-field>
                             </div>
                             <div class="form-group">
                                 <v-text-field clearable label="标签" id="tag" v-model="tagInput" type="text"
-                                    placeholder="如: #重要 #今日" variant="outlined"></v-text-field>
+                                    placeholder="如: #重要 #今日" variant="outlined" density="compact"></v-text-field>
                             </div>
                             <div class="form-group">
                                 <VDatePicker v-model="dateValue" mode="dateTime" is24hr :is-dark="isDarkMode()"
@@ -31,9 +31,25 @@
                                         <v-text-field clearable label="日期" v-model="formData.ddl"
                                             :value="formData.ddl ? new Date(Number(formData.ddl)).toLocaleString() : ''"
                                             v-on="inputEvents" placeholder="选择日期和时间" class="date-input" readonly
-                                            variant="outlined"></v-text-field>
+                                            variant="outlined" density="compact"></v-text-field>
                                     </template>
                                 </VDatePicker>
+                            </div>
+
+                            <div class="form-group">
+                                <v-select v-model="formData.priority" :items="['Low', 'Medium', 'High', 'Undefined']"
+                                    label="优先级" variant="outlined" density="compact" class="mb-4"></v-select>
+                            </div>
+
+                            <!-- 将图标输入改为图标选择 -->
+                            <div class="form-group">
+                                <p class="text-subtitle-1 mb-2">图标选择</p>
+                                <v-chip-group v-model="selectedIconIndex" column>
+                                    <v-chip v-for="(icon, index) in availableIcons" :key="index" filter :value="index"
+                                        :selected="formData.icon === icon">
+                                        <v-icon :icon="icon"></v-icon>
+                                    </v-chip>
+                                </v-chip-group>
                             </div>
                         </div>
 
@@ -133,8 +149,6 @@ export default defineComponent({
                 isInitialized.value = false;
             }
 
-            console.log('正在初始化 Vditor 编辑器...');
-
             // 创建新实例
             vditor.value = new Vditor('vditor', {
                 height: 500,
@@ -145,7 +159,6 @@ export default defineComponent({
                 placeholder: '请输入内容...',
                 mode: 'wysiwyg',
                 after: () => {
-                    console.log('Vditor 初始化完成');
                     isInitialized.value = true;
                     // 设置初始内容
                     if (content.value) {
@@ -277,6 +290,27 @@ export default defineComponent({
             return true;
         });
 
+        const availableIcons = [
+            'mdi-home',
+            'mdi-account',
+            'mdi-briefcase',
+            'mdi-shopping',
+            'mdi-star',
+        ];
+
+        // 同步图标选择和formData.icon
+        const selectedIconIndex = computed({
+            get: () => {
+                const index = availableIcons.findIndex(icon => icon === formData.value.icon);
+                return index !== -1 ? index : -1;
+            },
+            set: (index: number) => {
+                if (index >= 0 && index < availableIcons.length) {
+                    formData.value.icon = availableIcons[index];
+                }
+            }
+        });
+
         return {
             formData,
             tagInput,
@@ -288,7 +322,9 @@ export default defineComponent({
             handleDateSelected,
             minDate,
             maxDate,
-            isDarkMode
+            isDarkMode,
+            availableIcons,
+            selectedIconIndex,
         };
     }
 });
@@ -309,4 +345,13 @@ function processTags(tags: string[]): string {
 
 <style>
 @import '@/styles/vditor.css';
+
+.v-overlay--active {
+    z-index: 9999999 !important; /* 非常高的z-index值 */
+}
+
+.priority-select-menu {
+    z-index: 9999999 !important; /* 非常高的z-index值 */
+    position: fixed !important;
+}
 </style>

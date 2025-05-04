@@ -1,7 +1,7 @@
 import { FList } from 'src-tauri/bindings/FList';
 import { invoke } from '@tauri-apps/api/core';
 
-// 内部存储，使用 UUID 格式的 ID
+// 内部存储，使用 id 格式的 ID
 let listsData: FList[] = [];
 
 /**
@@ -25,7 +25,6 @@ export async function getLists(): Promise<FList[]> {
     }
     
     listsData = result;
-    console.log('获取到的列表数据:', listsData);
     return [...listsData];
   } catch (error) {
     console.error('获取列表失败:', error);
@@ -43,7 +42,6 @@ export async function getLists(): Promise<FList[]> {
 export async function createList(title: string, icon: string = 'mdi-format-list-bulleted'): Promise<FList[]> {
   try {
     let newList: FList = await invoke<FList>('new_list', { title: String(title), icon: String(icon) });
-    console.log(newList);
     listsData.push(newList);
     console.log(`Service: New list created with ID ${newList.id}`);
   } catch (error) {
@@ -62,6 +60,7 @@ export async function renameList(id: string, newTitle: string): Promise<FList[]>
   const listItem = listsData.find(l => l.id === id);
   if (listItem) {
     listItem.title = newTitle;
+    invoke('rename_list', { id: id, new: newTitle });
     console.log(`Service: List ${id} renamed to ${newTitle}`);
   } else {
     console.error(`Service: List ${id} not found for renaming`);
@@ -79,6 +78,7 @@ export async function deleteList(id: string): Promise<FList[]> {
   const index = listsData.findIndex(l => l.id === id);
   if (index !== -1) {
     listsData.splice(index, 1);
+    invoke('delete_list', { id: id });
     console.log(`Service: List ${id} deleted`);
   } else {
     console.error(`Service: List ${id} not found for deletion`);

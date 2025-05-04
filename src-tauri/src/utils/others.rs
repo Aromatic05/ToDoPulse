@@ -19,7 +19,7 @@ use crate::entity::{
 pub fn event_to_fevent(event: &Event) -> FEvent {
     FEvent {
         id: event.metadata.uuid.clone(),
-        listid: match event.metadata.list {
+        listid: match &event.metadata.list {
             None => "Undefined".to_string(),
             Some(listid) => listid.to_string(),
         },
@@ -55,8 +55,8 @@ pub fn tag_exists(state: &State<'_, StorageState>, name: &str) -> bool {
     exists::<Tag>(state, name)
 }
 
-pub fn list_exists(state: &State<'_, StorageState>, name: &str) -> bool {
-    exists::<List>(state, name)
+pub fn list_exists(state: &State<'_, StorageState>, uuid: &str) -> bool {
+    exists::<List>(state, uuid)
 }
 
 #[allow(dead_code)]

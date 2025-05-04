@@ -21,7 +21,7 @@ const EVENT_TABLE: Table = TableDefinition::new("events");
 pub struct EventMetadata {
     pub uuid: String,
     pub timestamp: u64,
-    pub list: Option<u64>,
+    pub list: Option<String>,
     pub tag: Option<Vec<String>>,
 }
 
@@ -114,10 +114,7 @@ pub async fn add_event(
     ddl: &str,
 ) -> Result<Event, String> {
     let mut metadata = EventMetadata::new();
-    metadata.list = match listid {
-        Some(id) => Some(id.parse::<u64>().map_err(|e| e.to_string())?),
-        None => None,
-    };
+    metadata.list = listid.map(|id| id.to_string());  // 直接使用字符串，不再解析为u64
     let content_path = AppPaths::data_dir().join(format!("{}.md", title));
     fs::write(&content_path, "").map_err(|e| e.to_string())?;
     let mut new_event = Event {
@@ -185,7 +182,7 @@ pub async fn put_event(state: State<'_, StorageState>, f_event: FEvent) -> Resul
         new.priority = f_event.priority;
         new.color = f_event.color;
         new.icon = f_event.icon;
-        new.metadata.list = f_event.listid.parse::<u64>().ok();
+        new.metadata.list = Some(f_event.listid);  // 直接使用字符串类型的listid
         Repository::<Event>::add(storage, &new).map_err(|e| e.to_string())?;
         return Ok(());
     }

@@ -55,7 +55,6 @@ export default {
             this.showModal = true
         },
         handleConfirm(updatedData: FEvent) {
-            console.log('EventCard updating:', updatedData)
             this.localData = { ...updatedData } as FEvent
             this.$emit('update', updatedData)
         },

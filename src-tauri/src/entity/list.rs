@@ -1,9 +1,9 @@
 use redb::{self, TableDefinition};
 use serde::{Deserialize, Serialize};
-use std::hash::{Hash, Hasher};
 use std::ops::DerefMut;
 use tauri::State;
 use ts_rs::TS;
+use uuid::Uuid;
 
 use crate::entity::{Event, FEvent, Repository, StorageState};
 use crate::utils::{event_to_fevent, list_exists};
@@ -24,7 +24,7 @@ pub struct FList {
 
 #[derive(Serialize, Deserialize, Clone)]
 pub struct List {
-    pub id: u64,
+    pub uuid: String,
     pub title: String,
     pub icon: String,
 }
@@ -34,7 +34,7 @@ impl Entity for List {
         LIST_TABLE
     }
     fn id_bytes(&self) -> Vec<u8> {
-        self.id.to_string().into_bytes()
+        self.uuid.as_bytes().to_vec()
     }
     fn value(&self) -> Vec<u8> {
         serde_json::to_vec(self).unwrap()
@@ -43,12 +43,10 @@ impl Entity for List {
 
 impl List {
     pub fn new(title: &str, icon: &str) -> Self {
-        let mut hasher = std::collections::hash_map::DefaultHasher::new();
-        title.hash(&mut hasher);
-        let id = hasher.finish();
+        let uuid = Uuid::new_v4().to_string();
         let icon = icon.to_string();
         let title = title.to_string();
-        Self { title, id, icon }
+        Self { title, uuid, icon }
     }
 }
 
@@ -66,10 +64,10 @@ pub async fn new_list(
 }
 
 #[tauri::command]
-pub async fn delete_list(state: State<'_, StorageState>, title: String) -> Result<(), String> {
+pub async fn delete_list(state: State<'_, StorageState>, uuid: &str) -> Result<(), String> {
     let mut guard = state.0.lock().unwrap();
     let storage = guard.deref_mut();
-    Repository::<List>::delete(storage, &title).map_err(|e| e.to_string())?;
+    Repository::<List>::delete(storage, uuid).map_err(|e| e.to_string())?;
     Ok(())
 }
 
@@ -81,7 +79,7 @@ pub async fn get_lists(state: State<'_, StorageState>) -> Result<Vec<FList>, Str
     let f_lists: Vec<FList> = lists
         .into_iter()
         .map(|list| FList {
-            id: list.id.to_string(),
+            id: list.uuid,
             title: list.title,
             icon: list.icon,
         })
@@ -100,11 +98,7 @@ pub async fn list_content(
         let mut guard = state.0.lock().unwrap();
         let storage = guard.deref_mut();
         let evnets = Repository::<Event>::filter(storage, |event| {
-            if let Some(list) = event.metadata.list {
-                list.to_string() == listid
-            } else {
-                false
-            }
+            event.metadata.list.as_ref().map_or(false, |list| list == listid)
         })
         .map_err(|e| e.to_string())?;
         let f_events: Vec<FEvent> = evnets
@@ -128,9 +122,6 @@ pub async fn rename_list(
     let storage = guard.deref_mut();
     Repository::<List>::update(storage, new, |list| {
         list.title = new.to_string();
-        let mut hasher = std::collections::hash_map::DefaultHasher::new();
-        new.hash(&mut hasher);
-        list.id = hasher.finish();
         Ok(())
     })
     .map_err(|e| e.to_string())?;

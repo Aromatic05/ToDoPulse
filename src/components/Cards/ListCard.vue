@@ -3,7 +3,7 @@
         <div class="card-content-row">
             <!-- 状态列 - 添加checked绑定 -->
             <div class="card-column status-column">
-                <input type="checkbox" class="card-checkbox" :checked="localData.finished" @change="handleComplete"/>
+                <input type="checkbox" class="card-checkbox" :checked="localData.finished" @change="handleComplete(localData)"/>
             </div>
 
             <!-- 任务列 -->
@@ -86,18 +86,19 @@ export default {
     },
     methods: {
         convertTimestampToDate(timestamp: string | undefined): string | null {
-            console.log('Converting timestamp to date:', timestamp);
             return timestamp ? convertTimestampToDate(timestamp) : null;
         },
         convertTimestampToTime(timestamp: string | undefined): string | null {
             return timestamp ? convertTimestampToTime(timestamp) : null;
         },
-        handleComplete() {
+        handleComplete(updatedData: FEvent) {
             this.localData.finished = !this.localData.finished;
-            this.$emit('toggleStatus', {
-                id: this.localData.id,
-                finished: this.localData.finished
-            });
+            this.localData = { ...updatedData };
+            this.$emit('update', updatedData); 
+            // this.$emit('toggleStatus', {
+            //     id: this.localData.id,
+            //     finished: this.localData.finished
+            // });
         },
         handleConfirm(updatedData: FEvent) {
             console.log('Updated data:', updatedData);

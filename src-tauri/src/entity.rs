@@ -195,7 +195,7 @@ mod tests {
 
         let list = List::new("Test List", "icon.png");
         Repository::<List>::add(storage, &list).unwrap();
-        let result = Repository::<List>::get_by_name(storage, &list.id.to_string()).unwrap();
+        let result = Repository::<List>::get_by_name(storage, &list.uuid.to_string()).unwrap();
         assert!(result.is_some());
         assert_eq!(result.unwrap().title, "Test List");
 

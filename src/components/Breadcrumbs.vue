@@ -27,7 +27,6 @@ const lists = ref<any[]>([]);
 const initLists = async () => {
     try {
         lists.value = await getLists();
-        console.log('Breadcrumbs获取列表:', lists.value);
         // 数据加载后立即检查当前URL
         checkCurrentRoute();
     } catch (error) {
@@ -39,7 +38,6 @@ const initLists = async () => {
 function checkCurrentRoute() {
     // 从URL中获取当前路径
     const hash = window.location.hash.replace('#', '');
-    console.log('当前URL路径:', hash);
     
     // 处理列表路由
     if (hash.startsWith('list/')) {
@@ -56,26 +54,20 @@ function checkCurrentRoute() {
 
 // 添加事件监听
 const updateFromEvent = (event: CustomEvent) => {
-    console.log('导航事件触发:', event.detail.route);
     const route = event.detail.route;
     
     if (route.startsWith('list/')) {
         const listId = route.replace('list/', '');
-        console.log('更新到列表:', listId);
         updateListById(listId);
     } else if (route === 'timeline') {
-        console.log('更新到时间线');
         currentList.value = null; // 重置当前列表
     }
 };
 
 // 根据ID更新当前列表
 function updateListById(listId: string) {
-    console.log('尝试更新列表ID:', listId, '当前列表数量:', lists.value.length);
-    console.log('当前列表数据:', lists.value);
     const list = lists.value.find(item => item.id === listId);
     if (list) {
-        console.log('找到匹配列表:', list.title);
         currentList.value = { id: list.id, title: list.title, icon: list.icon };
     } else {
         console.warn('未找到ID对应的列表:', listId);

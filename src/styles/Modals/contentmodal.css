@@ -24,7 +24,7 @@
     border-radius: 8px;
     width: min(95%, 1200px);
     /* 增加窗口最大宽度到 1200px */
-    max-height: 90vh;
+    max-height: 95vh;
     overflow-y: auto;
     box-shadow: 0 2px 8px rgba(0, 0, 0, 0.33);
     position: relative;
