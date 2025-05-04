@@ -75,11 +75,13 @@ export class SettingService {
           exportContent = await invoke<string>('export_all_events_to_ics');
           break;
         case 'json':
-          // 这里可以添加JSON导出API
-          throw new Error('JSON导出功能尚未实现');
-        case 'markdown':
-          // 这里可以添加Markdown导出API
-          throw new Error('Markdown导出功能尚未实现');
+          // 使用JSON导出API
+          exportContent = await invoke<string>('export_all_events_to_json');
+          break;
+        case 'md':
+          // 使用Markdown导出API
+          exportContent = await invoke<string>('export_all_events_to_md');
+          break;
         default:
           throw new Error(`不支持的导出格式: ${format}`);
       }
@@ -121,11 +123,13 @@ export class SettingService {
           exportContent = await invoke<string>('export_events_to_ics', { uuids: eventIds });
           break;
         case 'json':
-          // 这里可以添加JSON导出API
-          throw new Error('JSON导出功能尚未实现');
-        case 'markdown':
-          // 这里可以添加Markdown导出API
-          throw new Error('Markdown导出功能尚未实现');
+          // 使用JSON导出API
+          exportContent = await invoke<string>('export_events_to_json', { uuids: eventIds });
+          break;
+        case 'md':
+          // 使用Markdown导出API
+          exportContent = await invoke<string>('export_events_to_md', { uuids: eventIds });
+          break;
         default:
           throw new Error(`不支持的导出格式: ${format}`);
       }
@@ -158,7 +162,15 @@ export class SettingService {
       // 根据格式调用相应API
       switch (format) {
         case 'ics':
-          exportContent = await invoke<string>('export_event_to_ics', { uuid: eventId });
+          exportContent = await invoke<string>('export_events_to_ics', { uuids: [eventId] });
+          break;
+        case 'json':
+          // 使用JSON导出API
+          exportContent = await invoke<string>('export_events_to_json', { uuids: [eventId] });
+          break;
+        case 'markdown':
+          // 使用Markdown导出API
+          exportContent = await invoke<string>('export_events_to_md', { uuids: [eventId] });
           break;
         default:
           throw new Error(`不支持的导出格式: ${format}`);
@@ -192,15 +204,23 @@ export class SettingService {
       const status = finished ? 'completed' : 'pending';
       let filename = `${status}_events`;
 
-      // 目前只支持ICS格式
-      if (format !== 'ics') {
-        throw new Error(`不支持的导出格式: ${format}`);
+      // 根据格式选择相应的API
+      switch (format) {
+        case 'ics':
+          // 调用ICS格式的状态导出API
+          exportContent = await invoke<string>('export_events_by_status', { finished });
+          break;
+        case 'json':
+          // 调用JSON格式的状态导出API
+          exportContent = await invoke<string>('export_events_by_status_to_json', { finished });
+          break;
+        case 'md':
+          // 调用Markdown格式的状态导出API
+          exportContent = await invoke<string>('export_events_by_status_to_md', { finished });
+          break;
+        default:
+          throw new Error(`不支持的导出格式: ${format}`);
       }
-
-      // 调用后端API导出特定状态的事件
-      exportContent = await invoke<string>('export_events_by_status', { 
-        finished 
-      });
 
       // 将导出内容保存到文件
       const filePath = await invoke<string>('save_export_file', {

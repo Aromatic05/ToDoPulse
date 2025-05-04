@@ -135,7 +135,7 @@ const selectedExportFormat = ref('ics');
 const exportFormats = [
     { title: 'iCalendar (.ics)', value: 'ics' },
     { title: 'JSON (.json)', value: 'json' },
-    { title: 'Markdown (.md)', value: 'markdown' }
+    { title: 'Markdown (.md)', value: 'md' }
 ];
 const exportFilter = ref('all');
 const exportFilterOptions = [
