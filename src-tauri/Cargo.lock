@@ -3,6 +3,36 @@
 version = 4
 
 [[package]]
+name = "ToDoPulse"
+version = "0.1.0"
+dependencies = [
+ "anyhow",
+ "async-std",
+ "chrono",
+ "dirs",
+ "ics",
+ "log",
+ "notify",
+ "once_cell",
+ "rand 0.9.1",
+ "redb",
+ "reqwest",
+ "serde",
+ "serde_json",
+ "tauri",
+ "tauri-build",
+ "tauri-plugin-dialog",
+ "tauri-plugin-opener",
+ "tauri-plugin-updater",
+ "tauri-runtime",
+ "tempfile",
+ "tokio",
+ "toml",
+ "ts-rs",
+ "uuid",
+]
+
+[[package]]
 name = "addr2line"
 version = "0.24.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -4660,36 +4690,6 @@ name = "tinyvec_macros"
 version = "0.1.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "1f3ccbac311fea05f86f61904b462b55fb3df8837a366dfc601a0161d0532f20"
-
-[[package]]
-name = "todolists"
-version = "0.1.0"
-dependencies = [
- "anyhow",
- "async-std",
- "chrono",
- "dirs",
- "ics",
- "log",
- "notify",
- "once_cell",
- "rand 0.9.1",
- "redb",
- "reqwest",
- "serde",
- "serde_json",
- "tauri",
- "tauri-build",
- "tauri-plugin-dialog",
- "tauri-plugin-opener",
- "tauri-plugin-updater",
- "tauri-runtime",
- "tempfile",
- "tokio",
- "toml",
- "ts-rs",
- "uuid",
-]
 
 [[package]]
 name = "tokio"
