@@ -117,21 +117,11 @@ export class SettingService {
       let filename = format === 'ics' ? 'todopulse_events' : 'todopulse_events';
 
       // 根据不同格式调用不同的后端导出API
-      switch (format) {
-        case 'ics':
-          // 使用ICS导出API
-          exportContent = await invoke<string>('export_events_to_ics', { uuids: eventIds });
-          break;
-        case 'json':
-          // 使用JSON导出API
-          exportContent = await invoke<string>('export_events_to_json', { uuids: eventIds });
-          break;
-        case 'md':
-          // 使用Markdown导出API
-          exportContent = await invoke<string>('export_events_to_md', { uuids: eventIds });
-          break;
-        default:
-          throw new Error(`不支持的导出格式: ${format}`);
+      try {
+        await invoke<string>('export_events_to_ics', { format,eventIds });
+      } catch (error) {
+        console.error('导出ICS格式事件失败', error);
+        throw new Error('导出ICS格式事件失败');
       }
 
       // 将导出内容保存到文件

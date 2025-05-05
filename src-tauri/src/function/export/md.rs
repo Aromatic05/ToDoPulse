@@ -67,7 +67,6 @@ fn export_event_to_md(md: &mut String, event: &Event) -> Result<(), String> {
 }
 
 /// 导出多个事件为Markdown格式
-#[tauri::command]
 pub fn export_events_to_md(
     events: Vec<Event>,
 ) -> Result<String, String> {
@@ -86,7 +85,6 @@ pub fn export_events_to_md(
 }
 
 /// 导出特定列表中的所有事件为Markdown格式
-#[tauri::command]
 pub async fn export_list_events_to_md(state: State<'_, StorageState>, list_id: &str) -> Result<String, String> {
     // 在内部作用域中获取events，确保MutexGuard在作用域结束时被释放
     let events = {
@@ -111,7 +109,6 @@ pub async fn export_list_events_to_md(state: State<'_, StorageState>, list_id: &
 }
 
 /// 导出所有事件为Markdown格式
-#[tauri::command]
 pub async fn export_all_events_to_md(state: State<'_, StorageState>) -> Result<String, String> {
     // 在内部作用域中获取events，确保MutexGuard在作用域结束时被释放
     let events = {
@@ -167,7 +164,6 @@ pub async fn export_events_by_date_range_to_md(
 }
 
 /// 根据完成状态导出事件为Markdown格式
-#[tauri::command]
 pub async fn export_events_by_status_to_md(
     state: State<'_, StorageState>,
     finished: bool

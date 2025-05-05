@@ -51,7 +51,6 @@ fn export_event_to_json(event: &Event) -> Result<Value, String> {
 }
 
 /// 导出多个事件为JSON格式
-#[tauri::command]
 pub fn export_events_to_json(
     events: Vec<Event>,
 ) -> Result<String, String> {
@@ -77,7 +76,6 @@ pub fn export_events_to_json(
 }
 
 /// 导出特定列表中的所有事件为JSON格式
-#[tauri::command]
 pub async fn export_list_events_to_json(state: State<'_, StorageState>, list_id: &str) -> Result<String, String> {
     // 在内部作用域中获取events，确保MutexGuard在作用域结束时被释放
     let events = {
@@ -102,7 +100,6 @@ pub async fn export_list_events_to_json(state: State<'_, StorageState>, list_id:
 }
 
 /// 导出所有事件为JSON格式
-#[tauri::command]
 pub async fn export_all_events_to_json(state: State<'_, StorageState>) -> Result<String, String> {
     // 在内部作用域中获取events，确保MutexGuard在作用域结束时被释放
     let events = {
@@ -158,7 +155,6 @@ pub async fn export_events_by_date_range_to_json(
 }
 
 /// 根据完成状态导出事件为JSON格式
-#[tauri::command]
 pub async fn export_events_by_status_to_json(
     state: State<'_, StorageState>,
     finished: bool

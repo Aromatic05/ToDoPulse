@@ -64,7 +64,7 @@ export async function fetchFEvents(): Promise<void> {
       Object.keys(timeMap).map(async (time) => {
         const dateGroup = timeMap[time as keyof typeof timeMap];
         try {
-            const events = await invoke('filter_events', { dateGroup });
+            const events = await invoke('filter_events', { filter:dateGroup });
             FEvents[dateGroup] = events as FEvent[];
         } catch (error) {
             console.error(`Error fetching events for ${dateGroup}:`, error);

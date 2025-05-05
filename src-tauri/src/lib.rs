@@ -15,7 +15,7 @@ use utils::AppPaths;
 
 use entity::{Event, List, Tag};
 
-use function::{ics, md, json, save};
+use function::export;
 use tauri_plugin_dialog;
 
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
@@ -51,24 +51,14 @@ pub fn run() -> std::io::Result<()> {
             tag::add_tag,
             tag::get_tags,
             tag::delete_tag,
-            ics::export_events_to_ics,
-            ics::export_list_events_to_ics,
-            ics::export_all_events_to_ics,
-            ics::export_events_by_date_range,
-            ics::export_events_by_status,
-            md::export_events_to_md,
-            md::export_list_events_to_md,
-            md::export_all_events_to_md,
-            md::export_events_by_date_range_to_md,
-            md::export_events_by_status_to_md,
-            json::export_events_to_json,
-            json::export_list_events_to_json,
-            json::export_all_events_to_json,
-            json::export_events_by_date_range_to_json,
-            json::export_events_by_status_to_json,
-            save::get_export_directory,
-            save::save_export_file,
-            save::select_save_path,
+            export::export_events,
+            export::export_list_events,
+            export::export_all_events,
+            export::export_events_by_status,
+            export::export_events_by_date_range,
+            export::save::get_export_directory,
+            export::save::save_export_file,
+            export::save::select_save_path,
         ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");

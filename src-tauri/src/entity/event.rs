@@ -62,6 +62,7 @@ pub struct Event {
     pub color: String,
 }
 
+#[cfg(test)]
 impl Event {
     pub fn new(title: &str, content: &str) -> Self {
         let metadata = EventMetadata::new();

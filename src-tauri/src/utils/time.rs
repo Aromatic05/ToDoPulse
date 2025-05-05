@@ -1,5 +1,6 @@
 use chrono::{Local, TimeZone};
 
+#[allow(dead_code)]
 // 添加一个辅助函数来格式化时间戳
 pub fn date(timestamp_millis: u64) -> String {
     // 将毫秒时间戳转换为 DateTime 对象
@@ -12,6 +13,7 @@ pub fn date(timestamp_millis: u64) -> String {
     datetime.format("%-m.%-d %a").to_string()
 }
 
+#[allow(dead_code)]
 pub fn time(timestamp_millis: u64) -> String {
     // 将毫秒时间戳转换为 DateTime 对象
     let datetime = Local
