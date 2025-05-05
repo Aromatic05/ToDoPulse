@@ -40,7 +40,7 @@ pub fn run() -> std::io::Result<()> {
             event::add_event,
             event::event_content,
             event::write_content,
-            event::put_event,
+            event::update_event,
             event::delete_event,
             event::filter_events,
             list::new_list,

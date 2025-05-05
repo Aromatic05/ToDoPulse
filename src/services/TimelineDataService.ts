@@ -20,7 +20,7 @@ export interface GroupedFEvents {
 const timeMap = {
     TODAY: 'today',
     TOMORROW: 'tomorrow',
-    NEXT_WEEK: 'next-week',
+    NEXT_WEEK: 'next_week',
 } as const;
 
 // 时间线组标题数据
@@ -157,7 +157,14 @@ export async function updateItem(updatedData: FEvent, dateGroup: string): Promis
             ...items[index],
             ...updatedData
         };
+        try {
+            await invoke('update_event', { event: updatedData });
+          } catch (error) {
+            console.error(`Error updating event:`, error);
+        }
     }
+
+    
 }
 
 // // 根据列表ID筛选项目

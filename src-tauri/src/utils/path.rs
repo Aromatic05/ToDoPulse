@@ -23,8 +23,18 @@ impl AppPaths {
         let data_dir = app.path().data_dir()?.join(APP_NAME);
         let config_dir = app.path().config_dir()?.join(APP_NAME);
         let log_dir = app.path().app_log_dir()?.join(APP_NAME);
-        let export_dir = app.path().document_dir()?.join(APP_NAME);
+        
+        // 使用回退策略来获取文档目录
+        let export_dir = match app.path().document_dir() {
+            Ok(path) => path.join(APP_NAME),
+            Err(_) => {
+                let fallback_path = app.path().home_dir()?.join(APP_NAME);
+                eprintln!("Failed to get document directory, using home directory as fallback: {:?}", fallback_path);
+                fallback_path
+            }
+        };
 
+        // 其余代码保持不变
         ensure_dir_exists(&data_dir)?;
         ensure_dir_exists(&config_dir)?;
         ensure_dir_exists(&log_dir)?;

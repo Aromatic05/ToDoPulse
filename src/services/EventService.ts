@@ -56,7 +56,7 @@ export async function updateEvent(
     fEvent : FEvent,
 ): Promise<FEvent[]> {
     if (fEvent) {
-        invoke( 'put_event', { fEvent });
+        invoke( 'update_event', { fEvent });
         return invoke('list_content', { listid :fEvent.listid });
     } else {
         console.error('Service: updateEvent: Event not found');
