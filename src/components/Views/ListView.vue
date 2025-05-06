@@ -5,7 +5,7 @@
         <v-row>
             <v-col cols="12">
                 <v-text-field v-model="newEvent" label="添加新任务" append-icon="mdi-plus" @click:append="addNewEvent"
-                    @keyup.enter="addNewEvent" class="mb-4"></v-text-field>
+                    class="mb-4"></v-text-field>
             </v-col>
         </v-row>
 
@@ -29,7 +29,7 @@
 </template>
 
 <script setup lang="ts">
-import { ref, computed, watch } from 'vue'
+import { ref, computed, watch, onActivated, onDeactivated } from 'vue'
 import { getLists } from '@/services/ListService';
 import { getEventsBylistid, addEvent, updateEvent, deleteEvent } from '@/services/EventService';
 import ListCard from '@/components/Cards/ListCard.vue';  // 导入ListCard组件
@@ -79,6 +79,20 @@ const headers: DataTableHeader[] = [
 
 // 根据列表ID加载数据
 watch(() => props.viewId, loadListData, { immediate: true })
+
+// 添加 activated 生命周期钩子 - 当组件被 keep-alive 激活时调用
+onActivated(() => {
+    console.log('ListView 组件被激活', listId.value);
+    // 当视图被重新激活时，刷新数据以确保数据最新
+    loadListData();
+})
+
+// 添加 deactivated 生命周期钩子 - 当组件被 keep-alive 停用时调用
+onDeactivated(() => {
+    console.log('ListView 组件被停用', listId.value);
+    // 可以在这里保存当前视图的状态或执行其他清理操作
+    // 例如：保存当前滚动位置、筛选条件等
+})
 
 async function loadListData() {
     if (listId.value) {

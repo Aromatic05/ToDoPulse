@@ -41,7 +41,9 @@ export async function getLists(): Promise<FList[]> {
  */
 export async function createList(title: string, icon: string = 'mdi-format-list-bulleted'): Promise<FList[]> {
   try {
+    // 从后端获取 FList 类型的数据
     let newList: FList = await invoke<FList>('new_list', { title: String(title), icon: String(icon) });
+    
     listsData.push(newList);
     console.log(`Service: New list created with ID ${newList.id}`);
   } catch (error) {

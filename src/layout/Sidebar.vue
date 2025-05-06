@@ -37,8 +37,8 @@
                     <v-list-item id="nav-lists-header" v-bind="props" prepend-icon="mdi-format-list-bulleted"
                         title="Lists" rounded="lg" color="var(--md-sys-color-primary)" />
                 </template>
-                <template v-if="lists.length > 0">
-                    <div v-for="(list, index) in lists" :key="index">
+                <template v-if="lists.length > 0">  
+                    <div v-for="(list, index) in lists" :key="list.id">
                         <v-list-item
                             :id="`nav-list-item-${list.id}`"
                             :prepend-icon="list.icon"
@@ -187,14 +187,12 @@ function showAddListModal() {
 }
 
 async function handleAddList() {
-    lists.value = await getLists();
-    // try {
-    //     // 调用服务创建新列表
-    //     // lists.value = await createList(title, icon);
-    //     lists.value = await getLists();
-    // } catch (error) {
-    //     console.error('创建列表失败:', error);
-    // }
+    // 获取最新列表数据
+    try {
+        lists.value = await getLists();
+    } catch (error) {
+        console.error('获取列表失败:', error);
+    }
 }
 </script>
 

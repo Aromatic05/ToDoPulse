@@ -158,7 +158,7 @@ export async function updateItem(updatedData: FEvent, dateGroup: string): Promis
             ...updatedData
         };
         try {
-            await invoke('update_event', { event: updatedData });
+            await invoke('update_event', { fEvent: updatedData });
           } catch (error) {
             console.error(`Error updating event:`, error);
         }

@@ -16,7 +16,7 @@
             <!-- 优先级列 -->
             <div class="card-column priority-column">
                 <div v-if="localData.tag?.length" class="card-tags">
-                    <span v-for="(tag, i) in localData.tag" :key="i" class="card-tag">{{ tag }}</span>
+                    <span v-for="(tag, i) in localData.tag" :key="tag || i" class="card-tag">{{ tag }}</span>
                 </div>
             </div>
 
@@ -24,7 +24,7 @@
             <div class="card-column date-column">
                 <span v-if="localData.ddl" class="card-date"
                     :style="{ color: localData.color || 'var(--md-sys-color-on-surface-variant)' }">
-                    {{ convertTimestampToDate(localData.ddl) }}
+                    {{ formattedDate }}
                 </span>
             </div>
 
@@ -53,15 +53,30 @@
         </v-card>
     </v-dialog>
 
-    <CardContentModal v-model="showModal" :card-data="localData" @confirm="handleConfirm" v-if="showModal" />
+    <!-- 优化模态框条件渲染 -->
+    <CardContentModal
+        v-if="showModal"
+        v-model="showModal"
+        :card-data="localData"
+        @confirm="handleConfirm"
+    />
 </template>
 
 <script lang="ts">
-import CardContentModal from '@/components/Modals/CardContentModal.vue';
+import { defineComponent, defineAsyncComponent, computed } from 'vue';
 import { FEvent } from 'src-tauri/bindings/FEvent';
 import { convertTimestampToDate, convertTimestampToTime } from '@/services/DateTimeService';
 
-export default {
+// 懒加载模态框组件
+const CardContentModal = defineAsyncComponent(() =>
+  import('@/components/Modals/CardContentModal.vue')
+);
+
+// 时间戳缓存对象
+const dateCache = new Map<string, string | null>();
+const timeCache = new Map<string, string | null>();
+
+export default defineComponent({
     name: 'ListCard',
     components: {
         CardContentModal
@@ -74,36 +89,79 @@ export default {
         }
     },
     emits: ['update', 'delete', 'toggleStatus'], // 声明自定义事件
+    setup(props) {
+        // 计算属性缓存日期转换结果
+        const formattedDate = computed(() => {
+            if (!props.data.ddl) return null;
+            
+            // 从缓存中获取日期
+            if (dateCache.has(props.data.ddl)) {
+                return dateCache.get(props.data.ddl);
+            }
+            
+            // 计算并缓存结果
+            const result = convertTimestampToDate(props.data.ddl);
+            dateCache.set(props.data.ddl, result);
+            return result;
+        });
+        
+        return {
+            formattedDate
+        };
+    },
     data() {
         return {
             showModal: false,
             deleteDialog: false,
+            // 使用浅拷贝代替昂贵的JSON深拷贝
             localData: {
-                ...JSON.parse(JSON.stringify(this.data)),
+                ...this.data,
                 finished: this.data.finished || false
-            }
+            } as FEvent,
+            // 添加防抖定时器引用
+            _clickTimeout: null as NodeJS.Timeout | null
         };
     },
     methods: {
+        // 缓存时间戳转换结果
         convertTimestampToDate(timestamp: string | undefined): string | null {
-            return timestamp ? convertTimestampToDate(timestamp) : null;
+            if (!timestamp) return null;
+            
+            // 检查缓存中是否已有此时间戳的结果
+            if (dateCache.has(timestamp)) {
+                return dateCache.get(timestamp) || null;
+            }
+            
+            // 计算结果并缓存
+            const result = convertTimestampToDate(timestamp);
+            dateCache.set(timestamp, result);
+            return result;
         },
         convertTimestampToTime(timestamp: string | undefined): string | null {
-            return timestamp ? convertTimestampToTime(timestamp) : null;
+            if (!timestamp) return null;
+            
+            if (timeCache.has(timestamp)) {
+                return timeCache.get(timestamp) || null;
+            }
+            
+            const result = convertTimestampToTime(timestamp);
+            timeCache.set(timestamp, result);
+            return result;
         },
+        // 添加防抖处理，避免快速点击导致的性能问题
         handleComplete(updatedData: FEvent) {
-            this.localData.finished = !this.localData.finished;
-            this.localData = { ...updatedData };
-            this.$emit('update', updatedData); 
-            // this.$emit('toggleStatus', {
-            //     id: this.localData.id,
-            //     finished: this.localData.finished
-            // });
+            if (this._clickTimeout) return;
+            
+            this._clickTimeout = setTimeout(() => {
+                this.localData.finished = !this.localData.finished;
+                this.localData = { ...updatedData };
+                this.$emit('update', updatedData);
+                this._clickTimeout = null;
+            }, 100);
         },
         handleConfirm(updatedData: FEvent) {
-            console.log('Updated data:', updatedData);
             this.localData = { ...updatedData };
-            this.$emit('update', updatedData); // 触发 update 事件
+            this.$emit('update', updatedData);
         },
         handleEdit() {
             this.showModal = true;
@@ -112,14 +170,46 @@ export default {
             this.deleteDialog = true;
         },
         confirmDelete() {
-            this.$emit('delete', this.localData); // 触发 delete 事件
+            this.$emit('delete', this.localData);
             this.deleteDialog = false;
         }
+    },
+    // 添加组件卸载前的清理
+    beforeUnmount() {
+        if (this._clickTimeout) {
+            clearTimeout(this._clickTimeout);
+        }
     }
-};
+});
 </script>
 
 <style scoped>
 @import '@/styles/Cards/card.css';
-@import '@/styles/Cards/listcard.css'
+@import '@/styles/Cards/listcard.css';
+
+/* 添加性能优化相关的CSS */
+.card-base {
+    contain: content; /* 启用CSS包含以改进性能 */
+    will-change: transform; /* 提示浏览器这个元素将会变化，优化动画性能 */
+}
+
+/* 提高列布局性能 */
+.card-column {
+    contain: layout style; /* 改进布局性能 */
+}
+
+/* 优化标题元素渲染性能 */
+.card-title {
+    text-rendering: optimizeSpeed; /* 优化文本渲染速度 */
+}
+
+/* 优化标签列表渲染 */
+.card-tags {
+    contain: layout style; /* 限制重绘范围 */
+}
+
+/* 优化操作图标 */
+.card-actions {
+    contain: layout style;
+}
 </style>

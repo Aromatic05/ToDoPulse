@@ -7,7 +7,9 @@
             <!-- 视图内容 -->
             <div class="content-container content-left-aligned">
                 <div class="view-content">
-                    <component :is="currentViewComponent" :viewId="currentView" />
+                    <keep-alive>
+                        <component :is="currentViewComponent" :viewId="currentView" />
+                    </keep-alive>
                 </div>
             </div>
         </main>

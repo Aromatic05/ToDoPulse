@@ -55,12 +55,20 @@ pub async fn new_list(
     state: State<'_, StorageState>,
     title: &str,
     icon: &str,
-) -> Result<List, String> {
+) -> Result<FList, String> {
     let mut guard = state.0.lock().unwrap();
     let storage = guard.deref_mut();
     let new_list = List::new(title, icon);
     Repository::<List>::add(storage, &new_list).map_err(|e| e.to_string())?;
-    Ok(new_list.clone())
+    
+    // 转换为前端使用的 FList 格式
+    let f_list = FList {
+        id: new_list.uuid.clone(),
+        title: new_list.title.clone(),
+        icon: new_list.icon.clone(),
+    };
+    
+    Ok(f_list)
 }
 
 #[tauri::command]
