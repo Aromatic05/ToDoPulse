@@ -37,7 +37,7 @@
 </template>
 
 <script setup lang="ts">
-import { ref, reactive } from 'vue';
+import { reactive } from 'vue';
 import { useEventStore } from '@/stores';
 import { Priority } from 'src-tauri/bindings/Priority';
 
@@ -81,10 +81,10 @@ const handleSubmit = async () => {
         : Date.now().toString();
     
     // 处理标签
-    const tagArray = formData.tags
-        .split(',')
-        .map(tag => tag.trim())
-        .filter(Boolean);
+    // const tagArray = formData.tags
+    //     .split(',')
+    //     .map(tag => tag.trim())
+    //     .filter(Boolean);
     
     try {
         // 使用eventStore添加事件

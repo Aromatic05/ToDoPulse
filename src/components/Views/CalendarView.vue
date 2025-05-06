@@ -40,12 +40,13 @@
 </template>
 
 <script lang="ts">
-import { defineComponent, ref, computed, onMounted } from 'vue';
+import { defineComponent, ref, onMounted } from 'vue';
 import FullCalendar from '@fullcalendar/vue3';
 import dayGridPlugin from '@fullcalendar/daygrid';
 import timeGridPlugin from '@fullcalendar/timegrid';
 import interactionPlugin from '@fullcalendar/interaction';
-import { useEventStore } from '@/stores';
+import { EventApi, CalendarOptions } from '@fullcalendar/core'; // 添加这行导入
+// import { useEventStore } from '@/stores';
 
 export default defineComponent({
     name: 'CalendarView',
@@ -54,7 +55,7 @@ export default defineComponent({
     },
     setup() {
         // 使用eventStore
-        const eventStore = useEventStore();
+        // const eventStore = useEventStore();
         
         // 日历事件 - 明确类型
         type CalendarEvent = {
@@ -139,12 +140,21 @@ export default defineComponent({
         };
         
         // 处理事件集合变化
-        const handleEvents = (events: CalendarEvent[]) => {
-            currentEvents.value = events;
+        const handleEvents = (events: EventApi[]) => {
+            // 将EventApi类型的数组转换为CalendarEvent类型的数组
+            currentEvents.value = events.map(event => ({
+                id: event.id,
+                title: event.title,
+                start: event.start || new Date(),
+                end: event.end || undefined, // 将null转换为undefined
+                allDay: event.allDay,
+                startStr: event.startStr,
+                endStr: event.endStr
+            }));
         };
         
         // 日历配置
-        const calendarOptions = {
+        const calendarOptions: CalendarOptions = {
             plugins: [dayGridPlugin, timeGridPlugin, interactionPlugin],
             headerToolbar: {
                 left: 'prev,next today',

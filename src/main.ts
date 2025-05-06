@@ -1,5 +1,5 @@
 import { createApp } from 'vue'
-import { setupCalendar, Calendar, DatePicker } from 'v-calendar';
+import { setupCalendar, Calendar } from 'v-calendar';
 import 'v-calendar/style.css';
 import App from './App.vue'
 

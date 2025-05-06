@@ -37,7 +37,7 @@ import { useTimelineStore } from '@/stores'
 // 使用Pinia store管理时间线数据
 const timelineStore = useTimelineStore();
 const timelineGroups = computed(() => timelineStore.timelineGroups);
-const isLoading = computed(() => timelineStore.isLoading);
+// const isLoading = computed(() => timelineStore.isLoading);
 const groupItems = computed(() => {
   const result: Record<string, FEvent[]> = {};
   for (const group of timelineGroups.value) {

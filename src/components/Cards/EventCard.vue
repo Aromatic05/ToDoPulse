@@ -25,7 +25,7 @@
 </template>
 
 <script lang="ts">
-import { defineComponent, defineAsyncComponent, computed, ref } from 'vue';
+import { defineComponent, defineAsyncComponent, computed} from 'vue';
 import { FEvent } from 'src-tauri/bindings/FEvent';
 import { convertTimestampToTime } from '@/services/DateTimeService';
 
