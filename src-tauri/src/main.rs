@@ -2,5 +2,5 @@
 #![cfg_attr(not(debug_assertions), windows_subsystem = "windows")]
 
 fn main() -> std::io::Result<()> {
-    ToDoPulse_lib::run()
+    to_do_pulse_lib::run()
 }
