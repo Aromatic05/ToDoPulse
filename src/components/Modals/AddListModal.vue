@@ -34,8 +34,8 @@
 
 <script setup lang="ts">
 import { ref, computed, watch } from 'vue';
-// 导入 createListAndStore 函数
-import { createList } from '@/services/ListService';
+// 导入 listStore
+import { useListStore } from '@/stores';
 
 const props = defineProps({
     show: {
@@ -101,6 +101,9 @@ function closeModal() {
     dialogVisible.value = false;
 }
 
+// 初始化 listStore
+const listStore = useListStore();
+
 // 创建列表
 async function createListLocal() {
     if (!valid.value) return;
@@ -108,11 +111,11 @@ async function createListLocal() {
     const selectedIcon = availableIcons[selectedIconIndex.value];
     
     try {
-        // 调用服务创建并存储列表
-        const updatedLists = await createList(listName.value, selectedIcon);
-        // 发出创建成功的事件，传递列表名称、图标和更新后的列表
+        // 使用 store 创建列表
+        const updatedLists = await listStore.createList(listName.value, selectedIcon);
+        // 发出创建成功的事件
         console.log('创建列表成功:', updatedLists);
-        emit('create', { success: true }); 
+        emit('create', { success: true });
         closeModal();
     } catch (error) {
         console.error('创建列表失败:', error);

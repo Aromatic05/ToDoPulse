@@ -1,86 +1,194 @@
-import { FEvent } from 'src-tauri/bindings/FEvent';
-import { Priority } from 'src-tauri/bindings/Priority';
-import { FList } from 'src-tauri/bindings/FList';
-import { invoke } from '@tauri-apps/api/core';
+import { FEvent } from 'src-tauri/bindings/FEvent'
+import { invoke } from '@tauri-apps/api/core'
+import { Priority } from 'src-tauri/bindings/Priority'
 
-/**
- * 根据列表ID获取事件
- * @param listid 列表ID
- * @returns Promise<FEvent[]> 返回事件列表
- */
-export async function getEventsBylistid(listid: string): Promise<FEvent[]> {
-    try {
-        const listEvents = await invoke<FEvent[]>('list_content', { listid: listid });
-    return listEvents;
-    } catch (error) {    
-        console.error('getEventsBylistid获取列表失败:', error);  
-        return [];
-    }
-    
+interface EventCache {
+  data: FEvent[]
+  timestamp: number
+  hasMore: boolean
+  pageSize: number
+  currentPage: number
 }
 
-/**
- * 添加新事件
- * @param listid 列表ID
- * @param title 事件标题
- * @param timestamp 事件时间戳
- * @returns Promise<FEvent[]> 返回更新后的事件列表
- */
-export async function addEvent(
-    listid: string,
-    title: string,
-    priority: Priority = "Medium",
-    timestamp: string = Date.now().toString(),
-): Promise<FEvent[]> {
+interface ContentCache {
+  content: string
+  timestamp: number
+}
+
+export class EventService {
+  private static instance: EventService
+  private eventCache: Map<string, EventCache> = new Map()
+  private contentCache: Map<string, ContentCache> = new Map()
+  private readonly CACHE_EXPIRY = 5 * 60 * 1000 // 5分钟缓存过期
+  private readonly PAGE_SIZE = 20
+
+  private constructor() {}
+
+  static getInstance(): EventService {
+    if (!EventService.instance) {
+      EventService.instance = new EventService()
+    }
+    return EventService.instance
+  }
+
+  // 获取列表事件（支持分页）
+  async getEventsByListId(listId: string, page: number = 1): Promise<{ events: FEvent[], hasMore: boolean }> {
+    const cacheKey = `${listId}`
+    const cache = this.eventCache.get(cacheKey)
+    const now = Date.now()
+
+    // 检查缓存是否有效
+    if (cache && 
+        now - cache.timestamp < this.CACHE_EXPIRY && 
+        page <= cache.currentPage) {
+      const start = (page - 1) * this.PAGE_SIZE
+      const end = start + this.PAGE_SIZE
+      return {
+        events: cache.data.slice(start, end),
+        hasMore: cache.hasMore
+      }
+    }
+
+    // 获取新数据
     try {
-        const lists = await invoke<FList[]>('get_lists');
-        if (lists.find(l => l.id === listid) === undefined) {
-            console.error(`列表ID ${listid} 不存在`);
-            return [];
-        }
-        // 此处的参数不代表真实情况，请自行修改
-        invoke('add_event', { listid: listid, title: title, priority: priority, ddl: timestamp })
-        return invoke('list_content', { listid :listid });
+      const events = await invoke<FEvent[]>('list_content', { 
+        listid: listId,
+        page,
+        pageSize: this.PAGE_SIZE
+      })
+
+      if (!Array.isArray(events)) {
+        throw new Error('Invalid response format')
+      }
+
+      // 更新或创建缓存
+      const hasMore = events.length === this.PAGE_SIZE
+      if (cache) {
+        // 合并新数据
+        const newData = page === 1 ? 
+          events : 
+          [...cache.data.slice(0, (page - 1) * this.PAGE_SIZE), ...events]
+        
+        this.eventCache.set(cacheKey, {
+          data: newData,
+          timestamp: now,
+          hasMore,
+          pageSize: this.PAGE_SIZE,
+          currentPage: page
+        })
+      } else {
+        this.eventCache.set(cacheKey, {
+          data: events,
+          timestamp: now,
+          hasMore,
+          pageSize: this.PAGE_SIZE,
+          currentPage: page
+        })
+      }
+
+      return { events, hasMore }
     } catch (error) {
-        console.error('获取列表失败:', error);  
-        return [];
+      console.error('Failed to fetch events:', error)
+      throw error
     }
-}
+  }
 
-/**
- * 切换事件完成状态
- * @param EventId 事件ID
- * @returns Promise<FEvent[]> 返回更新后的事件列表
- */
-export async function updateEvent(
-    fEvent : FEvent,
-): Promise<FEvent[]> {
-    if (fEvent) {
-        invoke( 'update_event', { fEvent });
-        return invoke('list_content', { listid :fEvent.listid });
-    } else {
-        console.error('Service: updateEvent: Event not found');
-        return [];
+  // 获取事件内容
+  async getEventContent(eventId: string): Promise<string> {
+    const cache = this.contentCache.get(eventId)
+    const now = Date.now()
+
+    // 检查缓存是否有效
+    if (cache && now - cache.timestamp < this.CACHE_EXPIRY) {
+      return cache.content
     }
+
+    // 获取新数据
+    try {
+      const content = await invoke<string>('event_content', { uuid: eventId })
+      
+      // 更新缓存
+      this.contentCache.set(eventId, {
+        content,
+        timestamp: now
+      })
+
+      return content
+    } catch (error) {
+      console.error('Failed to fetch event content:', error)
+      throw error
+    }
+  }
+
+  // 添加事件
+  async addEvent(listId: string, title: string, priority: Priority = "Medium", timestamp: string = Date.now().toString()): Promise<void> {
+    try {
+      await invoke('add_event', { listid: listId, title, priority, ddl: timestamp })
+      // 使相关缓存失效
+      this.invalidateListCache(listId)
+    } catch (error) {
+      console.error('Failed to add event:', error)
+      throw error
+    }
+  }
+
+  // 更新事件
+  async updateEvent(event: FEvent): Promise<void> {
+    try {
+      await invoke('update_event', { fEvent: event })
+      // 使相关缓存失效
+      this.invalidateListCache(event.listid)
+      this.invalidateContentCache(event.id)
+    } catch (error) {
+      console.error('Failed to update event:', error)
+      throw error
+    }
+  }
+
+  // 删除事件
+  async deleteEvent(eventId: string, listId: string): Promise<void> {
+    try {
+      await invoke('delete_event', { uuid: eventId })
+      // 使相关缓存失效
+      this.invalidateListCache(listId)
+      this.invalidateContentCache(eventId)
+    } catch (error) {
+      console.error('Failed to delete event:', error)
+      throw error
+    }
+  }
+
+  // 保存事件内容
+  async saveEventContent(eventId: string, content: string): Promise<string> {
+    try {
+      await invoke('write_content', { uuid: eventId, content })
+      // 更新缓存
+      this.contentCache.set(eventId, {
+        content,
+        timestamp: Date.now()
+      })
+      return content
+    } catch (error) {
+      console.error('Failed to save event content:', error)
+      throw error
+    }
+  }
+
+  // 使列表缓存失效
+  private invalidateListCache(listId: string): void {
+    this.eventCache.delete(listId)
+  }
+
+  // 使内容缓存失效
+  private invalidateContentCache(eventId: string): void {
+    this.contentCache.delete(eventId)
+  }
+
+  // 清除所有缓存
+  clearAllCache(): void {
+    this.eventCache.clear()
+    this.contentCache.clear()
+  }
 }
 
-/**
- * 删除事件
- * @param EventId 事件ID
- * @param ListId 列表ID
- * @returns Promise<FEvent[]> 返回更新后的事件列表
- */
-export async function deleteEvent(EventId: string, ListId: string): Promise<FEvent[]> {
-    invoke('delete_event', { uuid: EventId });
-    return invoke<FEvent[]>('list_content', { listid: ListId });
-}
-
-export async function getEventContent(EventId: string): Promise<string> {
-    console.log(EventId);
-    return invoke<string>('event_content', { uuid: EventId });
-}
-
-export async function putEventContent(EventId: string, content: string): Promise<string> {
-    invoke('write_content', { uuid: EventId, content: content });
-    return invoke<string>('event_content', { uuid: EventId });
-}
+export default EventService.getInstance()

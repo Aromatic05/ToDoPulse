@@ -74,7 +74,7 @@ import { defineComponent, ref, watch, onBeforeUnmount, nextTick, computed, onErr
 import Vditor from 'vditor';
 import 'vditor/dist/index.css';
 import type { FEvent } from 'src-tauri/bindings/FEvent';
-import { getEventContent, putEventContent } from '@/services/EventService';
+import { useEventStore } from '@/stores';
 import { DatePicker } from 'v-calendar';
 import 'v-calendar/dist/style.css';
 
@@ -103,10 +103,12 @@ export default defineComponent({
     },
     emits: ['update:modelValue', 'confirm'],
     setup(props, { emit }) {
+        // 使用eventStore
+        const eventStore = useEventStore();
 
         const vditor = ref<Vditor | null>(null);
         const content = ref<string>('');
-        const isLoading = ref(false);
+        const isLoading = computed(() => eventStore.isLoading);
         const isInitialized = ref(false);
 
         const formData = ref<FEvent>({
@@ -171,13 +173,12 @@ export default defineComponent({
             });
         };
 
-        // 改进内容加载函数
+        // 改进内容加载函数 - 使用eventStore
         const loadContent = async () => {
             if (!props.cardData.id) return;
 
-            isLoading.value = true;
             try {
-                const newContent = await getEventContent(props.cardData.id);
+                const newContent = await eventStore.getEventContent(props.cardData.id);
                 content.value = newContent || '';
 
                 // 如果编辑器已初始化，立即更新内容
@@ -187,8 +188,6 @@ export default defineComponent({
             } catch (error) {
                 console.error('加载内容失败:', error);
                 content.value = '';
-            } finally {
-                isLoading.value = false;
             }
         };
 
@@ -204,7 +203,8 @@ export default defineComponent({
                 if (vditor.value) {
                     content.value = vditor.value.getValue();
                     if (formData.value.id && content.value !== null) {
-                        await putEventContent(formData.value.id, content.value);
+                        // 使用eventStore保存内容
+                        await eventStore.saveEventContent(formData.value.id, content.value);
                     }
                 }
 

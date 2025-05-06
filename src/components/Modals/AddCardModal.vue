@@ -12,60 +12,127 @@
                     <textarea id="content" v-model="formData.content" required></textarea>
                 </div>
                 <div class="form-group">
+                    <label for="priority">优先级</label>
+                    <select id="priority" v-model="formData.priority">
+                        <option value="Low">低</option>
+                        <option value="Medium">中</option>
+                        <option value="High">高</option>
+                    </select>
+                </div>
+                <div class="form-group">
                     <label for="tags">标签</label>
                     <input id="tags" v-model="formData.tags" type="text" placeholder="用逗号分隔多个标签" />
                 </div>
+                <div class="form-group">
+                    <label for="deadline">截止日期</label>
+                    <input id="deadline" v-model="formData.deadline" type="datetime-local" />
+                </div>
                 <div class="modal-actions">
                     <button type="button" class="btn-cancel" @click="handleClose">取消</button>
-                    <button type="submit" class="btn-confirm">确认</button>
+                    <button type="submit" class="btn-confirm" :disabled="eventStore.isLoading">确认</button>
                 </div>
             </form>
         </div>
     </div>
 </template>
 
-<script>
-export default {
-    name: 'AddCardModal',
-    props: {
-        modelValue: {
-            type: Boolean,
-            required: true
-        }
+<script setup lang="ts">
+import { ref, reactive } from 'vue';
+import { useEventStore } from '@/stores';
+import { Priority } from 'src-tauri/bindings/Priority';
+
+// Props
+const props = defineProps({
+    modelValue: {
+        type: Boolean,
+        required: true
     },
-    data() {
-        return {
-            formData: {
-                title: '',
-                content: '',
-                tags: ''
-            }
-        }
-    },
-    methods: {
-        handleClose() {
-            this.$emit('update:modelValue', false)
-        },
-        handleSubmit() {
-            const cardData = {
-                title: this.formData.title,
-                content: this.formData.content,
-                tags: this.formData.tags.split(',').map(tag => tag.trim()).filter(Boolean),
-                date: new Date().toLocaleDateString()
-            }
-            this.$emit('confirm', cardData)
-            this.resetForm()
-            this.handleClose()
-        },
-        resetForm() {
-            this.formData = {
-                title: '',
-                content: '',
-                tags: ''
-            }
-        }
+    listId: {
+        type: String,
+        required: true
     }
-}
+});
+
+// Emits
+const emit = defineEmits(['update:modelValue', 'confirm']);
+
+// 使用eventStore
+const eventStore = useEventStore();
+
+// 表单数据
+const formData = reactive({
+    title: '',
+    content: '',
+    tags: '',
+    priority: 'Medium' as Priority,
+    deadline: ''
+});
+
+// 关闭模态框
+const handleClose = () => {
+    emit('update:modelValue', false);
+};
+
+// 提交表单
+const handleSubmit = async () => {
+    // 转换日期格式为时间戳
+    const timestamp = formData.deadline
+        ? new Date(formData.deadline).getTime().toString()
+        : Date.now().toString();
+    
+    // 处理标签
+    const tagArray = formData.tags
+        .split(',')
+        .map(tag => tag.trim())
+        .filter(Boolean);
+    
+    try {
+        // 使用eventStore添加事件
+        await eventStore.addEvent(
+            props.listId,
+            formData.title,
+            formData.priority as Priority,
+            timestamp
+        );
+        
+        // 如果需要保存事件内容
+        if (formData.content && eventStore.getEventById(props.listId)) {
+            // 获取最新添加的事件，这里需要实现更详细的逻辑来确认是哪个事件
+            const events = eventStore.getEventsByListId(props.listId);
+            if (events.length > 0) {
+                const latestEvent = events[events.length - 1];
+                // 保存内容
+                await eventStore.saveEventContent(latestEvent.id, formData.content);
+            }
+        }
+        
+        // 发出确认事件
+        emit('confirm', { 
+            success: true,
+            message: '卡片创建成功' 
+        });
+        
+        // 重置表单并关闭
+        resetForm();
+        handleClose();
+    } catch (error) {
+        console.error('创建卡片失败:', error);
+        emit('confirm', { 
+            success: false,
+            message: '卡片创建失败',
+            error 
+        });
+    }
+};
+
+// 重置表单
+const resetForm = () => {
+    formData.title = '';
+    formData.content = '';
+    formData.tags = '';
+    formData.priority = 'Medium' as Priority;
+    formData.deadline = '';
+};
 </script>
 
 <style scoped>
@@ -102,7 +169,8 @@ label {
 }
 
 input,
-textarea {
+textarea,
+select {
     width: 100%;
     padding: 8px;
     border: 1px solid var(--md-sys-color-outline);
@@ -128,6 +196,11 @@ button {
     border-radius: 8px;
     border: none;
     cursor: pointer;
+}
+
+button:disabled {
+    opacity: 0.6;
+    cursor: not-allowed;
 }
 
 .btn-confirm {

@@ -16,8 +16,11 @@
 
 <script setup lang="ts">
 import { ref, computed, onMounted, onUnmounted } from 'vue';
-import { getLists } from '@/services/ListService';
+import { useListStore } from '@/stores';
 import { FList } from 'src-tauri/bindings/FList';
+
+// 初始化listStore
+const listStore = useListStore();
 
 // 当前列表数据
 const currentList = ref<FList | null>(null);
@@ -26,7 +29,8 @@ const lists = ref<any[]>([]);
 // 初始化获取列表数据
 const initLists = async () => {
     try {
-        lists.value = await getLists();
+        // 使用listStore获取列表数据
+        lists.value = await listStore.fetchLists();
         // 数据加载后立即检查当前URL
         checkCurrentRoute();
     } catch (error) {

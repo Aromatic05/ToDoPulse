@@ -6,6 +6,7 @@ mod utils; // 通用工具函数
 mod debug; // 调试工具
 mod function; // 功能
 mod filter;
+mod cache; // 缓存系统
 
 use entity::{event, list, tag, Repository};
 use entity::{Storage, StorageState};

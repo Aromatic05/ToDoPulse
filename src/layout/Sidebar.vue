@@ -94,8 +94,11 @@
 import { ref, computed, reactive, nextTick, onMounted } from 'vue';
 import ListContextMenu from '@/components/ListContextMenu.vue';
 import AddListModal from '@/components/Modals/AddListModal.vue';
-import { getLists, renameList, deleteList } from '@/services/ListService';
+import { useListStore } from '@/stores';
 import { FList } from 'src-tauri/bindings/FList';
+
+// 初始化listStore
+const listStore = useListStore();
 
 const props = defineProps({
     rail: {
@@ -120,7 +123,7 @@ const lists = ref<FList[]>([]);
 // 在组件挂载时获取列表
 onMounted(async () => {
     try {
-        lists.value = await getLists();
+        lists.value = await listStore.fetchLists();
     } catch (error) {
         console.error('获取列表失败:', error);
         // 可以添加错误处理逻辑，例如显示一个提示
@@ -164,8 +167,8 @@ async function showContextMenu(list: FList, index: number, element: HTMLElement)
 
 async function handleRename(id: string, newName: string) {
     try {
-        // 调用服务层重命名方法，并获取更新后的列表
-        lists.value = await renameList(id, newName);
+        // 使用listStore的renameList方法，并获取更新后的列表
+        lists.value = await listStore.renameList(id, newName);
     } catch (error) {
         console.error('重命名列表失败:', error);
     }
@@ -173,8 +176,8 @@ async function handleRename(id: string, newName: string) {
 
 async function handleDelete(id: string) {
     try {
-        // 调用服务层删除方法，并获取更新后的列表
-        lists.value = await deleteList(id);
+        // 使用listStore的deleteList方法，并获取更新后的列表
+        lists.value = await listStore.deleteList(id);
     } catch (error) {
         console.error('删除列表失败:', error);
     }
@@ -189,7 +192,7 @@ function showAddListModal() {
 async function handleAddList() {
     // 获取最新列表数据
     try {
-        lists.value = await getLists();
+        lists.value = await listStore.fetchLists();
     } catch (error) {
         console.error('获取列表失败:', error);
     }

@@ -1,100 +1,185 @@
-import { FList } from 'src-tauri/bindings/FList';
-import { invoke } from '@tauri-apps/api/core';
+import { FList } from 'src-tauri/bindings/FList'
+import { invoke } from '@tauri-apps/api/core'
+import { FEvent } from 'src-tauri/bindings/FEvent'
 
-// 内部存储，使用 id 格式的 ID
-let listsData: FList[] = [];
+interface ListCache {
+  data: FList[]
+  timestamp: number
+}
 
-/**
- * 获取任务列表数据
- * @returns Promise<List[]> 返回列表数据的Promise
- */
-// export async function getLists(): Promise<FList[]> {
-//   listsData = await invoke<FList[]>('get_lists');
-//   console.log(listsData);
-//   return [...listsData];
-// }
+interface ListContentCache {
+  data: FEvent[]
+  timestamp: number
+  hasMore: boolean
+  pageSize: number
+  currentPage: number
+}
 
-export async function getLists(): Promise<FList[]> {
-  try {
-    const result = await invoke<FList[]>('get_lists');
-    
-    // 验证返回数据类型
-    if (!Array.isArray(result)) {
-      console.error('后端返回的数据不是数组:', result);
-      return [];
+export class ListService {
+  private static instance: ListService
+  private listsCache: ListCache | null = null
+  private listContentsCache: Map<string, ListContentCache> = new Map()
+  private readonly CACHE_EXPIRY = 5 * 60 * 1000 // 5分钟缓存过期
+  private readonly PAGE_SIZE = 20
+
+  private constructor() {}
+
+  static getInstance(): ListService {
+    if (!ListService.instance) {
+      ListService.instance = new ListService()
     }
-    
-    listsData = result;
-    return [...listsData];
-  } catch (error) {
-    console.error('获取列表失败:', error);
-    // 确保总是返回一个数组，避免其他地方出错
-    return [];
+    return ListService.instance
   }
-}
 
-/**
- * 创建新列表
- * @param title 列表标题
- * @param icon 列表图标，默认为清单图标
- * @returns Promise<List[]> 返回更新后的列表数据
- */
-export async function createList(title: string, icon: string = 'mdi-format-list-bulleted'): Promise<FList[]> {
-  try {
-    // 从后端获取 FList 类型的数据
-    let newList: FList = await invoke<FList>('new_list', { title: String(title), icon: String(icon) });
-    
-    listsData.push(newList);
-    console.log(`Service: New list created with ID ${newList.id}`);
-  } catch (error) {
-    console.error(`Service: Error creating new list - ${error}`);
-  }
-  return [...listsData];
-}
+  // 获取所有列表
+  async getLists(): Promise<FList[]> {
+    const now = Date.now()
 
-/**
- * 重命名列表
- * @param id 列表ID
- * @param newName 新的列表名称
- * @returns Promise<List[]> 返回更新后的列表数据
- */
-export async function renameList(id: string, newTitle: string): Promise<FList[]> {
-  const listItem = listsData.find(l => l.id === id);
-  if (listItem) {
+    // 检查缓存是否有效
+    if (this.listsCache && now - this.listsCache.timestamp < this.CACHE_EXPIRY) {
+      return this.listsCache.data
+    }
+
+    // 获取新数据
     try {
-      // 先调用后端接口
-      await invoke('rename_list', { listid: id, new: newTitle });
-      // 成功后再更新本地数据
-      listItem.title = newTitle;
-      console.log(`Service: List ${id} renamed to ${newTitle}`);
+      const lists = await invoke<FList[]>('get_lists')
+
+      if (!Array.isArray(lists)) {
+        throw new Error('Invalid response format')
+      }
+
+      // 更新缓存
+      this.listsCache = {
+        data: lists,
+        timestamp: now
+      }
+
+      return lists
     } catch (error) {
-      console.error(`Service: Error renaming list - ${error}`);
-      // 将错误传播给调用者
-      throw error;
+      console.error('Failed to fetch lists:', error)
+      throw error
     }
-  } else {
-    const error = `List ${id} not found for renaming`;
-    console.error(`Service: ${error}`);
-    throw new Error(error);
   }
 
-  return [...listsData];
-}
+  // 获取列表内容（支持分页）
+  async getListContent(listId: string, page: number = 1): Promise<{ events: FEvent[], hasMore: boolean }> {
+    const cacheKey = listId
+    const cache = this.listContentsCache.get(cacheKey)
+    const now = Date.now()
 
-/**
- * 删除列表
- * @param id 列表ID
- * @returns Promise<List[]> 返回更新后的列表数据
- */
-export async function deleteList(id: string): Promise<FList[]> {
-  const index = listsData.findIndex(l => l.id === id);
-  if (index !== -1) {
-    listsData.splice(index, 1);
-    invoke('delete_list', {  listid: id });
-    console.log(`Service: List ${id} deleted`);
-  } else {
-    console.error(`Service: List ${id} not found for deletion`);
+    // 检查缓存是否有效
+    if (cache && 
+        now - cache.timestamp < this.CACHE_EXPIRY && 
+        page <= cache.currentPage) {
+      const start = (page - 1) * this.PAGE_SIZE
+      const end = start + this.PAGE_SIZE
+      return {
+        events: cache.data.slice(start, end),
+        hasMore: cache.hasMore
+      }
+    }
+
+    // 获取新数据
+    try {
+      const events = await invoke<FEvent[]>('list_content', { 
+        listid: listId,
+        page,
+        page_size: this.PAGE_SIZE
+      })
+
+      if (!Array.isArray(events)) {
+        throw new Error('Invalid response format')
+      }
+
+      // 更新或创建缓存
+      const hasMore = events.length === this.PAGE_SIZE
+      if (cache) {
+        // 合并新数据
+        const newData = page === 1 ? 
+          events : 
+          [...cache.data.slice(0, (page - 1) * this.PAGE_SIZE), ...events]
+        
+        this.listContentsCache.set(cacheKey, {
+          data: newData,
+          timestamp: now,
+          hasMore,
+          pageSize: this.PAGE_SIZE,
+          currentPage: page
+        })
+      } else {
+        this.listContentsCache.set(cacheKey, {
+          data: events,
+          timestamp: now,
+          hasMore,
+          pageSize: this.PAGE_SIZE,
+          currentPage: page
+        })
+      }
+
+      return { events, hasMore }
+    } catch (error) {
+      console.error('Failed to fetch list contents:', error)
+      throw error
+    }
   }
 
-  return [...listsData];
+  // 创建新列表
+  async createList(title: string, icon: string = "mdi-folder"): Promise<FList> {
+    try {
+      const newList = await invoke<FList>('new_list', { title, icon })
+      
+      // 使缓存失效
+      this.invalidateListsCache()
+      
+      return newList
+    } catch (error) {
+      console.error('Failed to create list:', error)
+      throw error
+    }
+  }
+
+  // 删除列表
+  async deleteList(listId: string): Promise<void> {
+    try {
+      await invoke('delete_list', { listid: listId })
+      
+      // 使缓存失效
+      this.invalidateListsCache()
+      this.invalidateListContentCache(listId)
+    } catch (error) {
+      console.error('Failed to delete list:', error)
+      throw error
+    }
+  }
+
+  // 重命名列表
+  async renameList(listId: string, newTitle: string): Promise<void> {
+    try {
+      await invoke('rename_list', { listid: listId, new: newTitle })
+      
+      // 使缓存失效
+      this.invalidateListsCache()
+    } catch (error) {
+      console.error('Failed to rename list:', error)
+      throw error
+    }
+  }
+
+  // 使列表缓存失效
+  private invalidateListsCache(): void {
+    this.listsCache = null
+  }
+
+  // 使列表内容缓存失效
+  private invalidateListContentCache(listId: string): void {
+    this.listContentsCache.delete(listId)
+  }
+
+  // 清除所有缓存
+  clearAllCache(): void {
+    this.listsCache = null
+    this.listContentsCache.clear()
+  }
 }
+
+export default ListService.getInstance()

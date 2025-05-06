@@ -30,10 +30,10 @@
 
 <script setup lang="ts">
 import { ref, computed, watch, onActivated, onDeactivated } from 'vue'
-import { getLists } from '@/services/ListService';
-import { getEventsBylistid, addEvent, updateEvent, deleteEvent } from '@/services/EventService';
 import ListCard from '@/components/Cards/ListCard.vue';  // 导入ListCard组件
 import type { FEvent } from 'src-tauri/bindings/FEvent';
+import { useListStore } from '@/stores/listStore';
+import { useEventStore } from '@/stores/eventStore';
 
 // 添加这个类型定义
 type HeaderAlign = 'start' | 'end' | 'center';
@@ -63,8 +63,12 @@ const listId = computed(() => {
     return match ? match[1] : null;
 })
 
-// 使用服务获取数据，不再使用硬编码数据
-const Events = ref<FEvent[]>([])
+// 使用Pinia store
+const listStore = useListStore();
+const eventStore = useEventStore();
+
+// 直接从store获取数据
+const Events = computed(() => eventStore.getEventsByListId(listId.value || ''));
 
 const newEvent = ref('')
 
@@ -97,24 +101,22 @@ onDeactivated(() => {
 async function loadListData() {
     if (listId.value) {
         try {
-            // 获取列表信息
-            const lists = await getLists();
-            const currentList = lists.find(list => list.id === listId.value);
+            // 从store获取列表信息
+            await listStore.fetchLists();
+            const currentList = listStore.getListById(listId.value);
 
             if (currentList) {
                 listTitle.value = currentList.title;
 
-                // 获取该列表的任务
-                Events.value = await getEventsBylistid(listId.value);
+                // 从store获取该列表的任务
+                await eventStore.fetchEventsByListId(listId.value);
             } else {
                 listTitle.value = '未找到列表';
                 console.error(`未找到ID为 ${listId.value} 的列表`);
-                Events.value = [];
             }
         } catch (error) {
             console.error('加载列表数据失败:', error);
             listTitle.value = '加载失败';
-            Events.value = [];
         }
     }
 }
@@ -131,8 +133,8 @@ function getPriorityColor(priority: string) {
 async function addNewEvent() {
     if (newEvent.value.trim() && listId.value) {
         try {
-            // 使用服务添加任务
-            Events.value = await addEvent(
+            // 使用store添加任务
+            await eventStore.addEvent(
                 listId.value,
                 newEvent.value,
                 'Medium',
@@ -169,7 +171,7 @@ async function addNewEvent() {
 async function deleteFEvent(Event: FEvent) {
     if (listId.value) {
         try {
-            Events.value = await deleteEvent(Event.id, listId.value);
+            await eventStore.deleteEvent(Event.id, listId.value);
         } catch (error) {
             console.error('删除任务失败:', error);
         }
@@ -180,7 +182,7 @@ async function deleteFEvent(Event: FEvent) {
 async function handleEventUpdate(updatedData: FEvent) {
     if (listId.value) {
         try {
-            Events.value = await updateEvent(updatedData);
+            await eventStore.updateEvent(updatedData);
         } catch (error) {
             console.error('更新任务失败:', error);
         }

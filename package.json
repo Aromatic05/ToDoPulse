@@ -23,6 +23,7 @@
     "@tauri-apps/plugin-shell": "^2.2.1",
     "@types/node": "^22.15.2",
     "@types/uuid": "^10.0.0",
+    "pinia": "^3.0.2",
     "uuid": "^11.1.0",
     "v-calendar": "^3.1.2",
     "vditor": "^3.11.0",

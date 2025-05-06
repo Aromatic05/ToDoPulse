@@ -39,76 +39,145 @@
     </div>
 </template>
 
-<script>
-import FullCalendar from '@fullcalendar/vue3'
-import dayGridPlugin from '@fullcalendar/daygrid'
-import timeGridPlugin from '@fullcalendar/timegrid'
-import interactionPlugin from '@fullcalendar/interaction'
+<script lang="ts">
+import { defineComponent, ref, computed, onMounted } from 'vue';
+import FullCalendar from '@fullcalendar/vue3';
+import dayGridPlugin from '@fullcalendar/daygrid';
+import timeGridPlugin from '@fullcalendar/timegrid';
+import interactionPlugin from '@fullcalendar/interaction';
+import { useEventStore } from '@/stores';
 
-export default {
+export default defineComponent({
     name: 'CalendarView',
     components: {
         FullCalendar
     },
-    data() {
-        return {
-            calendarOptions: {
-                plugins: [dayGridPlugin, timeGridPlugin, interactionPlugin],
-                headerToolbar: {
-                    left: 'prev,next today',
-                    center: 'title',
-                    right: 'dayGridMonth,timeGridWeek,timeGridDay'
-                },
-                initialView: 'dayGridMonth',
-                editable: true,
-                selectable: true,
-                selectMirror: true,
-                dayMaxEvents: true,
-                weekends: true,
-                select: this.handleDateSelect,
-                eventClick: this.handleEventClick,
-                eventsSet: this.handleEvents,
-                height: 'auto',
-                contentHeight: 'auto', 
-                aspectRatio: 2.2,
-                locale: 'zh-cn',
-                buttonText: {
-                    today: '今天',
-                    month: '月',
-                    week: '周',
-                    day: '日'
-                }
-            },
-            currentEvents: []
+    setup() {
+        // 使用eventStore
+        const eventStore = useEventStore();
+        
+        // 日历事件 - 明确类型
+        type CalendarEvent = {
+            id: string;
+            title: string;
+            start: Date | string;
+            end?: Date | string;
+            allDay?: boolean;
+            startStr?: string;
+            endStr?: string;
+            [key: string]: any;
+        };
+        
+        const currentEvents = ref<CalendarEvent[]>([]);
+        
+        // 在组件挂载时加载所有事件
+        onMounted(async () => {
+            // 此处可以从eventStore获取事件数据并转换为日历格式
+            await loadCalendarEvents();
+        });
+        
+        // 加载日历事件
+        const loadCalendarEvents = async () => {
+            // 从eventStore获取所有事件
+            // 这里模拟从store获取事件的逻辑
+            // 实际项目中应该使用store的方法获取真实数据
+            // 例如: await eventStore.fetchAllEvents();
+        };
+        
+        // 处理日期选择
+        // 添加类型定义
+        interface DateSelectArg {
+            start: Date;
+            end: Date;
+            startStr: string;
+            endStr: string;
+            allDay: boolean;
+            view: {
+                calendar: any;
+            };
         }
-    },
-    methods: {
-        handleDateSelect(selectInfo) {
-            let title = prompt('请输入事件标题')
-            let calendarApi = selectInfo.view.calendar
+        
+        interface EventClickArg {
+            event: {
+                id: string;
+                title: string;
+                remove: () => void;
+            };
+        }
+        
+        const handleDateSelect = (selectInfo: DateSelectArg) => {
+            let title = prompt('请输入事件标题');
+            let calendarApi = selectInfo.view.calendar;
 
-            calendarApi.unselect()
+            calendarApi.unselect();
 
             if (title) {
-                calendarApi.addEvent({
+                const newEvent = {
                     id: Date.now().toString(),
                     title,
                     start: selectInfo.startStr,
                     end: selectInfo.endStr,
                     allDay: selectInfo.allDay
-                })
+                };
+                
+                // 添加事件到日历
+                calendarApi.addEvent(newEvent);
+                
+                // 同时可以将事件保存到store
+                // 例如: eventStore.addEvent(newEvent);
             }
-        },
-        handleEventClick(clickInfo) {
+        };
+        
+        // 处理事件点击
+        const handleEventClick = (clickInfo: EventClickArg) => {
             if (confirm(`确定要删除事件"${clickInfo.event.title}"吗？`)) {
-                clickInfo.event.remove()
+                clickInfo.event.remove();
+                
+                // 同时可以从store中删除事件
+                // 例如: eventStore.deleteEvent(clickInfo.event.id);
             }
-        },
-        handleEvents(events) {
-            this.currentEvents = events
-        }
+        };
+        
+        // 处理事件集合变化
+        const handleEvents = (events: CalendarEvent[]) => {
+            currentEvents.value = events;
+        };
+        
+        // 日历配置
+        const calendarOptions = {
+            plugins: [dayGridPlugin, timeGridPlugin, interactionPlugin],
+            headerToolbar: {
+                left: 'prev,next today',
+                center: 'title',
+                right: 'dayGridMonth,timeGridWeek,timeGridDay'
+            },
+            initialView: 'dayGridMonth',
+            editable: true,
+            selectable: true,
+            selectMirror: true,
+            dayMaxEvents: true,
+            weekends: true,
+            select: handleDateSelect,
+            eventClick: handleEventClick,
+            eventsSet: handleEvents,
+            height: 'auto',
+            contentHeight: 'auto',
+            aspectRatio: 2.2,
+            locale: 'zh-cn',
+            buttonText: {
+                today: '今天',
+                month: '月',
+                week: '周',
+                day: '日'
+            }
+        };
+        
+        return {
+            calendarOptions,
+            currentEvents
+        };
     }
-}
+});
 </script>
 
 <style scoped>

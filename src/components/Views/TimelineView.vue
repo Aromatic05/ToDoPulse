@@ -20,7 +20,7 @@
                                  :icon="item.icon" 
                                  size="small" 
                                  density="compact">
-                    <EventCard :data="formatCardData(item, group.dateGroup)"
+                    <EventCard :data="timelineStore.formatCardData(item, group.dateGroup)"
                         @update="(data: FEvent) => handleUpdateItem(data, group.dateGroup)" />
                 </v-timeline-item>
             </template>
@@ -29,39 +29,34 @@
 </template>
 
 <script setup lang="ts">
-import { computed, ref, onMounted } from 'vue'
+import { computed, onMounted } from 'vue'
 import EventCard from '@/components/Cards/EventCard.vue'
-import { getTimelineGroups, getItemsByGroup, formatCardData, updateItem, fetchFEvents } from '@/services/TimelineDataService'
 import { FEvent } from 'src-tauri/bindings/FEvent';
+import { useTimelineStore } from '@/stores'
 
-// 使用服务获取时间线组数据
-const timelineGroups = computed(() => getTimelineGroups());
-const groupItems = ref<Record<string, FEvent[]>>({});
-const isLoading = ref(true);
+// 使用Pinia store管理时间线数据
+const timelineStore = useTimelineStore();
+const timelineGroups = computed(() => timelineStore.timelineGroups);
+const isLoading = computed(() => timelineStore.isLoading);
+const groupItems = computed(() => {
+  const result: Record<string, FEvent[]> = {};
+  for (const group of timelineGroups.value) {
+    result[group.dateGroup] = timelineStore.getGroupItems(group.dateGroup);
+  }
+  return result;
+});
 
 // 组件挂载时初始化数据
 onMounted(async () => {
-  isLoading.value = true;
-  try {
-    await fetchFEvents();
-    await loadAllGroupItems();
-  } finally {
-    isLoading.value = false;
+  // 从store加载时间线数据
+  if (!timelineStore.dataInitialized) {
+    await timelineStore.fetchEvents();
   }
 });
 
-// 加载所有组的数据
-async function loadAllGroupItems() {
-  for (const group of timelineGroups.value) {
-    groupItems.value[group.dateGroup] = await getItemsByGroup(group.dateGroup);
-  }
-}
-
 // 更新项目处理函数
 async function handleUpdateItem(data: FEvent, dateGroup: string) {
-  await updateItem(data, dateGroup);
-  // 更新本地数据以反映变化
-  groupItems.value[dateGroup] = await getItemsByGroup(dateGroup);
+  await timelineStore.updateEvent(data, dateGroup);
 }
 </script>
 
