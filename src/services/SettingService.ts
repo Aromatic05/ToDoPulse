@@ -1,5 +1,8 @@
 import { invoke } from '@tauri-apps/api/core';
 import type { FEvent } from 'src-tauri/bindings/FEvent';
+import type { FList } from 'src-tauri/bindings/FList';
+import { useListStore } from '@/stores/listStore';
+import { co } from 'node_modules/@fullcalendar/core/internal-common';
 
 export class SettingService {
   /**
@@ -47,11 +50,11 @@ export class SettingService {
   /**
    * 获取可以导出的事件列表
    */
-  static async getExportableEvents(): Promise<FEvent[]> {
+  static async getExportableLists(): Promise<FList[]> {
     try {
+      const listStore = useListStore();
       // 调用后端API获取所有事件列表
-      const events = await invoke<FEvent[]>('get_all_events');
-      return events;
+      return await listStore.fetchLists();
     } catch (error) {
       console.error('获取事件列表失败', error);
       throw error;
@@ -72,15 +75,15 @@ export class SettingService {
       switch (format) {
         case 'ics':
           // 使用新增的导出所有事件的API
-          exportContent = await invoke<string>('export_all_events_to_ics');
+          exportContent = await invoke<string>('export_all_events', {fmt: "ics"});
           break;
         case 'json':
           // 使用JSON导出API
-          exportContent = await invoke<string>('export_all_events_to_json');
+          exportContent = await invoke<string>('export_all_events', {fmt : "json"});
           break;
         case 'md':
           // 使用Markdown导出API
-          exportContent = await invoke<string>('export_all_events_to_md');
+          exportContent = await invoke<string>('export_all_events', {fmt : "md"});
           break;
         default:
           throw new Error(`不支持的导出格式: ${format}`);
@@ -107,9 +110,9 @@ export class SettingService {
    * @param format 导出格式
    * @param customPath 自定义保存路径
    */
-  static async exportEvents(eventIds: string[], format: string, customPath?: string): Promise<string> {
+  static async exportLists(lists: string[], format: string, customPath?: string): Promise<string> {
     try {
-      if (eventIds.length === 0) {
+      if (lists.length === 0) {
         throw new Error('没有选择任何事件');
       }
 
@@ -118,10 +121,16 @@ export class SettingService {
 
       // 根据不同格式调用不同的后端导出API
       try {
-        await invoke<string>('export_events_to_ics', { format,eventIds });
+        const contentPromises = lists.map(list => {
+          return invoke<string>('export_list_events', { listId: list, fmt: format });
+        });
+        
+        const contentArray = await Promise.all(contentPromises);
+        
+        exportContent = contentArray.join('');
       } catch (error) {
-        console.error('导出ICS格式事件失败', error);
-        throw new Error('导出ICS格式事件失败');
+        console.error('导出事件失败', error);
+        throw new Error('导出事件失败');
       }
 
       // 将导出内容保存到文件
@@ -198,15 +207,15 @@ export class SettingService {
       switch (format) {
         case 'ics':
           // 调用ICS格式的状态导出API
-          exportContent = await invoke<string>('export_events_by_status', { finished });
+          exportContent = await invoke<string>('export_events_by_status', { status :finished, fmt :"ics" });
           break;
         case 'json':
           // 调用JSON格式的状态导出API
-          exportContent = await invoke<string>('export_events_by_status_to_json', { finished });
+          exportContent = await invoke<string>('export_events_by_status', { status: finished, fmt: "json" });
           break;
         case 'md':
           // 调用Markdown格式的状态导出API
-          exportContent = await invoke<string>('export_events_by_status_to_md', { finished });
+          exportContent = await invoke<string>('export_events_by_status', {  status: finished, fmt: "md" });
           break;
         default:
           throw new Error(`不支持的导出格式: ${format}`);

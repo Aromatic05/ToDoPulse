@@ -97,7 +97,7 @@
             <v-card>
                 <v-card-title class="text-h5">选择要导出的事件</v-card-title>
                 <v-card-text>
-                    <v-data-table v-model="selectedEvents" :headers="eventHeaders" :items="eventList" show-select
+                    <v-data-table v-model="selectedEvents" :headers="eventHeaders" :items="Lists" show-select
                         item-value="id">
                     </v-data-table>
                 </v-card-text>
@@ -146,10 +146,10 @@ const exporting = ref(false);
 const exportResult = ref<{success: boolean; message: string} | null>(null);
 const showExportDialog = ref(false);
 const selectedEvents = ref<any[]>([]);
-const eventList = ref<any[]>([]);
+const Lists = ref<any[]>([]);
 const eventHeaders = [
     { title: '标题', key: 'title' },
-    { title: '创建日期', key: 'create' },
+    { title: 'id', key: 'id' },
     { title: '状态', key: 'status', sortable: false }
 ];
 
@@ -161,7 +161,7 @@ const languages = ['zh-CN', 'en-US', 'ja-JP', 'ko-KR'];
 onMounted(async () => {
     // 加载可导出的事件列表
     try {
-        eventList.value = await SettingService.getExportableEvents();
+        Lists.value = await SettingService.getExportableLists();
     } catch (error) {
         console.error('初始化失败', error);
     }
@@ -236,7 +236,7 @@ const exportAllEvents = async () => {
 // 导出选定事件
 const exportSelectedEvents = async () => {
     if (selectedEvents.value.length === 0) return;
-
+    console.log('导出选定事件:', selectedEvents.value);
     exporting.value = true;
     showExportDialog.value = false;
 
@@ -247,9 +247,9 @@ const exportSelectedEvents = async () => {
         const customPath = await selectSavePathForExport(filename, format);
         
         if (customPath) {
-            const eventIds = selectedEvents.value.map((event: any) => event.id);
-            const result = await SettingService.exportEvents(
-                eventIds,
+            const selectedListIds = selectedEvents.value.map((list: any) => list);
+            const result = await SettingService.exportLists(
+                selectedListIds,
                 selectedExportFormat.value,
                 customPath // 使用用户选择的路径
             );
