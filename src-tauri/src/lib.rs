@@ -10,7 +10,7 @@ mod cache; // 缓存系统
 
 use entity::{event, list, tag, Repository};
 use entity::{Storage, StorageState};
-use std::sync::Mutex;
+use tokio::sync::Mutex;
 use tauri::Manager;
 use utils::AppPaths;
 
@@ -67,8 +67,8 @@ pub fn run() -> std::io::Result<()> {
     Ok(())
 }
 
-fn init_table(state: &StorageState) -> () {
-    let mut guard = state.0.lock().unwrap();
+async fn init_table(state: &StorageState) -> () {
+    let mut guard = state.0.lock().await;
     let storage = guard.deref_mut();
     Repository::<Event>::ensure_table_exists(storage).ok();
     Repository::<List>::ensure_table_exists(storage).ok();

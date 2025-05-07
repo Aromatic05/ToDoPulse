@@ -2,7 +2,7 @@ pub mod event;
 pub mod list;
 pub mod tag;
 
-use std::sync::Mutex;
+use tokio::sync::Mutex;
 
 use anyhow::{Ok, Result};
 use redb::{self, Database, ReadableTable, TableDefinition};
@@ -163,7 +163,7 @@ fn connect_to_db() -> Result<Database> {
 mod tests {
   use super::*;
   use std::ops::DerefMut;
-  use std::sync::Mutex;
+  use tokio::sync::Mutex;
   use std::time::{Duration, Instant};
   use tauri::test::{mock_app, MockRuntime};
   use tauri::Manager;
@@ -201,7 +201,7 @@ mod tests {
   async fn test_get_by_name() {
     let start = Instant::now();
     let (state, _temp_dir) = setup();
-    let mut guard = state.0.lock().unwrap();
+    let mut guard = state.0.lock().await;
     let storage = guard.deref_mut();
 
     let list = List::new("Test List", "icon.png");
@@ -226,7 +226,7 @@ mod tests {
     let (state, _temp_dir) = setup();
     let list1 = List::new("Test List 1", "icon1.png");
     let list2 = List::new("Test List 2", "icon2.png");
-    let mut guard = state.0.lock().unwrap();
+    let mut guard = state.0.lock().await;
     let storage = guard.deref_mut();
     Repository::<List>::add(storage, &list1).unwrap();
     Repository::<List>::add(storage, &list2).unwrap();
@@ -242,7 +242,7 @@ mod tests {
   async fn test_delete() {
     let start = Instant::now();
     let (state, _temp_dir) = setup();
-    let mut guard = state.0.lock().unwrap();
+    let mut guard = state.0.lock().await;
     let storage = guard.deref_mut();
     
     let list = List::new("Test Delete", "icon.png");
@@ -261,7 +261,7 @@ mod tests {
   async fn test_ensure_table_exists() {
     let start = Instant::now();
     let (state, _temp_dir) = setup();
-    let mut guard = state.0.lock().unwrap();
+    let mut guard = state.0.lock().await;
     let storage = guard.deref_mut();
     
     // This should create the table if it doesn't exist
@@ -278,7 +278,7 @@ mod tests {
   async fn test_update() {
     let start = Instant::now();
     let (state, _temp_dir) = setup();
-    let mut guard = state.0.lock().unwrap();
+    let mut guard = state.0.lock().await;
     let storage = guard.deref_mut();
     
     let list = List::new("Original Title", "icon.png");
@@ -302,7 +302,7 @@ mod tests {
   async fn test_get_all() {
     let start = Instant::now();
     let (state, _temp_dir) = setup();
-    let mut guard = state.0.lock().unwrap();
+    let mut guard = state.0.lock().await;
     let storage = guard.deref_mut();
     
     // Add multiple items
@@ -321,7 +321,7 @@ mod tests {
   async fn test_performance_bulk_operations() {
     let start = Instant::now();
     let (state, _temp_dir) = setup();
-    let mut guard = state.0.lock().unwrap();
+    let mut guard = state.0.lock().await;
     let storage = guard.deref_mut();
     
     // Test bulk insert performance

@@ -99,7 +99,7 @@ pub async fn export_list_events_to_ics(
 ) -> Result<String, String> {
     // 在内部作用域中获取events，确保MutexGuard在作用域结束时被释放
     let events = {
-        let mut guard = state.0.lock().unwrap();
+        let mut guard = state.0.lock().await;
         let storage = guard.deref_mut();
 
         // 获取指定列表中的所有事件
@@ -123,7 +123,7 @@ pub async fn export_list_events_to_ics(
 pub async fn export_all_events_to_ics(state: State<'_, StorageState>) -> Result<String, String> {
     // 在内部作用域中获取events，确保MutexGuard在作用域结束时被释放
     let events = {
-        let mut guard = state.0.lock().unwrap();
+        let mut guard = state.0.lock().await;
         let storage = guard.deref_mut();
 
         // 获取所有事件
@@ -149,7 +149,7 @@ pub async fn export_events_by_date_range_to_ics(
 ) -> Result<String, String> {
     // 在内部作用域中获取events，确保MutexGuard在作用域结束时被释放
     let events = {
-        let mut guard = state.0.lock().unwrap();
+        let mut guard = state.0.lock().await;
         let storage = guard.deref_mut();
 
         // 过滤在时间范围内的事件
@@ -180,7 +180,7 @@ pub async fn export_events_by_status_to_ics(
 ) -> Result<String, String> {
     // 在内部作用域中获取events，确保MutexGuard在作用域结束时被释放
     let events = {
-        let mut guard = state.0.lock().unwrap();
+        let mut guard = state.0.lock().await;
         let storage = guard.deref_mut();
 
         // 过滤特定完成状态的事件

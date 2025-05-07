@@ -59,16 +59,18 @@ pub async fn add_tag(
     tag: String,
     color: TagColor,
 ) -> Result<(), String> {
-    if tag_exists(&state, &tag) {
+    if tag_exists(&state, &tag).await {
         return Ok(());
     }
-    let tag = Tag::new(tag, color);
-    state.0.lock().unwrap().add(&tag).map_err(|e| e.to_string())
+    let tag_obj = Tag::new(tag, color); // Renamed variable to avoid conflict
+    let mut guard = state.0.lock().await;
+    let storage = guard.deref_mut();
+    Repository::<Tag>::add(storage, &tag_obj).map_err(|e| e.to_string())
 }
 
 #[tauri::command]
 pub async fn get_tags(state: State<'_, StorageState>) -> Result<Vec<Tag>, String> {
-    let mut guard = state.0.lock().unwrap();
+    let mut guard = state.0.lock().await;
     let storage = guard.deref_mut();
     let tags = Repository::<Tag>::get_all(storage).map_err(|e| e.to_string())?;
     Ok(tags)
@@ -76,7 +78,7 @@ pub async fn get_tags(state: State<'_, StorageState>) -> Result<Vec<Tag>, String
 
 #[tauri::command]
 pub async fn delete_tag(state: State<'_, StorageState>, tag: String) -> Result<(), String> {
-    let mut guard = state.0.lock().unwrap();
+    let mut guard = state.0.lock().await;
     let storage = guard.deref_mut();
     Repository::<Tag>::delete(storage, &tag).map_err(|e| e.to_string())?;
     Ok(())

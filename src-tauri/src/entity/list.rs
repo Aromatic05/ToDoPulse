@@ -57,7 +57,7 @@ pub async fn new_list(
     title: &str,
     icon: &str,
 ) -> Result<FList, String> {
-    let mut guard = state.0.lock().unwrap();
+    let mut guard = state.0.lock().await;
     let storage = guard.deref_mut();
     let new_list = List::new(title, icon);
     Repository::<List>::add(storage, &new_list).map_err(|e| e.to_string())?;
@@ -77,7 +77,7 @@ pub async fn new_list(
 
 #[tauri::command]
 pub async fn delete_list(state: State<'_, StorageState>, listid: &str) -> Result<(), String> {
-    let mut guard = state.0.lock().unwrap();
+    let mut guard = state.0.lock().await;
     let storage = guard.deref_mut();
     Repository::<List>::delete(storage, listid).map_err(|e| e.to_string())?;
     
@@ -97,7 +97,7 @@ pub async fn get_lists(state: State<'_, StorageState>) -> Result<Vec<FList>, Str
     }
     
     // 缓存未命中，从数据库获取
-    let mut guard = state.0.lock().unwrap();
+    let mut guard = state.0.lock().await;
     let storage = guard.deref_mut();
     let lists = Repository::<List>::get_all(storage).map_err(|e| e.to_string())?;
     let f_lists: Vec<FList> = lists
@@ -126,7 +126,7 @@ pub async fn list_content(
     let page_size = page_size.unwrap_or(20);
     
     // 检查列表是否存在
-    if !list_exists(&state, listid) {
+    if !list_exists(&state, listid).await {
         return Err("List not found".to_string());
     }
     
@@ -144,7 +144,7 @@ pub async fn list_content(
     }
     
     // 缓存未命中或分页超出范围，从数据库获取
-    let mut guard = state.0.lock().unwrap();
+    let mut guard = state.0.lock().await;
     let storage = guard.deref_mut();
     let events = Repository::<Event>::filter(storage, |event| {
         event.metadata.list.as_ref().map_or(false, |list| list == listid)
@@ -176,10 +176,10 @@ pub async fn rename_list(
     listid: &str,
     new: &str,
 ) -> Result<(), String> {
-    if !list_exists(&state, listid) {
+    if !list_exists(&state, listid).await {
         return Err("List not found".to_string());
     }
-    let mut guard = state.0.lock().unwrap();
+    let mut guard = state.0.lock().await;
     let storage = guard.deref_mut();
     Repository::<List>::update(storage, listid, |list| {
         list.title = new.to_string();

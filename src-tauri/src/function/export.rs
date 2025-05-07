@@ -9,8 +9,8 @@ use self::md::*;
 
 use crate::entity::{Event, Repository, StorageState};
 use anyhow::Result;
-use tauri::State;
 use std::ops::DerefMut;
+use tauri::State;
 
 #[tauri::command]
 pub async fn export_events(
@@ -18,18 +18,16 @@ pub async fn export_events(
     event_ids: Vec<&str>,
     fmt: &str,
 ) -> Result<String, String> {
+    let mut guard = state.0.lock().await;
+    let storage = guard.deref_mut();
     let events: Vec<Event> = event_ids
         .iter()
-        .filter_map(|id| {
-            let mut guard = state.0.lock().unwrap();
-            let storage = guard.deref_mut();
-            match Repository::<Event>::get_by_name(storage, id) {
-                Ok(Some(event)) => Some(event),
-                Ok(None) => None,
-                Err(e) => {
-                    eprintln!("获取事件 {} 时出错: {}", id, e);
-                    None
-                }
+        .filter_map(|id| match Repository::<Event>::get_by_name(storage, id) {
+            Ok(Some(event)) => Some(event),
+            Ok(None) => None,
+            Err(e) => {
+                eprintln!("获取事件 {} 时出错: {}", id, e);
+                None
             }
         })
         .collect();

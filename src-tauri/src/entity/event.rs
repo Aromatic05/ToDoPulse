@@ -136,7 +136,7 @@ pub async fn add_event(
     new_event.metadata.tag = gen_tag(state.clone(), &content_path)
         .await
         .map_err(|e| e.to_string())?;
-    let mut guard = state.0.lock().unwrap();
+    let mut guard = state.0.lock().await;
     let storage = guard.deref_mut();
     Repository::<Event>::add(storage, &new_event).map_err(|e| e.to_string())?;
     
@@ -156,7 +156,7 @@ pub async fn event_content(state: State<'_, StorageState>, uuid: &str) -> Result
     }
     
     // 缓存未命中，从数据库获取
-    let mut guard = state.0.lock().unwrap();
+    let mut guard = state.0.lock().await;
     let storage = guard.deref_mut();
     let event = Repository::<Event>::get_by_name(storage, uuid).map_err(|e| e.to_string())?;
     if let Some(event) = event {
@@ -176,7 +176,7 @@ pub async fn write_content(
     uuid: &str,
     content: String,
 ) -> Result<(), String> {
-    let mut guard = state.0.lock().unwrap();
+    let mut guard = state.0.lock().await;
     let storage = guard.deref_mut();
     let event = Repository::<Event>::get_by_name(storage, uuid).map_err(|e| e.to_string())?;
     if let Some(event) = event {
@@ -192,7 +192,7 @@ pub async fn write_content(
 
 #[tauri::command]
 pub async fn update_event(state: State<'_, StorageState>, f_event: FEvent) -> Result<(), String> {
-    let mut guard = state.0.lock().unwrap();
+    let mut guard = state.0.lock().await;
     let storage = guard.deref_mut();
     let old_event =
         Repository::<Event>::get_by_name(storage, &f_event.id).map_err(|e| e.to_string())?;
@@ -224,7 +224,7 @@ pub async fn update_event(state: State<'_, StorageState>, f_event: FEvent) -> Re
 #[tauri::command]
 pub async fn delete_event(state: State<'_, StorageState>, uuid: &str) -> Result<(), String> {
     // 获取事件所属的列表ID
-    let mut guard = state.0.lock().unwrap();
+    let mut guard = state.0.lock().await;
     let storage = guard.deref_mut();
     let event = Repository::<Event>::get_by_name(storage, uuid).map_err(|e| e.to_string())?;
     
@@ -247,7 +247,7 @@ pub async fn filter_events(
     state: State<'_, StorageState>,
     filter: &str,
 ) -> Result<Vec<FEvent>, String> {
-    let mut guard = state.0.lock().unwrap();
+    let mut guard = state.0.lock().await;
     let storage = guard.deref_mut();
     let res = Repository::<Event>::filter(storage, map_filter(filter).unwrap());
     match res {

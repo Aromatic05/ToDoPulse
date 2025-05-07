@@ -37,11 +37,11 @@ pub fn event_to_fevent(event: &Event) -> FEvent {
     }
 }
 
-fn exists<T>(state: &State<'_, StorageState>, id: &str) -> bool
+async fn exists<T>(state: &State<'_, StorageState>, id: &str) -> bool
 where
     T: Entity + 'static,
 {
-    let mut guard = state.0.lock().unwrap();
+    let mut guard = state.0.lock().await;
     let storage = guard.deref_mut();
 
     let item: Option<T> = Repository::<T>::get_by_name(storage, &id.to_string())
@@ -51,21 +51,21 @@ where
     item.is_some()
 }
 
-pub fn tag_exists(state: &State<'_, StorageState>, name: &str) -> bool {
-    exists::<Tag>(state, name)
+pub async fn tag_exists(state: &State<'_, StorageState>, name: &str) -> bool {
+    exists::<Tag>(state, name).await
 }
 
-pub fn list_exists(state: &State<'_, StorageState>, uuid: &str) -> bool {
-    exists::<List>(state, uuid)
+pub async fn list_exists(state: &State<'_, StorageState>, uuid: &str) -> bool {
+    exists::<List>(state, uuid).await
 }
 
 #[allow(dead_code)]
 // 这一段代码是函数式编程的风格，写在这里装个逼
-pub fn with_storage<F, T>(state: &State<'_, StorageState>, f: F) -> Result<T, String>
+pub async fn with_storage<F, T>(state: &State<'_, StorageState>, f: F) -> Result<T, String>
 where
     F: FnOnce(&mut Storage) -> Result<T, String>,
 {
-    let mut guard = state.0.lock().unwrap();
+    let mut guard = state.0.lock().await;
     let storage = guard.deref_mut();
     f(storage)
 }
