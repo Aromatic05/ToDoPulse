@@ -97,7 +97,7 @@
             <v-card>
                 <v-card-title class="text-h5">选择要导出的事件</v-card-title>
                 <v-card-text>
-                    <v-data-table v-model="selectedEvents" :headers="eventHeaders" :items="Lists" show-select
+                    <v-data-table v-model="selectedLists" :headers="eventHeaders" :items="Lists" show-select
                         item-value="id">
                     </v-data-table>
                 </v-card-text>
@@ -106,8 +106,8 @@
                     <v-btn color="grey-darken-1" variant="text" @click="showExportDialog = false">
                         取消
                     </v-btn>
-                    <v-btn color="primary" variant="text" @click="exportSelectedEvents"
-                        :disabled="selectedEvents.length === 0">
+                    <v-btn color="primary" variant="text" @click="exportSelectedLists"
+                        :disabled="selectedLists.length === 0">
                         导出所选事件
                     </v-btn>
                 </v-card-actions>
@@ -145,12 +145,10 @@ const exportFilterOptions = [
 const exporting = ref(false);
 const exportResult = ref<{success: boolean; message: string} | null>(null);
 const showExportDialog = ref(false);
-const selectedEvents = ref<any[]>([]);
+const selectedLists = ref<any[]>([]);
 const Lists = ref<any[]>([]);
 const eventHeaders = [
     { title: '标题', key: 'title' },
-    { title: 'id', key: 'id' },
-    { title: '状态', key: 'status', sortable: false }
 ];
 
 // 选项
@@ -234,9 +232,9 @@ const exportAllEvents = async () => {
 };
 
 // 导出选定事件
-const exportSelectedEvents = async () => {
-    if (selectedEvents.value.length === 0) return;
-    console.log('导出选定事件:', selectedEvents.value);
+const exportSelectedLists = async () => {
+    if (selectedLists.value.length === 0) return;
+    console.log('导出选定事件:', selectedLists.value);
     exporting.value = true;
     showExportDialog.value = false;
 
@@ -247,7 +245,7 @@ const exportSelectedEvents = async () => {
         const customPath = await selectSavePathForExport(filename, format);
         
         if (customPath) {
-            const selectedListIds = selectedEvents.value.map((list: any) => list);
+            const selectedListIds = selectedLists.value.map((list: any) => list);
             const result = await SettingService.exportLists(
                 selectedListIds,
                 selectedExportFormat.value,
