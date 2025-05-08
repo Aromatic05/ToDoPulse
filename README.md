@@ -232,8 +232,8 @@ pnpm run tauri build
 
 ## 9. 项目地址
 
-![https://github.com/Aromatic05/ToDoPulse]
+https://github.com/Aromatic05/ToDoPulse
 
 ## 10. 工作量证明
 
-![工作量证明](./images/workprrof.png)
+![工作量证明](./images/workproof.png)
