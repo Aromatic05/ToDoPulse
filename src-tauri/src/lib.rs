@@ -28,7 +28,7 @@ pub fn run() -> std::io::Result<()> {
             let app_instance = entity::App::new(app.handle());
             let storage = Storage::new()?;
             app.manage(StorageState(Mutex::new(storage), Mutex::new(app_instance)));
-            init_table(&app.state::<StorageState>());
+            
             match utils::config::parse() {
                 Ok(_) => {}
                 Err(e) => {
