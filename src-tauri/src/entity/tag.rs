@@ -7,6 +7,7 @@ use ts_rs::TS;
 
 use crate::entity::{Repository, StorageState};
 use crate::utils::tag_exists;
+use crate::error::ErrorKind;
 
 use super::Entity;
 
@@ -58,28 +59,29 @@ pub async fn add_tag(
     state: State<'_, StorageState>,
     tag: String,
     color: TagColor,
-) -> Result<(), String> {
+) -> Result<(), ErrorKind> {
     if tag_exists(&state, &tag).await {
         return Ok(());
     }
     let tag_obj = Tag::new(tag, color); // Renamed variable to avoid conflict
     let mut guard = state.0.lock().await;
     let storage = guard.deref_mut();
-    Repository::<Tag>::add(storage, &tag_obj).map_err(|e| e.to_string())
+    Repository::<Tag>::add(storage, &tag_obj)?;
+    Ok(())
 }
 
 #[tauri::command]
-pub async fn get_tags(state: State<'_, StorageState>) -> Result<Vec<Tag>, String> {
+pub async fn get_tags(state: State<'_, StorageState>) -> Result<Vec<Tag>, ErrorKind> {
     let mut guard = state.0.lock().await;
     let storage = guard.deref_mut();
-    let tags = Repository::<Tag>::get_all(storage).map_err(|e| e.to_string())?;
+    let tags = Repository::<Tag>::get_all(storage)?;
     Ok(tags)
 }
 
 #[tauri::command]
-pub async fn delete_tag(state: State<'_, StorageState>, tag: String) -> Result<(), String> {
+pub async fn delete_tag(state: State<'_, StorageState>, tag: String) -> Result<(), ErrorKind> {
     let mut guard = state.0.lock().await;
     let storage = guard.deref_mut();
-    Repository::<Tag>::delete(storage, &tag).map_err(|e| e.to_string())?;
+    Repository::<Tag>::delete(storage, &tag)?;
     Ok(())
 }

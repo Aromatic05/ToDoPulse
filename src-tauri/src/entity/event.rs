@@ -9,10 +9,10 @@ use ts_rs::TS;
 use uuid::Uuid;
 
 use super::{Entity, Repository, StorageState};
-use crate::cache::{EVENT_CONTENT_CACHE, EVENT_LIST_CACHE};
 use crate::filter::map_filter;
 use crate::function::gen_tag;
-use crate::utils::{event_to_fevent, AppPaths};
+use crate::utils::{event_to_fevent, AppPaths, EVENT_CONTENT_CACHE, EVENT_LIST_CACHE};
+use crate::error::ErrorKind;
 
 type Table = TableDefinition<'static, &'static [u8], &'static [u8]>;
 
@@ -114,11 +114,11 @@ pub async fn add_event(
     listid: Option<&str>,
     priority: Priority,
     ddl: &str,
-) -> Result<Event, String> {
+) -> Result<Event, ErrorKind> {
     let mut metadata = EventMetadata::new();
     metadata.list = listid.map(|id| id.to_string());  // 直接使用字符串，不再解析为u64
     let content_path = AppPaths::data_dir().join(format!("{}.md", title));
-    fs::write(&content_path, "").map_err(|e| e.to_string())?;
+    fs::write(&content_path, "")?;
     let mut new_event = Event {
         metadata,
         title: title.to_string(),
@@ -134,11 +134,10 @@ pub async fn add_event(
         icon: "default".to_string(),
     };
     new_event.metadata.tag = gen_tag(state.clone(), &content_path)
-        .await
-        .map_err(|e| e.to_string())?;
+        .await?;
     let mut guard = state.0.lock().await;
     let storage = guard.deref_mut();
-    Repository::<Event>::add(storage, &new_event).map_err(|e| e.to_string())?;
+    Repository::<Event>::add(storage, &new_event)?;
     
     // 使缓存失效
     if let Some(list_id) = &new_event.metadata.list {
@@ -149,7 +148,7 @@ pub async fn add_event(
 }
 
 #[tauri::command]
-pub async fn event_content(state: State<'_, StorageState>, uuid: &str) -> Result<String, String> {
+pub async fn event_content(state: State<'_, StorageState>, uuid: &str) -> Result<String, ErrorKind> {
     // 从缓存中获取
     if let Some(content) = EVENT_CONTENT_CACHE.get(uuid) {
         return Ok(content);
@@ -158,9 +157,9 @@ pub async fn event_content(state: State<'_, StorageState>, uuid: &str) -> Result
     // 缓存未命中，从数据库获取
     let mut guard = state.0.lock().await;
     let storage = guard.deref_mut();
-    let event = Repository::<Event>::get_by_name(storage, uuid).map_err(|e| e.to_string())?;
+    let event = Repository::<Event>::get_by_name(storage, uuid)?;
     if let Some(event) = event {
-        let content = fs::read_to_string(&event.content).map_err(|e| e.to_string())?;
+        let content = fs::read_to_string(&event.content)?;
         
         // 更新缓存
         EVENT_CONTENT_CACHE.set(uuid, content.clone());
@@ -175,27 +174,27 @@ pub async fn write_content(
     state: State<'_, StorageState>,
     uuid: &str,
     content: String,
-) -> Result<(), String> {
+) -> Result<(), ErrorKind> {
     let mut guard = state.0.lock().await;
     let storage = guard.deref_mut();
-    let event = Repository::<Event>::get_by_name(storage, uuid).map_err(|e| e.to_string())?;
+    let event = Repository::<Event>::get_by_name(storage, uuid)?;
     if let Some(event) = event {
-        fs::write(&event.content, &content).map_err(|e| e.to_string())?;
+        fs::write(&event.content, &content)?;
         
         // 更新缓存
         EVENT_CONTENT_CACHE.set(uuid, content);
         
         return Ok(());
     }
-    Err("Event not found".to_string())
+    Err(ErrorKind::NotFound)
 }
 
 #[tauri::command]
-pub async fn update_event(state: State<'_, StorageState>, f_event: FEvent) -> Result<(), String> {
+pub async fn update_event(state: State<'_, StorageState>, f_event: FEvent) -> Result<(), ErrorKind> {
     let mut guard = state.0.lock().await;
     let storage = guard.deref_mut();
     let old_event =
-        Repository::<Event>::get_by_name(storage, &f_event.id).map_err(|e| e.to_string())?;
+        Repository::<Event>::get_by_name(storage, &f_event.id)?;
     if let Some(mut new) = old_event {
         // 保存旧列表ID用于缓存失效
         let old_list_id = new.metadata.list.clone();
@@ -208,7 +207,7 @@ pub async fn update_event(state: State<'_, StorageState>, f_event: FEvent) -> Re
         new.color = f_event.color;
         new.icon = f_event.icon;
         new.metadata.list = Some(f_event.listid.clone());  // 直接使用字符串类型的listid
-        Repository::<Event>::add(storage, &new).map_err(|e| e.to_string())?;
+        Repository::<Event>::add(storage, &new)?;
         
         // 使缓存失效
         if let Some(list_id) = old_list_id {
@@ -218,18 +217,18 @@ pub async fn update_event(state: State<'_, StorageState>, f_event: FEvent) -> Re
         
         return Ok(());
     }
-    Err("Event not found".to_string())
+    Err(ErrorKind::NotFound)
 }
 
 #[tauri::command]
-pub async fn delete_event(state: State<'_, StorageState>, uuid: &str) -> Result<(), String> {
+pub async fn delete_event(state: State<'_, StorageState>, uuid: &str) -> Result<(), ErrorKind> {
     // 获取事件所属的列表ID
     let mut guard = state.0.lock().await;
     let storage = guard.deref_mut();
-    let event = Repository::<Event>::get_by_name(storage, uuid).map_err(|e| e.to_string())?;
+    let event = Repository::<Event>::get_by_name(storage, uuid)?;
     
     // 删除事件
-    Repository::<Event>::delete(storage, uuid).map_err(|e| e.to_string())?;
+    Repository::<Event>::delete(storage, uuid)?;
     
     // 使缓存失效
     EVENT_CONTENT_CACHE.remove(uuid);
@@ -246,7 +245,7 @@ pub async fn delete_event(state: State<'_, StorageState>, uuid: &str) -> Result<
 pub async fn filter_events(
     state: State<'_, StorageState>,
     filter: &str,
-) -> Result<Vec<FEvent>, String> {
+) -> Result<Vec<FEvent>, ErrorKind> {
     let mut guard = state.0.lock().await;
     let storage = guard.deref_mut();
     let res = Repository::<Event>::filter(storage, map_filter(filter).unwrap());
@@ -256,7 +255,7 @@ pub async fn filter_events(
             .map(|event| event_to_fevent(&event))
             .collect()),
         Err(e) => {
-            return Err(e.to_string());
+            return Err(ErrorKind::from(e));
         }
     }
 }

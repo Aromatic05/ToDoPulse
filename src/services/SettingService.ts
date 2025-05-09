@@ -1,8 +1,6 @@
 import { invoke } from '@tauri-apps/api/core';
-import type { FEvent } from 'src-tauri/bindings/FEvent';
 import type { FList } from 'src-tauri/bindings/FList';
 import { useListStore } from '@/stores/listStore';
-import { co } from 'node_modules/@fullcalendar/core/internal-common';
 
 export class SettingService {
   /**
@@ -158,21 +156,11 @@ export class SettingService {
     try {
       let exportContent = '';
       
-      // 根据格式调用相应API
-      switch (format) {
-        case 'ics':
-          exportContent = await invoke<string>('export_events_to_ics', { uuids: [eventId] });
-          break;
-        case 'json':
-          // 使用JSON导出API
-          exportContent = await invoke<string>('export_events_to_json', { uuids: [eventId] });
-          break;
-        case 'markdown':
-          // 使用Markdown导出API
-          exportContent = await invoke<string>('export_events_to_md', { uuids: [eventId] });
-          break;
-        default:
-          throw new Error(`不支持的导出格式: ${format}`);
+      try {
+        exportContent = await invoke<string>('export_events', { eventIds:eventId, fmt: format });
+      } catch (e) {
+        console.error('导出事件失败', e);
+        throw new Error('导出事件失败');
       }
 
       // 保存到文件

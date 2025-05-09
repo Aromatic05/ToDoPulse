@@ -61,12 +61,12 @@ pub fn parse() -> Result<(), String> {
     Ok(())
 }
 
-pub fn get_api_key() -> Result<String, String> {
+pub fn get_api_key() -> Result<String> {
     let config_lock = CONFIG.lock().unwrap();
     if let Some(config) = &*config_lock {
         return Ok(config.model.name.clone());
     }
-    Err("API key not found".to_string())
+    Err(anyhow::anyhow!("API key not found").into())
 }
 
 pub fn use_llm() -> bool {

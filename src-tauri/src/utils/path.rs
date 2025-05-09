@@ -17,9 +17,12 @@ pub struct AppPaths {
 impl AppPaths {
     pub fn init(app: &tauri::AppHandle) -> Result<()> {
         if APP_PATHS.get().is_some() {
+            log::debug!("AppPaths already initialized");
             return Ok(());
         }
 
+        log::info!("Initializing application paths");
+        // 使用 OnceLock 来确保路径只被初始化一次
         let data_dir = app.path().data_dir()?.join(APP_NAME);
         let config_dir = app.path().config_dir()?.join(APP_NAME);
         let log_dir = app.path().app_log_dir()?.join(APP_NAME);

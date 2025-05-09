@@ -4,10 +4,11 @@ use std::ops::DerefMut;
 use tauri::State;
 use ts_rs::TS;
 use uuid::Uuid;
+use anyhow::anyhow;
 
 use crate::entity::{Event, FEvent, Repository, StorageState};
-use crate::utils::{event_to_fevent, list_exists};
-use crate::cache::{EVENT_LIST_CACHE, LIST_CACHE};
+use crate::utils::{event_to_fevent, list_exists, LIST_CACHE, EVENT_LIST_CACHE};
+use crate::error::ErrorKind;
 
 use super::Entity;
 
@@ -56,11 +57,11 @@ pub async fn new_list(
     state: State<'_, StorageState>,
     title: &str,
     icon: &str,
-) -> Result<FList, String> {
+) -> Result<FList, ErrorKind> {
     let mut guard = state.0.lock().await;
     let storage = guard.deref_mut();
     let new_list = List::new(title, icon);
-    Repository::<List>::add(storage, &new_list).map_err(|e| e.to_string())?;
+    Repository::<List>::add(storage, &new_list)?;
     
     // 使列表缓存失效
     LIST_CACHE.clear();
@@ -76,10 +77,10 @@ pub async fn new_list(
 }
 
 #[tauri::command]
-pub async fn delete_list(state: State<'_, StorageState>, listid: &str) -> Result<(), String> {
+pub async fn delete_list(state: State<'_, StorageState>, listid: &str) -> Result<(), ErrorKind> {
     let mut guard = state.0.lock().await;
     let storage = guard.deref_mut();
-    Repository::<List>::delete(storage, listid).map_err(|e| e.to_string())?;
+    Repository::<List>::delete(storage, listid)?;
     
     // 使相关缓存失效
     LIST_CACHE.clear();
@@ -89,7 +90,7 @@ pub async fn delete_list(state: State<'_, StorageState>, listid: &str) -> Result
 }
 
 #[tauri::command]
-pub async fn get_lists(state: State<'_, StorageState>) -> Result<Vec<FList>, String> {
+pub async fn get_lists(state: State<'_, StorageState>) -> Result<Vec<FList>, ErrorKind> {
     // 先尝试从缓存中获取
     let cache_key = "all_lists";
     if let Some(lists) = LIST_CACHE.get(cache_key) {
@@ -99,7 +100,7 @@ pub async fn get_lists(state: State<'_, StorageState>) -> Result<Vec<FList>, Str
     // 缓存未命中，从数据库获取
     let mut guard = state.0.lock().await;
     let storage = guard.deref_mut();
-    let lists = Repository::<List>::get_all(storage).map_err(|e| e.to_string())?;
+    let lists = Repository::<List>::get_all(storage)?;
     let f_lists: Vec<FList> = lists
         .into_iter()
         .map(|list| FList {
@@ -121,13 +122,13 @@ pub async fn list_content(
     listid: &str,
     page: Option<u32>,
     page_size: Option<u32>,
-) -> Result<Vec<FEvent>, String> {
+) -> Result<Vec<FEvent>,ErrorKind > {
     let page = page.unwrap_or(1);
     let page_size = page_size.unwrap_or(20);
     
     // 检查列表是否存在
     if !list_exists(&state, listid).await {
-        return Err("List not found".to_string());
+        return Err(anyhow!("List not found").into());
     }
     
     // 先尝试从缓存中获取（全量数据）
@@ -148,8 +149,7 @@ pub async fn list_content(
     let storage = guard.deref_mut();
     let events = Repository::<Event>::filter(storage, |event| {
         event.metadata.list.as_ref().map_or(false, |list| list == listid)
-    })
-    .map_err(|e| e.to_string())?;
+    })?;
     
     let f_events: Vec<FEvent> = events
         .into_iter()
@@ -175,17 +175,16 @@ pub async fn rename_list(
     state: State<'_, StorageState>,
     listid: &str,
     new: &str,
-) -> Result<(), String> {
+) -> Result<(), ErrorKind> {
     if !list_exists(&state, listid).await {
-        return Err("List not found".to_string());
+        return Err(anyhow!("List not found").into());
     }
     let mut guard = state.0.lock().await;
     let storage = guard.deref_mut();
     Repository::<List>::update(storage, listid, |list| {
         list.title = new.to_string();
         Ok(())
-    })
-    .map_err(|e| e.to_string())?;
+    })?;
     
     // 使列表缓存失效
     LIST_CACHE.clear();

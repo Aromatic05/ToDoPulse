@@ -11,15 +11,28 @@ use crate::entity::{Event, Repository, StorageState};
 use anyhow::Result;
 use std::ops::DerefMut;
 use tauri::State;
+use serde_json;
 
 #[tauri::command]
 pub async fn export_events(
     state: State<'_, StorageState>,
-    event_ids: Vec<&str>,
+    event_ids: serde_json::Value,
     fmt: &str,
 ) -> Result<String, String> {
     let mut guard = state.0.lock().await;
     let storage = guard.deref_mut();
+    let event_ids: Vec<String> = if event_ids.is_string() {
+        vec![event_ids.as_str().unwrap_or("").to_string()]
+    } else if event_ids.is_array() {
+        event_ids
+            .as_array()
+            .unwrap_or(&Vec::new())
+            .iter()
+            .filter_map(|v| v.as_str().map(|s| s.to_string()))
+            .collect()
+    } else {
+        return Err("Invalid event IDs".to_string());
+    };
     let events: Vec<Event> = event_ids
         .iter()
         .filter_map(|id| match Repository::<Event>::get_by_name(storage, id) {

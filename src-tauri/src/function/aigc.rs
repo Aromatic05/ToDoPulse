@@ -4,6 +4,7 @@ use serde::{Deserialize, Serialize};
 use std::fs;
 use std::path::PathBuf;
 use tauri::State;
+use anyhow::Result;
 
 use crate::entity::{get_tags, StorageState};
 use crate::utils::{get_api_key, use_llm};
@@ -51,7 +52,7 @@ struct RawResponse {
 pub async fn gen_tag(
     state: State<'_, StorageState>,
     content_path: &PathBuf,
-) -> Result<Option<Vec<String>>, Box<dyn std::error::Error>> {
+) -> Result<Option<Vec<String>>> {
     if !use_llm() {
         return Ok(None);
     }
@@ -111,7 +112,7 @@ pub async fn gen_tag(
                             .collect(),
                     ))
                 } else {
-                    Err("No tag choices returned".into())
+                    Err(anyhow::anyhow!("No choices in AI response").into())
                 }
             }
             Err(e) => {
@@ -119,12 +120,16 @@ pub async fn gen_tag(
                 // Try to get raw response to see structure
                 let raw_text = e.to_string();
                 error!("Raw error: {}", raw_text);
-                Err(format!("Failed to parse AI response: {}", e).into())
+                Err(e.into())
             }
         }
     } else {
         let error_text = response.text().await?;
         error!("AI service request failed: {}", error_text);
-        Err(format!("API request failed with status {}: {}", status, error_text).into())
+        Err(anyhow::anyhow!(
+            "AI service request failed: {}, with status: {}",
+            error_text,
+            status
+        ).into())
     }
 }

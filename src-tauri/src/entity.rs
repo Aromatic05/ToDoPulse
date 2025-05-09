@@ -25,7 +25,6 @@ pub trait Entity: Clone + Serialize + for<'de> Deserialize<'de> {
 pub trait Repository<T: Entity> {
     fn add(&self, entity: &T) -> Result<()>;
     fn delete(&self, name: &str) -> Result<()>;
-    fn ensure_table_exists(&self) -> Result<()>;
     #[allow(dead_code)]
     fn update<F>(&self, id: &str, update_fn: F) -> Result<()>
     where
@@ -96,14 +95,6 @@ impl<T: Entity> Repository<T> for Storage {
         Ok(())
     }
 
-    fn ensure_table_exists(&self) -> Result<()> {
-        let txn = self.db.begin_write()?;
-        let table = T::table_def();
-        txn.open_table(table)?;
-        txn.commit()?;
-        Ok(())
-    }
-
     fn update<F>(&self, name: &str, update_fn: F) -> Result<()>
     where
         F: FnOnce(&mut T) -> Result<()>,
@@ -164,7 +155,7 @@ mod tests {
   use super::*;
   use std::ops::DerefMut;
   use tokio::sync::Mutex;
-  use std::time::{Duration, Instant};
+  use std::time::Instant;
   use tauri::test::{mock_app, MockRuntime};
   use tauri::Manager;
   use tempfile::tempdir;
@@ -264,8 +255,6 @@ mod tests {
     let mut guard = state.0.lock().await;
     let storage = guard.deref_mut();
     
-    // This should create the table if it doesn't exist
-    Repository::<List>::ensure_table_exists(storage).unwrap();
     
     // After ensuring the table exists, we should be able to add items
     let list = List::new("Test Table", "icon.png");

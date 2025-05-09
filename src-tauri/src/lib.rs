@@ -1,26 +1,23 @@
-use std::ops::DerefMut;
-
 mod entity; // 核心数据实体和存储定义
 mod utils; // 通用工具函数
-
+mod error; // 错误处理
 mod debug; // 调试工具
 mod function; // 功能
 mod filter;
-mod cache; // 缓存系统
 
-use entity::{event, list, tag, Repository};
+use entity::{event, list, tag};
 use entity::{Storage, StorageState};
 use tokio::sync::Mutex;
 use tauri::Manager;
+use utils::logs::init_log;
 use utils::AppPaths;
-
-use entity::{Event, List, Tag};
 
 use function::export;
 use tauri_plugin_dialog;
 
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() -> std::io::Result<()> {
+    init_log();
     tauri::Builder::default()
         .plugin(tauri_plugin_dialog::init())
         .setup(|app| {
@@ -28,7 +25,6 @@ pub fn run() -> std::io::Result<()> {
             let app_instance = entity::App::new(app.handle());
             let storage = Storage::new()?;
             app.manage(StorageState(Mutex::new(storage), Mutex::new(app_instance)));
-            
             match utils::config::parse() {
                 Ok(_) => {}
                 Err(e) => {
@@ -65,13 +61,4 @@ pub fn run() -> std::io::Result<()> {
         .expect("error while running tauri application");
 
     Ok(())
-}
-
-async fn init_table(state: &StorageState) -> () {
-    let mut guard = state.0.lock().await;
-    let storage = guard.deref_mut();
-    Repository::<Event>::ensure_table_exists(storage).ok();
-    Repository::<List>::ensure_table_exists(storage).ok();
-    Repository::<Tag>::ensure_table_exists(storage).ok();
-    ()
 }
