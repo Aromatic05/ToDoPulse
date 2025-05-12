@@ -168,14 +168,14 @@ ToDoPulse/
 [Info.table]
 switch = false
 time = [
-  "12:00",
-  "13:00",
+  "0 12 * * *",
+  "0 13 * * *",
 ]
 [Info,email]
 switch = false
 time = [
-  "12:00",
-  "13:00",
+  "0 12 * * *",
+  "0 13 * * *",
 ]
 [Interface]
 dark = false
