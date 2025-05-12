@@ -1,6 +1,5 @@
 mod aigc;
 pub mod export;
-mod notify;
+pub mod notify;
 
 pub use aigc::*;
-pub use notify::*;

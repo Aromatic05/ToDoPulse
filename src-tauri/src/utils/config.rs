@@ -11,21 +11,25 @@ use crate::utils::path::AppPaths;
 const CONFIG_FILE: &str = "config.toml";
 
 #[derive(Deserialize)]
+#[allow(dead_code)]
 struct Theme {
     color: String,
 }
 #[derive(Deserialize)]
+#[allow(dead_code)]
 struct Model {
     switch: bool,
     name: String,
     tokens: String,
 }
 #[derive(Deserialize)]
+#[allow(dead_code)]
 struct Info {
     switch: bool,
     time: Option<Vec<String>>,
 }
 #[derive(Deserialize)]
+#[allow(dead_code)]
 struct Config {
     theme: Theme,
     info: Info,
