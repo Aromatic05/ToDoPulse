@@ -180,6 +180,57 @@ export class SettingService {
   }
 
   /**
+   * 测试 WebDAV 连接
+   * @param host WebDAV服务器地址
+   * @param username 用户名
+   * @param password 密码
+   * @returns 连接是否成功
+   */
+  static async testWebDAVConnection(host: string, username: string, password: string): Promise<boolean> {
+    try {
+      return await invoke<boolean>('test_webdav_connection', {
+        host,
+        username,
+        password
+      });
+    } catch (error) {
+      console.error('测试WebDAV连接失败', error);
+      return false;
+    }
+  }
+
+  /**
+   * 同步目录到WebDAV服务器
+   * @param host WebDAV服务器地址
+   * @param username 用户名
+   * @param password 密码
+   * @param localDir 本地目录路径
+   * @param remoteDir 远程目录路径
+   * @returns 同步是否成功
+   */
+  static async syncDirectoryWithWebDAV(
+    host: string,
+    username: string,
+    password: string,
+    localDir: string,
+    remoteDir: string
+  ): Promise<boolean> {
+    try {
+      await invoke<void>('sync_directory', {
+        host,
+        username,
+        password,
+        localDir,
+        remoteDir
+      });
+      return true;
+    } catch (error) {
+      console.error('WebDAV同步失败', error);
+      return false;
+    }
+  }
+
+  /**
    * 根据状态导出事件（已完成/未完成）
    * @param finished 是否已完成
    * @param format 导出格式
@@ -195,7 +246,7 @@ export class SettingService {
       switch (format) {
         case 'ics':
           // 调用ICS格式的状态导出API
-          exportContent = await invoke<string>('export_events_by_status', { status :finished, fmt :"ics" });
+          exportContent = await invoke<string>('export_events_by_status', { status: finished, fmt: "ics" });
           break;
         case 'json':
           // 调用JSON格式的状态导出API
@@ -203,7 +254,7 @@ export class SettingService {
           break;
         case 'md':
           // 调用Markdown格式的状态导出API
-          exportContent = await invoke<string>('export_events_by_status', {  status: finished, fmt: "md" });
+          exportContent = await invoke<string>('export_events_by_status', { status: finished, fmt: "md" });
           break;
         default:
           throw new Error(`不支持的导出格式: ${format}`);

@@ -26,11 +26,13 @@ async-std = { version = "1.13.1", features = ["attributes"] }
 redb = "2.4.0"
 tauri-plugin-updater = "2.7.0"
 anyhow = "1.0.98"
-tokio = { version = "1.44.2", features = ["macros"] }
+tokio = { version = "1", features = ["full"] }
 dirs = "6.0.0"
 chrono = "0.4.40"
 uuid = { version = "1.16.0", features = ["v4"] }
 reqwest = { version = "0.12.15", features = ["json"] }
+reqwest_dav = "0.2.1"
+httpdate = "1.0"
 log = "0.4.27"
 toml = { version = "0.8.20", features = ["parse"] }
 rand = "0.9.1"

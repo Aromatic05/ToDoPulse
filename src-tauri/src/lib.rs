@@ -13,6 +13,7 @@ use utils::logs::init_log;
 use utils::AppPaths;
 
 use function::export;
+use function::sync;
 use tauri_plugin_dialog;
 
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
@@ -26,6 +27,9 @@ pub fn run() -> std::io::Result<()> {
             let app_instance = entity::App::new(app.handle());
             let storage = Storage::new()?;
             app.manage(StorageState(Mutex::new(storage), Mutex::new(app_instance)));
+            
+            // 注册同步功能命令
+            sync::register_sync_commands(app)?;
             match utils::config::parse() {
                 Ok(_) => {}
                 Err(e) => {
@@ -57,6 +61,11 @@ pub fn run() -> std::io::Result<()> {
             export::save::get_export_directory,
             export::save::save_export_file,
             export::save::select_save_path,
+            // WebDAV同步命令
+            sync::test_webdav_connection,
+            sync::sync_now,
+            sync::get_sync_status,
+            sync::update_sync_config,
         ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");

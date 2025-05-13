@@ -82,6 +82,104 @@
                                 class="mt-3" variant="tonal" closable @click:close="exportResult = null"></v-alert>
                         </v-card>
                     </v-col>
+
+                    <!-- 添加 WebDAV 同步设置卡片 -->
+                    <v-col cols="12" md="6">
+                        <v-card class="pa-4">
+                            <h3 class="text-h6 mb-5">WebDAV 同步</h3>
+                            <v-form @submit.prevent="testWebDAVConnection">
+                                <v-row>
+                                    <v-col cols="12">
+                                        <v-text-field
+                                            v-model="webdavHost"
+                                            label="WebDAV 服务器地址"
+                                            placeholder="https://example.com/dav/"
+                                            variant="outlined"
+                                            density="compact"
+                                            class="mb-3"
+                                            required
+                                        ></v-text-field>
+                                    </v-col>
+                                    <v-col cols="12" md="6">
+                                        <v-text-field
+                                            v-model="webdavUsername"
+                                            label="用户名"
+                                            variant="outlined"
+                                            density="compact"
+                                            class="mb-3"
+                                            required
+                                        ></v-text-field>
+                                    </v-col>
+                                    <v-col cols="12" md="6">
+                                        <v-text-field
+                                            v-model="webdavPassword"
+                                            label="密码"
+                                            type="password"
+                                            variant="outlined"
+                                            density="compact"
+                                            class="mb-3"
+                                            required
+                                        ></v-text-field>
+                                    </v-col>
+                                    <v-col cols="12" md="6">
+                                        <v-text-field
+                                            v-model="webdavLocalDir"
+                                            label="本地目录"
+                                            variant="outlined"
+                                            density="compact"
+                                            class="mb-3"
+                                            required
+                                        ></v-text-field>
+                                    </v-col>
+                                    <v-col cols="12" md="6">
+                                        <v-text-field
+                                            v-model="webdavRemoteDir"
+                                            label="远程目录"
+                                            placeholder="/remote/path/"
+                                            variant="outlined"
+                                            density="compact"
+                                            class="mb-3"
+                                            required
+                                        ></v-text-field>
+                                    </v-col>
+                                    <v-col cols="12" md="6">
+                                        <v-btn
+                                            block
+                                            color="primary"
+                                            @click="testWebDAVConnection"
+                                            :loading="testingWebDAV"
+                                            class="mb-3"
+                                        >
+                                            测试连接
+                                        </v-btn>
+                                    </v-col>
+                                    <v-col cols="12" md="6">
+                                        <v-btn
+                                            block
+                                            color="success"
+                                            @click="syncWithWebDAV"
+                                            :loading="syncingWebDAV"
+                                            :disabled="!webdavConnectionTested"
+                                            class="mb-3"
+                                        >
+                                            开始同步
+                                        </v-btn>
+                                    </v-col>
+                                </v-row>
+                            </v-form>
+
+                            <v-alert
+                                v-if="webdavResult"
+                                :color="webdavResult.success ? 'success' : 'error'"
+                                :title="webdavResult.success ? '操作成功' : '操作失败'"
+                                :text="webdavResult.message"
+                                class="mt-3"
+                                variant="tonal"
+                                closable
+                                @click:close="webdavResult = null"
+                            ></v-alert>
+                        </v-card>
+                    </v-col>
                 </v-row>
             </div>
 
@@ -150,6 +248,17 @@ const Lists = ref<any[]>([]);
 const eventHeaders = [
     { title: '标题', key: 'title' },
 ];
+
+// WebDAV 同步相关变量
+const webdavHost = ref('');
+const webdavUsername = ref('');
+const webdavPassword = ref('');
+const webdavLocalDir = ref('');
+const webdavRemoteDir = ref('/');
+const testingWebDAV = ref(false);
+const syncingWebDAV = ref(false);
+const webdavConnectionTested = ref(false);
+const webdavResult = ref<{success: boolean; message: string} | null>(null);
 
 // 选项
 const themes = ['default', 'blue', 'green', 'purple', 'orange'];
@@ -338,6 +447,97 @@ const exportFilteredEvents = async () => {
         };
     } finally {
         exporting.value = false;
+    }
+};
+
+// WebDAV 连接测试
+const testWebDAVConnection = async () => {
+    if (!webdavHost.value || !webdavUsername.value || !webdavPassword.value) {
+        webdavResult.value = {
+            success: false,
+            message: '请填写完整的 WebDAV 服务器信息'
+        };
+        return;
+    }
+
+    testingWebDAV.value = true;
+    try {
+        const result = await SettingService.testWebDAVConnection(
+            webdavHost.value,
+            webdavUsername.value,
+            webdavPassword.value
+        );
+
+        if (result) {
+            webdavResult.value = {
+                success: true,
+                message: 'WebDAV 连接测试成功'
+            };
+            webdavConnectionTested.value = true;
+        } else {
+            webdavResult.value = {
+                success: false,
+                message: 'WebDAV 连接测试失败，请检查服务器地址和凭据'
+            };
+            webdavConnectionTested.value = false;
+        }
+    } catch (error: any) {
+        webdavResult.value = {
+            success: false,
+            message: `连接错误: ${error?.toString() || '未知错误'}`
+        };
+        webdavConnectionTested.value = false;
+    } finally {
+        testingWebDAV.value = false;
+    }
+};
+
+// WebDAV 同步
+const syncWithWebDAV = async () => {
+    if (!webdavConnectionTested.value) {
+        webdavResult.value = {
+            success: false,
+            message: '请先测试连接'
+        };
+        return;
+    }
+
+    if (!webdavLocalDir.value || !webdavRemoteDir.value) {
+        webdavResult.value = {
+            success: false,
+            message: '请填写本地和远程目录'
+        };
+        return;
+    }
+
+    syncingWebDAV.value = true;
+    try {
+        const result = await SettingService.syncDirectoryWithWebDAV(
+            webdavHost.value,
+            webdavUsername.value,
+            webdavPassword.value,
+            webdavLocalDir.value,
+            webdavRemoteDir.value
+        );
+
+        if (result) {
+            webdavResult.value = {
+                success: true,
+                message: '目录同步成功'
+            };
+        } else {
+            webdavResult.value = {
+                success: false,
+                message: '目录同步失败'
+            };
+        }
+    } catch (error: any) {
+        webdavResult.value = {
+            success: false,
+            message: `同步错误: ${error?.toString() || '未知错误'}`
+        };
+    } finally {
+        syncingWebDAV.value = false;
     }
 };
 </script>
