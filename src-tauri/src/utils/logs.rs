@@ -2,7 +2,7 @@ use std::fs::OpenOptions;
 use env_logger::Builder;
 use std::io::Write;
 
-use crate::AppPaths;
+use crate::utils::AppPaths;
 
 const LOG_FILE: &str = "app.log";
 

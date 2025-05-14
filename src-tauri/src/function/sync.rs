@@ -60,7 +60,7 @@ impl SyncStateManager {
 pub struct SyncState(pub Arc<Mutex<SyncStateManager>>);
 
 // 注册同步功能的Tauri命令
-pub fn register_sync_commands(app: &mut tauri::App) -> Result<()> {
+pub fn register_sync_commands(app: &tauri::App) -> Result<()> {
     // 初始化同步状态管理器并注册为应用状态
     let sync_manager = SyncStateManager::get_instance();
     app.manage(SyncState(sync_manager));

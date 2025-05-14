@@ -1,4 +1,3 @@
-use redb::DatabaseError;
 use serde::Serialize;
 use ts_rs::TS;
 use log::error;
