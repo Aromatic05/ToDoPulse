@@ -9,7 +9,7 @@ use ts_rs::TS;
 use uuid::Uuid;
 
 use super::{Entity, Repository, StorageState};
-use crate::filter::map_filter;
+use crate::filter::{map_filter, Filter};
 use crate::function::gen_tag;
 use crate::utils::{event_to_fevent, AppPaths, EVENT_CONTENT_CACHE, EVENT_LIST_CACHE};
 use crate::error::ErrorKind;
@@ -56,7 +56,7 @@ pub struct Event {
     pub metadata: EventMetadata,
     pub title: String,
     pub content: String,
-    pub task_time: Option<u64>,
+    pub task_time: Option<u64>,//这里使用的是毫秒时间戳
     pub finished: bool,
     pub priority: Priority,
     pub icon: String,
@@ -248,7 +248,20 @@ pub async fn filter_events(
 ) -> Result<Vec<FEvent>, ErrorKind> {
     let mut guard = state.0.lock().await;
     let storage = guard.deref_mut();
-    let res = Repository::<Event>::filter(storage, map_filter(filter).unwrap());
+    let filter_enum = match map_filter(filter) {
+        Ok(filter_enum) => filter_enum,
+        Err(e) => {
+            log::error!("Error parsing filter: {}", e);
+            return Err(ErrorKind::from(e));
+        }
+    };
+    let filter_func = |event: &Event| -> bool {
+        match &filter_enum {
+            Filter::A(f) => f(event),
+            Filter::B(f) => f(event),
+        }
+    };
+    let res = Repository::<Event>::filter(storage, filter_func);
     match res {
         Ok(events) => Ok(events
             .into_iter()

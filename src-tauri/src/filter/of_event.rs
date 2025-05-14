@@ -1,10 +1,11 @@
-use chrono::{self,NaiveDateTime, NaiveTime};
+use chrono::{self,NaiveDateTime, NaiveTime, NaiveDate, DateTime};
 
 use anyhow::{Ok, Result};
 
 
 use crate::entity::Event;
 
+use super::Filter::{A, B};
 use super::Filter;
 
 const ONE_DAY: u64 = 24 * 60 * 60 * 1000;
@@ -12,9 +13,14 @@ const ONE_WEEK: u64 = 7 * ONE_DAY;
 
 pub fn map_filter(filter: &str)->Result<Filter<Event>> {
     match filter {
-        "today" => Ok(|event| today_filter(event)),
-        "tomorrow" => Ok(|event| tomorrow_filter(event)),
-        "next_week" => Ok(|event| next_week_filter(event)),
+        "today" => Ok(A(|event| today_filter(event))),
+        "tomorrow" => Ok(A(|event| tomorrow_filter(event))),
+        "next_week" => Ok(A(|event| next_week_filter(event))),
+        date_str => {
+            let date = NaiveDate::parse_from_str(date_str, "%Y-%m-%d")
+                .map_err(|_| anyhow::anyhow!("Invalid date format"))?;
+            Ok(B(Box::new(move |event| time_filter(date, &event))))
+        }
         _ =>  Err(anyhow::anyhow!("Invalid filter")),
     }
 } 
@@ -41,6 +47,26 @@ fn tomorrow_filter(entity: &Event) -> bool {
 fn next_week_filter(entity: &Event) -> bool {
   time_range_filter(entity, 7, ONE_WEEK)
 }
+
+fn time_filter(day: NaiveDate, event: &Event) -> bool {
+    let event_time = event.task_time;
+    match event_time {
+        Some(time) => {
+            time_to_date(&time) == day
+        }
+        None => {
+            log::error!("Event time is None");
+            false
+        }
+    }
+}
+
+fn time_to_date(time: &u64) -> NaiveDate {
+    let datetime = DateTime::from_timestamp_millis(*time as i64)
+        .unwrap_or_else(|| DateTime::from_timestamp_millis(0).unwrap());
+    datetime.date_naive()
+}
+
 
 #[cfg(test)]
 mod tests {

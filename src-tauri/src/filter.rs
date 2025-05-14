@@ -1,6 +1,11 @@
 mod of_event;
 
+pub use of_event::map_filter;
 
-pub use of_event::*;
+type SimpleFilter<T> = fn(&T) -> bool;
+type ClosureFilter<T> = Box<dyn Fn(&T) -> bool>;
 
-type Filter<T> = fn(&T) -> bool;
+pub enum Filter<T> {
+    A(SimpleFilter<T>),
+    B(ClosureFilter<T>),
+}
