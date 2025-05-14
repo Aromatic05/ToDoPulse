@@ -1,5 +1,4 @@
-use std::path::{Path, PathBuf};
-use std::time::{SystemTime, UNIX_EPOCH};
+use std::path::{PathBuf};
 use chrono::{DateTime, Utc};
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
@@ -131,6 +130,18 @@ pub struct DiffEntry {
     pub local_state: Option<EntryState>,
     /// 远程状态
     pub remote_state: Option<EntryState>,
+}
+
+impl DiffEntry {
+    /// 检查是否为文件
+    pub fn is_file(&self) -> bool {
+        self.entry_type == EntryType::File
+    }
+    
+    /// 检查是否为目录
+    pub fn is_directory(&self) -> bool {
+        self.entry_type == EntryType::Directory
+    }
 }
 
 /// 所有差异的集合

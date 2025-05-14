@@ -1,10 +1,9 @@
 use anyhow::{Result, anyhow};
 use log::{info, warn, error, debug};
 use tokio::fs;
-use std::path::{Path, PathBuf};
-use std::collections::HashMap;
+use std::path::{Path};
 use chrono::{DateTime, Utc};
-use crate::function::sync::model::{EntryState, FileSystemState, EntryType};
+use crate::function::sync::model::{EntryState, FileSystemState};
 
 /// 状态收集配置
 pub struct StateCollectionConfig {
@@ -38,7 +37,6 @@ impl Default for StateCollectionConfig {
 
 /// 判断文件是否应该被排除
 fn should_exclude(path: &Path, patterns: &[String]) -> bool {
-    let path_str = path.to_string_lossy();
     let file_name = path.file_name()
         .map(|n| n.to_string_lossy())
         .unwrap_or_default();
@@ -55,7 +53,7 @@ fn should_exclude(path: &Path, patterns: &[String]) -> bool {
             if file_name.starts_with(prefix) {
                 return true;
             }
-        } else if file_name == pattern {
+        } else if file_name.to_string() == *pattern {
             return true;
         }
     }
@@ -63,32 +61,29 @@ fn should_exclude(path: &Path, patterns: &[String]) -> bool {
     false
 }
 
-/// 从系统时间获取UTC时间
+/// 从系统时间获取UTC时间，使用chrono的方法直接转换
 fn system_time_to_datetime(time: std::time::SystemTime) -> Option<DateTime<Utc>> {
-    time.duration_since(std::time::UNIX_EPOCH)
-        .ok()
-        .map(|d| {
-            let secs = d.as_secs() as i64;
-            let nsecs = d.subsec_nanos() as u32;
-            DateTime::from_timestamp(secs, nsecs)
-        })
-        .flatten()
+    // 使用chrono提供的From trait实现
+    let datetime: DateTime<Utc> = time.into();
+    Some(datetime)
 }
 
-/// 计算文件内容的哈希值
+/// 计算文件内容的简单哈希值
 async fn compute_file_hash(path: &Path) -> Result<String> {
     use tokio::io::AsyncReadExt;
-    use sha2::{Sha256, Digest};
+    use std::collections::hash_map::DefaultHasher;
+    use std::hash::{Hash, Hasher};
     
+    // 使用Rust标准库的哈希功能
     let mut file = fs::File::open(path).await?;
     let mut buffer = Vec::new();
     file.read_to_end(&mut buffer).await?;
     
-    let mut hasher = Sha256::new();
-    hasher.update(&buffer);
-    let result = hasher.finalize();
+    let mut hasher = DefaultHasher::new();
+    buffer.hash(&mut hasher);
+    let hash = hasher.finish();
     
-    Ok(format!("{:x}", result))
+    Ok(format!("{:x}", hash))
 }
 
 /// 收集本地文件系统状态
@@ -110,106 +105,109 @@ pub async fn collect_local_state(
     let mut state = FileSystemState::new();
     
     // 递归遍历目录收集状态
-    async fn scan_directory(
-        root: &Path,
-        dir: &Path,
-        state: &mut FileSystemState,
-        config: &StateCollectionConfig,
+    fn scan_directory<'a>(
+        root: &'a Path,
+        dir: &'a Path,
+        state: &'a mut FileSystemState,
+        config: &'a StateCollectionConfig,
         current_depth: usize
-    ) -> Result<()> {
-        // 检查是否超过最大深度
-        if let Some(max_depth) = config.max_depth {
-            if current_depth > max_depth {
-                return Ok(());
-            }
-        }
-        
-        // 读取目录内容
-        let mut entries = match fs::read_dir(dir).await {
-            Ok(entries) => entries,
-            Err(e) => {
-                error!("无法读取目录 {}: {}", dir.display(), e);
-                return Err(anyhow!("读取目录失败: {}", e));
-            }
-        };
-        
-        // 创建当前目录的相对路径
-        let rel_path = if dir == root {
-            "/".to_string()
-        } else {
-            let rel = dir.strip_prefix(root)
-                .map_err(|_| anyhow!("无法创建相对路径"))?;
-            format!("/{}", rel.to_string_lossy().replace('\\', "/"))
-        };
-        
-        // 添加目录本身到状态中
-        let metadata = fs::metadata(dir).await?;
-        let modified = metadata.modified().ok()
-            .and_then(system_time_to_datetime);
-        
-        if rel_path != "/" {
-            // 不添加根目录，因为它是同步的基准点
-            state.add_entry(EntryState::new_directory(rel_path, modified));
-        }
-        
-        // 处理目录中的每个条目
-        while let Some(entry) = entries.next_entry().await? {
-            let path = entry.path();
-            
-            // 检查是否应该排除
-            if should_exclude(&path, &config.exclusion_patterns) {
-                debug!("排除路径: {}", path.display());
-                continue;
+    ) -> std::pin::Pin<Box<dyn std::future::Future<Output = Result<()>> + Send + 'a>> {
+        Box::pin(async move {
+            // 检查是否超过最大深度
+            if let Some(max_depth) = config.max_depth {
+                if current_depth > max_depth {
+                    return Ok(());
+                }
             }
             
-            let metadata = match fs::metadata(&path).await {
-                Ok(meta) => meta,
+            // 读取目录内容
+            let mut entries = match fs::read_dir(dir).await {
+                Ok(entries) => entries,
                 Err(e) => {
-                    warn!("无法获取元数据 {}: {}", path.display(), e);
-                    continue;
+                    error!("无法读取目录 {}: {}", dir.display(), e);
+                    return Err(anyhow!("读取目录失败: {}", e));
                 }
             };
             
+            // 创建当前目录的相对路径
+            let rel_path = if dir == root {
+                "/".to_string()
+            } else {
+                let rel = dir.strip_prefix(root)
+                    .map_err(|_| anyhow!("无法创建相对路径"))?;
+                format!("/{}", rel.to_string_lossy().replace('\\', "/"))
+            };
+            
+            // 添加目录本身到状态中
+            let metadata = fs::metadata(dir).await?;
             let modified = metadata.modified().ok()
                 .and_then(system_time_to_datetime);
             
-            // 创建相对路径
-            let path_rel = path.strip_prefix(root)
-                .map_err(|_| anyhow!("无法创建相对路径"))?;
-            let rel_path = format!("/{}", path_rel.to_string_lossy().replace('\\', "/"));
+            if rel_path != "/" {
+                // 不添加根目录，因为它是同步的基准点
+                state.add_entry(EntryState::new_directory(rel_path, modified));
+            }
             
-            if metadata.is_dir() {
-                // 递归处理子目录
-                scan_directory(
-                    root, 
-                    &path, 
-                    state, 
-                    config, 
-                    current_depth + 1
-                ).await?;
-            } else if metadata.is_file() {
-                // 处理文件
-                let size = Some(metadata.len());
-                let mut entry = EntryState::new_file(rel_path, modified, size);
+            // 处理目录中的每个条目
+            while let Some(entry) = entries.next_entry().await? {
+                let path = entry.path();
                 
-                // 如果需要，计算文件哈希
-                if config.compute_hash {
-                    match compute_file_hash(&path).await {
-                        Ok(hash) => entry = entry.with_hash(hash),
-                        Err(e) => warn!("计算文件哈希失败 {}: {}", path.display(), e),
-                    }
+                // 检查是否应该排除
+                if should_exclude(&path, &config.exclusion_patterns) {
+                    debug!("排除路径: {}", path.display());
+                    continue;
                 }
                 
-                state.add_entry(entry);
+                let metadata = match fs::metadata(&path).await {
+                    Ok(meta) => meta,
+                    Err(e) => {
+                        warn!("无法获取元数据 {}: {}", path.display(), e);
+                        continue;
+                    }
+                };
+                
+                let modified = metadata.modified().ok()
+                    .and_then(system_time_to_datetime);
+                
+                // 创建相对路径
+                let path_rel = path.strip_prefix(root)
+                    .map_err(|_| anyhow!("无法创建相对路径"))?;
+                let rel_path = format!("/{}", path_rel.to_string_lossy().replace('\\', "/"));
+                
+                if metadata.is_dir() {
+                    // 递归处理子目录
+                    scan_directory(
+                        root,
+                        &path,
+                        state,
+                        config,
+                        current_depth + 1
+                    ).await?;
+                } else if metadata.is_file() {
+                    // 处理文件
+                    let size = Some(metadata.len());
+                    let mut entry = EntryState::new_file(rel_path, modified, size);
+                    
+                    // 如果需要，计算文件哈希
+                    if config.compute_hash {
+                        match compute_file_hash(&path).await {
+                            Ok(hash) => entry = entry.with_hash(hash),
+                            Err(e) => warn!("计算文件哈希失败 {}: {}", path.display(), e),
+                        }
+                    }
+                    
+                    state.add_entry(entry);
+                }
+                // 忽略其他类型的文件系统条目
             }
-            // 忽略其他类型的文件系统条目
-        }
-        
-        Ok(())
+            
+            Ok(())
+        })
     }
     
     // 开始扫描
-    scan_directory(root_dir, root_dir, &mut state, config, 0).await?;
+    let future = scan_directory(root_dir, root_dir, &mut state, config, 0);
+    future.await?;
     
     info!(
         "本地状态收集完成，共 {} 个条目 ({} 文件, {} 目录)",

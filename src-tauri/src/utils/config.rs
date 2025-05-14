@@ -10,15 +10,15 @@ use crate::utils::path::AppPaths;
 
 const CONFIG_FILE: &str = "config.toml";
 
-#[derive(Deserialize)]
+#[derive(Deserialize, Clone, Debug)]
 #[allow(dead_code)]
-struct WebDav {
-    enabled: bool,
-    host: String,
-    username: String,
-    password: String,
-    remote_dir: String,
-    sync_interval: u64, 
+pub struct WebDav {
+    pub enabled: bool,
+    pub host: String,
+    pub username: String,
+    pub password: String,
+    pub remote_dir: String,
+    pub sync_interval: u64,
 }
 
 #[derive(Deserialize)]
@@ -135,6 +135,24 @@ pub fn info_time() -> Vec<String> {
     vec![]
 }
 
+/// 获取WebDAV配置
+pub fn get_webdav_config() -> Result<WebDav> {
+    let config_lock = CONFIG.lock().unwrap();
+    if let Some(config) = &*config_lock {
+        // 返回WebDav结构体的克隆值
+        return Ok(config.webdav.clone());
+    }
+    Err(anyhow::anyhow!("WebDAV configuration not found").into())
+}
+
+pub fn get_sync_interval() -> u64 {
+    let config_lock = CONFIG.lock().unwrap();
+    if let Some(config) = &*config_lock {
+        return config.webdav.sync_interval;
+    }
+    30 // 默认30分钟
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -199,5 +217,30 @@ mod tests {
         assert_eq!(get_api_key().unwrap(), "test-model");
         assert_eq!(use_info(), false);
         assert_eq!(info_time(), vec!["0 10 * * *"]);
+    }
+
+    #[test]
+    fn test_get_webdav_config() {
+        let config_dir = setup_test_env();
+
+        let config_content = r#"
+        [webdav]
+        enabled = true
+        host = "https://webdav-1690957.pd1.123pan.cn/webdav/webdav"
+        username = "username"
+        password = "passwd"
+        remote_dir = "/ToDoPulse"
+        sync_interval = 30
+        "#;
+        fs::create_dir_all(&config_dir).unwrap();
+        fs::write(config_dir.join(CONFIG_FILE), config_content).unwrap();
+        parse_with_path(Some(&config_dir)).unwrap();
+        
+        let webdav_config = get_webdav_config().unwrap();
+
+        print!("webdav_config: {:?}", webdav_config);
+        
+        assert_eq!(webdav_config.enabled, true);
+        assert_eq!(webdav_config.host, "https://webdav-1690957.pd1.123pan.cn/webdav/webdav");
     }
 }
