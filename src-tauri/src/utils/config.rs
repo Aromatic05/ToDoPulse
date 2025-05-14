@@ -205,6 +205,13 @@ mod tests {
         switch = false
         name = "test-model"
         tokens = "1024"
+        [webdav]
+        enabled = false
+        host = "https://example.com"
+        username = "user"
+        password = "password"
+        remote_dir = "/ToDoPulse"
+        sync_interval = 30
         "#;
         
         fs::create_dir_all(&config_dir).unwrap();

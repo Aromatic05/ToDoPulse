@@ -4,6 +4,7 @@ pub mod path;
 pub mod time;
 pub mod cache;
 pub mod logs;
+pub mod manager;
 
 pub use config::*;
 pub use others::*;

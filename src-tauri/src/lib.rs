@@ -11,6 +11,7 @@ use tauri::Manager;
 use tokio::sync::Mutex;
 use utils::logs::init_log;
 use utils::AppPaths;
+use utils::manager::tasker;
 
 use function::notify;
 use function::export;
@@ -24,7 +25,8 @@ pub fn run() -> std::io::Result<()> {
         .setup(|app| {
             AppPaths::init(app.handle())?;
             init_log();
-            notify::set_up();
+            notify::setup();
+            tasker::init_task_manager();
             let app_instance = entity::App::new(app.handle());
             let storage = Storage::new()?;
             app.manage(StorageState(Mutex::new(storage), Mutex::new(app_instance)));
