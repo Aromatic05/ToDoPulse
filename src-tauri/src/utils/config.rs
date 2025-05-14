@@ -12,6 +12,17 @@ const CONFIG_FILE: &str = "config.toml";
 
 #[derive(Deserialize)]
 #[allow(dead_code)]
+struct WebDav {
+    enabled: bool,
+    host: String,
+    username: String,
+    password: String,
+    remote_dir: String,
+    sync_interval: u64, 
+}
+
+#[derive(Deserialize)]
+#[allow(dead_code)]
 struct Theme {
     color: String,
 }
@@ -34,6 +45,7 @@ struct Config {
     theme: Theme,
     info: Info,
     model: Model,
+    webdav: WebDav,
 }
 
 static CONFIG: Lazy<Mutex<Option<Config>>> = Lazy::new(|| Mutex::new(None));
@@ -71,6 +83,13 @@ pub fn parse_with_path<P: AsRef<Path>>(custom_path: Option<P>) -> Result<()> {
           switch = false
           name = "deepseek-v3"
           tokens = "4096"
+          [webdav]
+          enabled = false
+          host = "https://example.com"
+          username = "user"
+          password = "password"
+          remote_dir = "/ToDoPulse"
+          sync_interval = 30
           "#,
         )?;
     }

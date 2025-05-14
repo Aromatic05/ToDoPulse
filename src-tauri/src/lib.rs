@@ -12,18 +12,19 @@ use tokio::sync::Mutex;
 use utils::logs::init_log;
 use utils::AppPaths;
 
+use function::notify;
 use function::export;
 use function::sync;
 use tauri_plugin_dialog;
 
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() -> std::io::Result<()> {
-    function::notify::set_up();
     tauri::Builder::default()
         .plugin(tauri_plugin_dialog::init())
         .setup(|app| {
             AppPaths::init(app.handle())?;
             init_log();
+            notify::set_up();
             let app_instance = entity::App::new(app.handle());
             let storage = Storage::new()?;
             app.manage(StorageState(Mutex::new(storage), Mutex::new(app_instance)));

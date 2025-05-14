@@ -82,18 +82,21 @@ impl<T: Clone + Send + 'static> SafeCache<T> {
 }
 
 // 事件缓存类型定义
+#[allow(dead_code)]
 pub type EventCache = SafeCache<crate::entity::event::FEvent>;
 pub type EventListCache = SafeCache<Vec<crate::entity::event::FEvent>>;
 pub type EventContentCache = SafeCache<String>;
 pub type ListCache = SafeCache<Vec<crate::entity::list::FList>>;
 
 // 全局缓存实例
+#[allow(dead_code)]
 pub static EVENT_CACHE: Lazy<EventCache> = Lazy::new(|| SafeCache::new(300)); // 单个事件缓存
 pub static EVENT_LIST_CACHE: Lazy<EventListCache> = Lazy::new(|| SafeCache::new(300)); // 事件列表缓存
 pub static EVENT_CONTENT_CACHE: Lazy<EventContentCache> = Lazy::new(|| SafeCache::new(300)); // 事件内容缓存
 pub static LIST_CACHE: Lazy<ListCache> = Lazy::new(|| SafeCache::new(300)); // 列表缓存
 
 // 清除所有缓存
+#[allow(dead_code)]
 pub fn clear_all_caches() {
     EVENT_CACHE.clear();
     EVENT_LIST_CACHE.clear();
