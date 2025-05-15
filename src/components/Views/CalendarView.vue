@@ -57,19 +57,8 @@ export default defineComponent({
         // 使用eventStore
         // const eventStore = useEventStore();
         
-        // 日历事件 - 明确类型
-        type CalendarEvent = {
-            id: string;
-            title: string;
-            start: Date | string;
-            end?: Date | string;
-            allDay?: boolean;
-            startStr?: string;
-            endStr?: string;
-            [key: string]: any;
-        };
         
-        const currentEvents = ref<CalendarEvent[]>([]);
+        const currentEvents = ref<EventApi[]>([]);
         
         // 在组件挂载时加载所有事件
         onMounted(async () => {
@@ -79,10 +68,7 @@ export default defineComponent({
         
         // 加载日历事件
         const loadCalendarEvents = async () => {
-            // 从eventStore获取所有事件
-            // 这里模拟从store获取事件的逻辑
-            // 实际项目中应该使用store的方法获取真实数据
-            // 例如: await eventStore.fetchAllEvents();
+            
         };
         
         // 处理日期选择
@@ -142,15 +128,7 @@ export default defineComponent({
         // 处理事件集合变化
         const handleEvents = (events: EventApi[]) => {
             // 将EventApi类型的数组转换为CalendarEvent类型的数组
-            currentEvents.value = events.map(event => ({
-                id: event.id,
-                title: event.title,
-                start: event.start || new Date(),
-                end: event.end || undefined, // 将null转换为undefined
-                allDay: event.allDay,
-                startStr: event.startStr,
-                endStr: event.endStr
-            }));
+            currentEvents.value = events;
         };
         
         // 日历配置

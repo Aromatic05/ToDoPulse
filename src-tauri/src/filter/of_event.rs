@@ -18,10 +18,9 @@ pub fn map_filter(filter: &str)->Result<Filter<Event>> {
         "next_week" => Ok(A(|event| next_week_filter(event))),
         date_str => {
             let date = NaiveDate::parse_from_str(date_str, "%Y-%m-%d")
-                .map_err(|_| anyhow::anyhow!("Invalid date format"))?;
+                .map_err(|_| anyhow::anyhow!("Invalid date filter"))?;
             Ok(B(Box::new(move |event| time_filter(date, &event))))
         }
-        _ =>  Err(anyhow::anyhow!("Invalid filter")),
     }
 } 
 

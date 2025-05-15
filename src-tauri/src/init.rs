@@ -3,6 +3,7 @@ use crate::function::{notify, sync};
 use crate::utils::logs;
 use crate::utils::manager::tasker;
 use crate::utils::AppPaths;
+use crate::utils::config;
 use anyhow::Result;
 use tauri::Manager;
 use tokio::sync::Mutex;
@@ -17,6 +18,9 @@ pub async fn initialize_app(app: &tauri::App) -> Result<()> {
 
     // 设置通知
     notify::setup().await;
+
+    // 读取配置文件
+    config::parse()?;
 
     // 初始化任务管理器
     tasker::init_task_manager();

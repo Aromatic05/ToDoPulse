@@ -289,19 +289,20 @@ mod tests {
   
   #[tokio::test]
   async fn test_get_all() {
+    const MAX_LISTS: usize = 10000;
     let start = Instant::now();
     let (state, _temp_dir) = setup();
     let mut guard = state.0.lock().await;
     let storage = guard.deref_mut();
     
     // Add multiple items
-    for i in 1..=5 {
+    for i in 1..=MAX_LISTS {
       let list = List::new(&format!("List {}", i), "icon.png");
       Repository::<List>::add(storage, &list).unwrap();
     }
-    
+    println!("Added {} lists in: {:?}", MAX_LISTS, start.elapsed());
     let all_lists = Repository::<List>::get_all(storage).unwrap();
-    assert_eq!(all_lists.len(), 5);
+    assert_eq!(all_lists.len(), MAX_LISTS);
     
     println!("test_get_all completed in: {:?}", start.elapsed());
   }

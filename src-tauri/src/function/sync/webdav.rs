@@ -419,7 +419,6 @@ mod tests {
 
         if let Ok(state) = result {
             // 验证状态包含条目 (假设根目录非空)
-            assert!(state.entry_count() >= 0, "Collected state should have non-negative entry count"); // 即使为空也是 >= 0
             eprintln!(
                 "收集到 {} 个条目 ({} 文件, {} 目录) 从 {}",
                 state.entry_count(),
