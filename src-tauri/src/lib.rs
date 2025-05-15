@@ -49,7 +49,6 @@ pub fn run() -> std::io::Result<()> {
             sync::test_webdav_connection,
             sync::sync_now,
             sync::get_sync_status,
-            sync::update_sync_config,
         ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");

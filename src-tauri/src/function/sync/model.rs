@@ -319,6 +319,7 @@ impl SyncSession {
     }
 
     /// 会话失败
+    #[allow(dead_code)]
     pub fn fail(&mut self, error: String) {
         self.status = SyncSessionStatus::Failed;
         self.error = Some(error);
@@ -326,6 +327,7 @@ impl SyncSession {
     }
 
     /// 中止会话
+    #[allow(dead_code)]
     pub fn abort(&mut self, reason: String) {
         self.status = SyncSessionStatus::Aborted;
         self.error = Some(reason);

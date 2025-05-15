@@ -145,14 +145,6 @@ pub fn get_webdav_config() -> Result<WebDav> {
     Err(anyhow::anyhow!("WebDAV configuration not found").into())
 }
 
-pub fn get_sync_interval() -> u64 {
-    let config_lock = CONFIG.lock().unwrap();
-    if let Some(config) = &*config_lock {
-        return config.webdav.sync_interval;
-    }
-    30 // 默认30分钟
-}
-
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -206,10 +198,10 @@ mod tests {
         name = "test-model"
         tokens = "1024"
         [webdav]
-        enabled = false
-        host = "https://example.com"
-        username = "user"
-        password = "password"
+        enabled = true
+        host = "https://webdav-1690957.pd1.123pan.cn/webdav/webdav"
+        username = "username"
+        password = "passwd"
         remote_dir = "/ToDoPulse"
         sync_interval = 30
         "#;
@@ -219,34 +211,12 @@ mod tests {
         
         // 使用自定义路径解析配置
         parse_with_path(Some(&config_dir)).unwrap();
-        
+        let webdav_config = get_webdav_config().unwrap();
+
         assert_eq!(use_llm(), false);
         assert_eq!(get_api_key().unwrap(), "test-model");
         assert_eq!(use_info(), false);
         assert_eq!(info_time(), vec!["0 10 * * *"]);
-    }
-
-    #[test]
-    fn test_get_webdav_config() {
-        let config_dir = setup_test_env();
-
-        let config_content = r#"
-        [webdav]
-        enabled = true
-        host = "https://webdav-1690957.pd1.123pan.cn/webdav/webdav"
-        username = "username"
-        password = "passwd"
-        remote_dir = "/ToDoPulse"
-        sync_interval = 30
-        "#;
-        fs::create_dir_all(&config_dir).unwrap();
-        fs::write(config_dir.join(CONFIG_FILE), config_content).unwrap();
-        parse_with_path(Some(&config_dir)).unwrap();
-        
-        let webdav_config = get_webdav_config().unwrap();
-
-        print!("webdav_config: {:?}", webdav_config);
-        
         assert_eq!(webdav_config.enabled, true);
         assert_eq!(webdav_config.host, "https://webdav-1690957.pd1.123pan.cn/webdav/webdav");
     }
