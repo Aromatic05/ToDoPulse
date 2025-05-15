@@ -6,14 +6,14 @@
             <v-col cols="12" md="8" class="d-flex">
                 <v-card class="pa-4 flex-grow-1">
                     <v-card-title>所有标签</v-card-title>
-                    <v-card-text class="flex-grow-1 d-flex flex-column">
-                        <v-chip-group>
+                    <v-card-text>
+                        <div class="d-flex flex-wrap">
                             <v-chip v-for="tag in tags" :key="tag.id" :color="tag.color" closable
-                                @click:close="removeTag(tag.id)" class="ma-1">
+                                @click:close="removeTag(tag.id)" @click="openTagModal(tag)" class="ma-1" variant="tonal">
                                 {{ tag.name }}
                                 <span class="ms-2 text-caption">({{ tag.count }})</span>
                             </v-chip>
-                        </v-chip-group>
+                        </div>
                     </v-card-text>
                 </v-card>
             </v-col>
@@ -38,7 +38,7 @@
 
                             <div class="mb-4">
                                 <label class="text-subtitle-2 mb-2 d-block">标签预览</label>
-                                <v-chip :color="newTag.color" class="ma-1">
+                                <v-chip :color="newTag.color" class="ma-1" variant="tonal">
                                     {{ newTag.name || '标签预览' }}
                                 </v-chip>
                             </div>
@@ -53,11 +53,15 @@
                 </v-card>
             </v-col>
         </v-row>
+        
+        <!-- Add the TagModal component -->
+        <TagModal v-model="showTagModal" :tag="selectedTag" @save="updateTag" />
     </div>
 </template>
 
 <script setup lang="ts">
 import { ref, computed } from 'vue'
+import TagModal from '@/components/Modals/TagModal.vue';
 
 const tags = ref([
     { id: 1, name: '工作', color: 'primary', count: 5 },
@@ -81,6 +85,9 @@ const availableColors = [
     'error'
 ]
 
+// Add new refs for the modal
+const showTagModal = ref(false);
+const selectedTag = ref({ id: 0, name: '', color: 'primary', count: 0 });
 
 function getColorValue(color: string): string {
     // 这里可以根据需要返回实际的颜色值
@@ -105,6 +112,20 @@ function addTag() {
             count: 0
         })
         newTag.value.name = ''
+    }
+}
+
+// Function to open the tag modal
+function openTagModal(tag: { id: number; name: string; color: string; count: number; } | { id: number; name: string; color: string; count: number; }) {
+    selectedTag.value = { ...tag };
+    showTagModal.value = true;
+}
+
+// Function to update the tag when saved
+function updateTag(updatedTag: { id: number; name: string; color: string; count: number; }) {
+    const index = tags.value.findIndex(tag => tag.id === updatedTag.id);
+    if (index !== -1) {
+        tags.value[index] = updatedTag;
     }
 }
 </script>
