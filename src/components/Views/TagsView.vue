@@ -8,8 +8,9 @@
                     <v-card-title>所有标签</v-card-title>
                     <v-card-text>
                         <div class="d-flex flex-wrap">
-                            <v-chip v-for="tag in tags" :key="tag.id" :color="tag.color" closable
-                                @click:close="removeTag(tag.id)" @click="openTagModal(tag)" class="ma-1" variant="tonal">
+                            <v-chip v-for="tag in tags" :key="tag.id" :color="tag.color" @click="openTagModal(tag)"
+                                @contextmenu.prevent="showContextMenu(tag, $event.currentTarget)" class="ma-1"
+                                variant="tonal">
                                 {{ tag.name }}
                                 <span class="ms-2 text-caption">({{ tag.count }})</span>
                             </v-chip>
@@ -53,15 +54,20 @@
                 </v-card>
             </v-col>
         </v-row>
-        
+
         <!-- Add the TagModal component -->
         <TagModal v-model="showTagModal" :tag="selectedTag" @save="updateTag" />
+
+        <!-- Add the TagContextMenu component -->
+        <TagContextMenu v-model:show="contextMenu.show" :activator-element="contextMenu.activatorElement"
+            :target-tag="contextMenu.targetTag" @rename="renameTag" @delete="deleteTag" />
     </div>
 </template>
 
 <script setup lang="ts">
-import { ref, computed } from 'vue'
+import { ref, nextTick, reactive } from 'vue'
 import TagModal from '@/components/Modals/TagModal.vue';
+import TagContextMenu from '@/components/TagContextMenu.vue';
 
 const tags = ref([
     { id: 1, name: '工作', color: 'primary', count: 5 },
@@ -126,6 +132,40 @@ function updateTag(updatedTag: { id: number; name: string; color: string; count:
     const index = tags.value.findIndex(tag => tag.id === updatedTag.id);
     if (index !== -1) {
         tags.value[index] = updatedTag;
+    }
+}
+
+// Context menu state
+const contextMenu = reactive({
+    show: false,
+    targetTag: undefined as { id: number; name: string; color: string; count: number; } | undefined,
+    activatorElement: undefined as HTMLElement | undefined
+});
+
+// Function to show context menu
+async function showContextMenu(tag: { id: number; name: string; color: string; count: number; }, element: HTMLElement) {
+    if (contextMenu.show) {
+        contextMenu.show = false;
+        await nextTick();
+    }
+    contextMenu.targetTag = { ...tag };
+    contextMenu.activatorElement = element;
+    contextMenu.show = true;
+}
+
+// Handle tag renaming
+function renameTag(id: number, newName: string) {
+    const index = tags.value.findIndex(tag => tag.id === id);
+    if (index !== -1) {
+        tags.value[index].name = newName;
+    }
+}
+
+// Handle tag deletion
+function deleteTag(id: number) {
+    const index = tags.value.findIndex(tag => tag.id === id);
+    if (index !== -1) {
+        tags.value.splice(index, 1);
     }
 }
 </script>
