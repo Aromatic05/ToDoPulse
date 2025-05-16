@@ -1,4 +1,3 @@
-use crate::function::sync::model::{EntryState, FileSystemState};
 use crate::function::sync::webdav::{
     create_client, test_connection, ensure_remote_dir_exists, upload_file, download_file,
     collect_remote_state, normalize_path,
@@ -130,7 +129,7 @@ async fn test_upload_and_download_file() -> Result<()> {
 
     // 使用一个随机名称的远程路径
     let remote_path = format!("/test_upload_file_{}.txt", Utc::now().format("%Y%m%d%H%M%S"));
-     eprintln!("测试上传文件到远程路径: {}", remote_path);
+    eprintln!("测试上传文件到远程路径: {}", remote_path);
 
     // 上传文件
     let result = upload_file(&client, &file_path, &remote_path).await;
@@ -138,7 +137,7 @@ async fn test_upload_and_download_file() -> Result<()> {
 
     // 下载文件到另一个临时位置
     let download_path = temp_dir.path().join("downloaded_test_file.txt");
-     eprintln!("测试从远程路径下载文件到: {}", download_path.display());
+    eprintln!("测试从远程路径下载文件到: {}", download_path.display());
 
     let result = download_file(&client, &remote_path, &download_path).await;
     assert!(result.is_ok(), "Failed to download file: {:?}", result.err());

@@ -1,3 +1,5 @@
+#![allow(dead_code)]
+
 use anyhow::Result;
 use once_cell::sync::Lazy;
 use serde::Deserialize;
@@ -11,7 +13,6 @@ use crate::utils::path::AppPaths;
 const CONFIG_FILE: &str = "config.toml";
 
 #[derive(Deserialize, Clone, Debug)]
-#[allow(dead_code)]
 pub struct WebDav {
     pub enabled: bool,
     pub host: String,
@@ -22,25 +23,21 @@ pub struct WebDav {
 }
 
 #[derive(Deserialize)]
-#[allow(dead_code)]
 struct Theme {
     color: String,
 }
 #[derive(Deserialize)]
-#[allow(dead_code)]
 struct Model {
     switch: bool,
     name: String,
     tokens: String,
 }
-#[derive(Deserialize)]
-#[allow(dead_code)]
-struct Info {
-    switch: bool,
-    time: Option<Vec<String>>,
+#[derive(Deserialize, Clone)]
+pub struct Info {
+    pub switch: bool,
+    pub time: Option<Vec<String>>,
 }
 #[derive(Deserialize)]
-#[allow(dead_code)]
 struct Config {
     theme: Theme,
     info: Info,
@@ -117,22 +114,13 @@ pub fn use_llm() -> bool {
     false
 }
 
-pub fn use_info() -> bool {
+pub fn info() -> Result<Info> {
     let config_lock = CONFIG.lock().unwrap();
     if let Some(config) = &*config_lock {
-        return config.info.switch;
+        return Ok(config.info.clone());
     }
-    false
-}
-
-pub fn info_time() -> Vec<String> {
-    let config_lock = CONFIG.lock().unwrap();
-    if let Some(config) = &*config_lock {
-        if let Some(time) = &config.info.time {
-            return time.clone();
-        }
-    }
-    vec![]
+    log::error!("Info config not found");
+    Err(anyhow::anyhow!("Info config not found").into())
 }
 
 /// 获取WebDAV配置
@@ -142,6 +130,7 @@ pub fn get_webdav_config() -> Result<WebDav> {
         // 返回WebDav结构体的克隆值
         return Ok(config.webdav.clone());
     }
+    log::error!("WebDAV configuration not found");
     Err(anyhow::anyhow!("WebDAV configuration not found").into())
 }
 
@@ -194,7 +183,7 @@ mod tests {
         switch = false
         time = ["0 10 * * *"]
         [model]
-        switch = false
+        switch = true
         name = "test-model"
         tokens = "1024"
         [webdav]
@@ -213,10 +202,8 @@ mod tests {
         parse_with_path(Some(&config_dir)).unwrap();
         let webdav_config = get_webdav_config().unwrap();
 
-        assert_eq!(use_llm(), false);
+        assert_eq!(use_llm(), true);
         assert_eq!(get_api_key().unwrap(), "test-model");
-        assert_eq!(use_info(), false);
-        assert_eq!(info_time(), vec!["0 10 * * *"]);
         assert_eq!(webdav_config.enabled, true);
         assert_eq!(webdav_config.host, "https://webdav-1690957.pd1.123pan.cn/webdav/webdav");
     }

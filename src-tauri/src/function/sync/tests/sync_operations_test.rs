@@ -123,7 +123,6 @@ fn create_test_diff() -> DiffResult {
 #[tokio::test]
 async fn test_create_sync_session() -> Result<()> {
     // 检查WebDAV配置是否有效
-    let llm = use_llm();
     let webdav_config = get_webdav_config()?;
 
     println!("WebDAV配置: {:?}", webdav_config);
@@ -306,7 +305,7 @@ async fn test_collect_states() -> Result<()> {
     // 验证结果
     assert!(result.is_ok(), "状态收集失败: {:?}", result.err());
 
-    let (local_state, remote_state) = result?;
+    let (local_state, _remote_state) = result?;
 
     // 验证本地状态
     assert!(local_state.entry_count() > 0);
