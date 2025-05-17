@@ -1,5 +1,3 @@
-// #![allow(dead_code)]
-
 use anyhow::Result;
 use once_cell::sync::Lazy;
 use serde::{Deserialize, Serialize};
