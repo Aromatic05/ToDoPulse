@@ -1,18 +1,40 @@
-#![allow(dead_code)]
+// #![allow(dead_code)]
 
 use anyhow::Result;
 use once_cell::sync::Lazy;
-use serde::Deserialize;
+use serde::{Deserialize, Serialize};
 use std::fs;
 use std::sync::Mutex;
 use std::path::{Path, PathBuf};
 use toml;
+use ts_rs::TS;
 
 use crate::utils::path::AppPaths;
+use crate::error::ErrorKind;
 
 const CONFIG_FILE: &str = "config.toml";
+const DEFAULT_CONFIG: &str = r#"
+[theme]
+color = "blue"
+[info]
+switch = false
+time = ["0 12 * * *", "0 13 * * *"]
+[model]
+switch = false
+name = "deepseek-v3"
+tokens = "4096"
+[webdav]
+enabled = false
+host = "https://example.com"
+username = "user"
+password = "password"
+remote_dir = "/ToDoPulse"
+sync_interval = 30
+"#;
 
-#[derive(Deserialize, Clone, Debug)]
+static CONFIG: Lazy<Mutex<Option<Config>>> = Lazy::new(|| Mutex::new(None));
+
+#[derive(Deserialize, Serialize, Clone, TS)]
 pub struct WebDav {
     pub enabled: bool,
     pub host: String,
@@ -22,22 +44,22 @@ pub struct WebDav {
     pub sync_interval: u64,
 }
 
-#[derive(Deserialize)]
-struct Theme {
+#[derive(Deserialize, Serialize, Clone, TS)]
+pub struct Theme {
     color: String,
 }
-#[derive(Deserialize)]
-struct Model {
+#[derive(Deserialize, Serialize, Clone, TS)]
+pub struct Model {
     switch: bool,
     name: String,
     tokens: String,
 }
-#[derive(Deserialize, Clone)]
+#[derive(Deserialize,Serialize , Clone, TS)]
 pub struct Info {
     pub switch: bool,
     pub time: Option<Vec<String>>,
 }
-#[derive(Deserialize)]
+#[derive(Deserialize, Serialize)]
 struct Config {
     theme: Theme,
     info: Info,
@@ -45,10 +67,57 @@ struct Config {
     webdav: WebDav,
 }
 
-static CONFIG: Lazy<Mutex<Option<Config>>> = Lazy::new(|| Mutex::new(None));
+#[derive(Clone, TS, Deserialize, Serialize)]
+#[ts(export)]
+pub enum ConfigField {
+    Theme(Theme),
+    Info(Info),
+    Model(Model),
+    WebDav(WebDav),
+}
+
+impl ConfigField {
+    fn apply(&self, config: &mut Config) {
+        match self {
+            ConfigField::Theme(theme) => config.theme = theme.clone(),
+            ConfigField::Info(info) => config.info = info.clone(),
+            ConfigField::Model(model) => config.model = model.clone(),
+            ConfigField::WebDav(webdav) => config.webdav = webdav.clone(),
+        }
+    }
+} 
 
 pub fn parse() -> Result<()> {
     parse_with_path::<PathBuf>(None)
+}
+
+#[tauri::command]
+pub fn update_config(field: ConfigField) -> Result<(), ErrorKind> {
+    let mut config_lock = CONFIG.lock().unwrap();
+    if let Some(config) = &mut *config_lock {
+        field.apply(config);
+        write_config()?;
+        log::info!("Config updated");
+        Ok(())
+    } else {
+        log::error!("Config not found");
+        Err(anyhow::anyhow!("Config not found").into())
+    }
+}
+
+pub fn write_config() -> Result<()> {
+    let config_path = AppPaths::config_dir().join(CONFIG_FILE);
+    let config_lock = CONFIG.lock().unwrap();
+    if let Some(config) = &*config_lock {
+        fs::write(
+            &config_path,
+            toml::to_string(config)?,
+        )?;
+        Ok(())
+    } else {
+        log::error!("Config not found");
+        Err(anyhow::anyhow!("no config to write"))
+    }
 }
 
 pub fn parse_with_path<P: AsRef<Path>>(custom_path: Option<P>) -> Result<()> {
@@ -56,10 +125,8 @@ pub fn parse_with_path<P: AsRef<Path>>(custom_path: Option<P>) -> Result<()> {
         Some(path) => {
             let path_buf = PathBuf::from(path.as_ref());
             if path_buf.is_dir() {
-                // 如果是目录，则在目录下查找配置文件
                 path_buf.join(CONFIG_FILE)
             } else {
-                // 如果已经是文件路径，则直接使用
                 path_buf
             }
         },
@@ -70,24 +137,7 @@ pub fn parse_with_path<P: AsRef<Path>>(custom_path: Option<P>) -> Result<()> {
         fs::create_dir_all(config_path.parent().unwrap())?;
         fs::write(
             &config_path,
-            r#"
-          [theme]
-          color = "blue"
-          [info]
-          switch = false
-          time = ["0 12 * * *", "0 13 * * *"]
-          [model]
-          switch = false
-          name = "deepseek-v3"
-          tokens = "4096"
-          [webdav]
-          enabled = false
-          host = "https://example.com"
-          username = "user"
-          password = "password"
-          remote_dir = "/ToDoPulse"
-          sync_interval = 30
-          "#,
+            DEFAULT_CONFIG,
         )?;
     }
     let config_str = fs::read_to_string(&config_path)?;

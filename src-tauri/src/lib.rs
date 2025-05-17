@@ -8,6 +8,7 @@ mod utils; // 通用工具函数
 
 use entity::{event, list, tag};
 use function::{export, sync};
+use utils::config;
 use tauri_plugin_dialog;
 
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
@@ -49,6 +50,7 @@ pub fn run() -> std::io::Result<()> {
             sync::test_webdav_connection,
             sync::sync_now,
             sync::get_sync_status,
+            config::update_config,
         ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");
