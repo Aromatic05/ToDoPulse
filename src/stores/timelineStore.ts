@@ -20,6 +20,8 @@ export const useTimelineStore = defineStore('timeline', () => {
     NEXT_WEEK: 'next_week',
   } as const
 
+  const showedTimelineGroups = reactive<TimelineGroup[]>([]);
+
   // 状态
   const timelineGroups = reactive<TimelineGroup[]>([
     {
@@ -71,7 +73,13 @@ export const useTimelineStore = defineStore('timeline', () => {
         Object.keys(timeMap).map(async (time) => {
           const dateGroup = timeMap[time as keyof typeof timeMap]
           try {
-            const groupEvents = await invoke('filter_events', { filter: dateGroup })
+            const groupEvents:FEvent[] = await invoke('filter_events', { filter: dateGroup })
+            if (groupEvents.length){
+              const matchedGroup = timelineGroups.find(group => group.dateGroup === dateGroup);
+              if (matchedGroup) {
+                showedTimelineGroups.push(matchedGroup);
+              }
+            }
             events.value[dateGroup] = groupEvents as FEvent[]
           } catch (err) {
             console.error(`获取${dateGroup}事件失败:`, err)
@@ -160,6 +168,7 @@ export const useTimelineStore = defineStore('timeline', () => {
   return {
     // 状态
     timelineGroups,
+    showedTimelineGroups,
     events,
     dataInitialized,
     isLoading,

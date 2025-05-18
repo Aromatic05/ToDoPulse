@@ -2,7 +2,7 @@
     <div class="timeline-view">
         <v-timeline side="end" align="start" class="timeline-force-left" line-color=var(--md-sys-color-outline)>
 
-            <template v-for="group in timelineGroups" :key="group.id">
+            <template v-for="group in showedTimelineGroups" :key="group.id">
                 <!-- 时间线组标题 - 从服务获取 -->
                 <v-timeline-item :dot-color="group.color" size="large" fill-dot>
                     <template v-slot:icon>
@@ -36,11 +36,11 @@ import { useTimelineStore } from '@/stores'
 
 // 使用Pinia store管理时间线数据
 const timelineStore = useTimelineStore();
-const timelineGroups = computed(() => timelineStore.timelineGroups);
+const showedTimelineGroups = computed(() => timelineStore.showedTimelineGroups);
 // const isLoading = computed(() => timelineStore.isLoading);
 const groupItems = computed(() => {
   const result: Record<string, FEvent[]> = {};
-  for (const group of timelineGroups.value) {
+  for (const group of showedTimelineGroups.value) {
     result[group.dateGroup] = timelineStore.getGroupItems(group.dateGroup);
   }
   return result;
