@@ -25,6 +25,9 @@ export const useSettingStore = defineStore('settings', () => {
   const exportableEvents = ref<FEvent[]>([])
 
   // 操作
+  /**
+   * 加载应用设置
+   */
   async function loadSettings() {
     isLoading.value = true
     error.value = null
@@ -43,6 +46,10 @@ export const useSettingStore = defineStore('settings', () => {
     }
   }
 
+  /**
+   * 保存应用设置
+   * @returns 保存是否成功
+   */
   async function saveSettings() {
     isLoading.value = true
     error.value = null
@@ -64,6 +71,10 @@ export const useSettingStore = defineStore('settings', () => {
     }
   }
 
+  /**
+   * 获取默认导出路径
+   * @returns 默认导出路径字符串
+   */
   async function getDefaultExportPath() {
     try {
       return await invoke<string>('get_export_directory')
@@ -74,6 +85,12 @@ export const useSettingStore = defineStore('settings', () => {
     }
   }
 
+  /**
+   * 选择文件保存路径
+   * @param suggestedName 建议的文件名
+   * @param extension 文件扩展名
+   * @returns 选择的文件路径或null
+   */
   async function selectSavePath(suggestedName: string, extension: string) {
     try {
       const result = await invoke<string | null>('select_save_path', {
@@ -88,6 +105,10 @@ export const useSettingStore = defineStore('settings', () => {
     }
   }
 
+  /**
+   * 获取可导出的所有事件
+   * @returns 可导出的事件数组
+   */
   async function fetchExportableEvents() {
     isLoading.value = true
     error.value = null
@@ -105,6 +126,12 @@ export const useSettingStore = defineStore('settings', () => {
     }
   }
 
+  /**
+   * 导出所有事件
+   * @param format 导出格式
+   * @param customPath 自定义保存路径
+   * @returns 保存的文件路径
+   */
   async function exportAllEvents(format: ExportFormat, customPath?: string) {
     isLoading.value = true
     error.value = null
@@ -147,6 +174,13 @@ export const useSettingStore = defineStore('settings', () => {
     }
   }
 
+  /**
+   * 导出选定的事件
+   * @param eventIds 事件ID数组
+   * @param format 导出格式
+   * @param customPath 自定义保存路径
+   * @returns 保存的文件路径
+   */
   async function exportEvents(eventIds: string[], format: ExportFormat, customPath?: string) {
     isLoading.value = true
     error.value = null
@@ -180,6 +214,13 @@ export const useSettingStore = defineStore('settings', () => {
     }
   }
 
+  /**
+   * 导出单个事件
+   * @param eventId 事件ID
+   * @param format 导出格式
+   * @param customPath 自定义保存路径
+   * @returns 保存的文件路径
+   */
   async function exportSingleEvent(eventId: string, format: ExportFormat, customPath?: string) {
     isLoading.value = true
     error.value = null

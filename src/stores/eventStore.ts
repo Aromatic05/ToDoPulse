@@ -61,6 +61,12 @@ export const useEventStore = defineStore('events', () => {
   })
 
   // 操作
+  /**
+   * 获取指定列表的事件
+   * @param listId 列表ID
+   * @param loadMore 是否加载更多，默认为false
+   * @returns 更新后的事件数组
+   */
   async function fetchEventsByListId(listId: string, loadMore: boolean = false) {
     isLoading.value = true
     error.value = null
@@ -95,6 +101,13 @@ export const useEventStore = defineStore('events', () => {
     }
   }
 
+  /**
+   * 添加新事件
+   * @param listId 列表ID
+   * @param title 事件标题
+   * @param priority 事件优先级，默认为Medium
+   * @param timestamp 时间戳，默认为当前时间
+   */
   async function addEvent(listId: string, title: string, priority: Priority = "Medium", timestamp: string = Date.now().toString()) {
     isLoading.value = true
     error.value = null
@@ -125,6 +138,11 @@ export const useEventStore = defineStore('events', () => {
     }
   }
 
+  /**
+   * 更新事件
+   * @param fEvent 要更新的事件对象
+   * @returns 更新后的事件列表
+   */
   async function updateEvent(fEvent: FEvent) {
     isLoading.value = true
     error.value = null
@@ -150,6 +168,12 @@ export const useEventStore = defineStore('events', () => {
     }
   }
 
+  /**
+   * 删除事件
+   * @param eventId 事件ID
+   * @param listId 列表ID
+   * @returns 删除后的事件列表
+   */
   async function deleteEvent(eventId: string, listId: string) {
     isLoading.value = true
     error.value = null
@@ -176,6 +200,11 @@ export const useEventStore = defineStore('events', () => {
     }
   }
 
+  /**
+   * 获取事件内容
+   * @param eventId 事件ID
+   * @returns 事件内容字符串
+   */
   async function getEventContent(eventId: string) {
     isLoading.value = true
     error.value = null
@@ -194,6 +223,12 @@ export const useEventStore = defineStore('events', () => {
     }
   }
 
+  /**
+   * 保存事件内容
+   * @param eventId 事件ID
+   * @param content 要保存的事件内容
+   * @returns 保存后的内容
+   */
   async function saveEventContent(eventId: string, content: string) {
     isLoading.value = true
     error.value = null
@@ -216,12 +251,17 @@ export const useEventStore = defineStore('events', () => {
     }
   }
 
+  /**
+   * 清除当前选中的事件
+   */
   function clearSelectedEvent() {
     selectedEventId.value = null
     selectedEventContent.value = ''
   }
 
-  // 清除所有缓存
+  /**
+   * 清除所有缓存
+   */
   function clearCache() {
     events.value.clear()
     pageInfo.value.clear()

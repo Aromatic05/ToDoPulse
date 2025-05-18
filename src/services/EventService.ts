@@ -24,6 +24,10 @@ export class EventService {
 
   private constructor() {}
 
+  /**
+   * 获取EventService单例实例
+   * @returns EventService的单例实例
+   */
   static getInstance(): EventService {
     if (!EventService.instance) {
       EventService.instance = new EventService()
@@ -31,7 +35,12 @@ export class EventService {
     return EventService.instance
   }
 
-  // 获取列表事件（支持分页）
+  /**
+   * 获取列表事件（支持分页）
+   * @param listId 列表ID
+   * @param page 页码，默认为1
+   * @returns 包含事件数组和是否有更多数据的对象
+   */
   async getEventsByListId(listId: string, page: number = 1): Promise<{ events: FEvent[], hasMore: boolean }> {
     const cacheKey = `${listId}`
     const cache = this.eventCache.get(cacheKey)
@@ -93,7 +102,11 @@ export class EventService {
     }
   }
 
-  // 获取事件内容
+  /**
+   * 获取事件内容
+   * @param eventId 事件ID
+   * @returns 事件内容字符串
+   */
   async getEventContent(eventId: string): Promise<string> {
     const cache = this.contentCache.get(eventId)
     const now = Date.now()
@@ -120,7 +133,13 @@ export class EventService {
     }
   }
 
-  // 添加事件
+  /**
+   * 添加事件
+   * @param listId 列表ID
+   * @param title 事件标题
+   * @param priority 事件优先级，默认为Medium
+   * @param timestamp 时间戳，默认为当前时间
+   */
   async addEvent(listId: string, title: string, priority: Priority = "Medium", timestamp: string = Date.now().toString()): Promise<void> {
     try {
       await invoke('add_event', { listid: listId, title, priority, ddl: timestamp })
@@ -132,7 +151,10 @@ export class EventService {
     }
   }
 
-  // 更新事件
+  /**
+   * 更新事件
+   * @param event 要更新的事件对象
+   */
   async updateEvent(event: FEvent): Promise<void> {
     try {
       await invoke('update_event', { fEvent: event })
@@ -145,7 +167,11 @@ export class EventService {
     }
   }
 
-  // 删除事件
+  /**
+   * 删除事件
+   * @param eventId 事件ID
+   * @param listId 列表ID
+   */
   async deleteEvent(eventId: string, listId: string): Promise<void> {
     try {
       await invoke('delete_event', { uuid: eventId })
@@ -158,7 +184,12 @@ export class EventService {
     }
   }
 
-  // 保存事件内容
+  /**
+   * 保存事件内容
+   * @param eventId 事件ID
+   * @param content 事件内容
+   * @returns 保存的事件内容
+   */
   async saveEventContent(eventId: string, content: string): Promise<string> {
     try {
       await invoke('write_content', { uuid: eventId, content })
@@ -174,17 +205,27 @@ export class EventService {
     }
   }
 
-  // 使列表缓存失效
+  /**
+   * 使列表缓存失效
+   * @param listId 列表ID
+   * @private
+   */
   private invalidateListCache(listId: string): void {
     this.eventCache.delete(listId)
   }
 
-  // 使内容缓存失效
+  /**
+   * 使内容缓存失效
+   * @param eventId 事件ID
+   * @private
+   */
   private invalidateContentCache(eventId: string): void {
     this.contentCache.delete(eventId)
   }
 
-  // 清除所有缓存
+  /**
+   * 清除所有缓存
+   */
   clearAllCache(): void {
     this.eventCache.clear()
     this.contentCache.clear()

@@ -62,6 +62,9 @@ export const useTimelineStore = defineStore('timeline', () => {
   })
 
   // 操作
+  /**
+   * 获取时间线上的所有事件
+   */
   async function fetchEvents() {
     if (dataInitialized.value) return
     
@@ -98,6 +101,12 @@ export const useTimelineStore = defineStore('timeline', () => {
     }
   }
 
+  /**
+   * 更新时间线上的事件
+   * @param updatedData 更新后的事件数据
+   * @param dateGroup 日期分组
+   * @returns 更新是否成功
+   */
   async function updateEvent(updatedData: FEvent, dateGroup: string) {
     isLoading.value = true
     error.value = null
@@ -125,6 +134,12 @@ export const useTimelineStore = defineStore('timeline', () => {
     }
   }
   
+  /**
+   * 格式化卡片数据，确保tags包含dateGroup
+   * @param item 事件对象
+   * @param dateGroup 日期分组
+   * @returns 格式化后的事件对象
+   */
   function formatCardData(item: FEvent, dateGroup: string): FEvent {
     // 确保tags包含dateGroup
     const tag = [...(item.tag || [])]
@@ -138,6 +153,11 @@ export const useTimelineStore = defineStore('timeline', () => {
     }
   }
 
+  /**
+   * 获取颜色变量对应的CSS变量值
+   * @param color 颜色名称
+   * @returns CSS变量值
+   */
   function getColorVariable(color: string): string {
     const colorMap: Record<string, string> = {
       'primary': 'var(--md-sys-color-primary)',
@@ -150,6 +170,11 @@ export const useTimelineStore = defineStore('timeline', () => {
     return colorMap[color] || 'var(--md-sys-color-on-surface-variant)'
   }
 
+  /**
+   * 按优先级对事件进行排序
+   * @param items 要排序的事件数组
+   * @returns 排序后的事件数组
+   */
   function sortItemsByPriority(items: FEvent[]): FEvent[] {
     const priority: Record<Priority, number> = {
       'High': 3,

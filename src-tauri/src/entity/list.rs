@@ -52,6 +52,18 @@ impl List {
     }
 }
 
+/// Creates a new list in the database
+/// 
+/// Creates a list with the given title and icon, generates a UUID for it,
+/// and stores it in the database.
+/// 
+/// # Parameters
+/// * `state` - Application state containing the database connection
+/// * `title` - Title for the new list
+/// * `icon` - Icon identifier for the new list
+/// 
+/// # Returns
+/// * `Result<FList, ErrorKind>` - The newly created list in frontend format or an error
 #[tauri::command]
 pub async fn new_list(
     state: State<'_, StorageState>,
@@ -76,6 +88,16 @@ pub async fn new_list(
     Ok(f_list)
 }
 
+/// Deletes a list from the database
+/// 
+/// Removes the list with the specified ID from the database and invalidates all related caches.
+/// 
+/// # Parameters
+/// * `state` - Application state containing the database connection
+/// * `listid` - UUID of the list to delete
+/// 
+/// # Returns
+/// * `Result<(), ErrorKind>` - Success or an error if the list couldn't be deleted
 #[tauri::command]
 pub async fn delete_list(state: State<'_, StorageState>, listid: &str) -> Result<(), ErrorKind> {
     let mut guard = state.0.lock().await;
@@ -89,6 +111,16 @@ pub async fn delete_list(state: State<'_, StorageState>, listid: &str) -> Result
     Ok(())
 }
 
+/// Retrieves all lists from the database
+/// 
+/// Fetches all lists from the database and converts them to the frontend format.
+/// Uses caching to improve performance on repeated calls.
+/// 
+/// # Parameters
+/// * `state` - Application state containing the database connection
+/// 
+/// # Returns
+/// * `Result<Vec<FList>, ErrorKind>` - All lists in frontend format or an error
 #[tauri::command]
 pub async fn get_lists(state: State<'_, StorageState>) -> Result<Vec<FList>, ErrorKind> {
     // 先尝试从缓存中获取
@@ -116,6 +148,21 @@ pub async fn get_lists(state: State<'_, StorageState>) -> Result<Vec<FList>, Err
     Ok(f_lists)
 }
 
+/// Retrieves events belonging to a specific list with pagination support
+/// 
+/// Fetches events that belong to the specified list and returns them in frontend format.
+/// Supports pagination to limit the number of events returned. Uses caching to improve
+/// performance on repeated calls.
+/// 
+/// # Parameters
+/// * `state` - Application state containing the database connection
+/// * `listid` - UUID of the list to get events from
+/// * `page` - Optional page number, defaults to 1 if not specified
+/// * `page_size` - Optional number of events per page, defaults to 20 if not specified
+/// 
+/// # Returns
+/// * `Result<Vec<FEvent>, ErrorKind>` - Paginated events in frontend format or an error
+/// * Returns error if the list doesn't exist
 #[tauri::command]
 pub async fn list_content(
     state: State<'_, StorageState>,
@@ -170,6 +217,18 @@ pub async fn list_content(
     }
 }
 
+/// Renames a list
+/// 
+/// Updates the title of the specified list and invalidates relevant caches.
+/// 
+/// # Parameters
+/// * `state` - Application state containing the database connection
+/// * `listid` - UUID of the list to rename
+/// * `new` - New title for the list
+/// 
+/// # Returns
+/// * `Result<(), ErrorKind>` - Success or an error if the list couldn't be renamed
+/// * Returns error if the list doesn't exist
 #[tauri::command]
 pub async fn rename_list(
     state: State<'_, StorageState>,

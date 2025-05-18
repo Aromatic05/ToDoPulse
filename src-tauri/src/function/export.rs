@@ -13,6 +13,18 @@ use std::ops::DerefMut;
 use tauri::State;
 use serde_json;
 
+/// Exports specific events in the requested format
+/// 
+/// Takes a list of event IDs and exports them in the specified format.
+/// Supports exporting to ICS, Markdown, or JSON formats.
+/// 
+/// # Parameters
+/// * `state` - Application state containing the database connection
+/// * `event_ids` - JSON value containing event IDs to export (string or array of strings)
+/// * `fmt` - Format to export to: "ics", "md", or "json"
+/// 
+/// # Returns
+/// * `Result<String, String>` - Exported content as string or error message
 #[tauri::command]
 pub async fn export_events(
     state: State<'_, StorageState>,
@@ -52,6 +64,18 @@ pub async fn export_events(
     }
 }
 
+/// Exports all events from a specific list in the requested format
+/// 
+/// Retrieves all events belonging to the specified list and exports them
+/// in the requested format.
+/// 
+/// # Parameters
+/// * `state` - Application state containing the database connection
+/// * `list_id` - UUID of the list containing events to export
+/// * `fmt` - Format to export to: "ics", "md", or "json"
+/// 
+/// # Returns
+/// * `Result<String, String>` - Exported content as string or error message
 #[tauri::command]
 pub async fn export_list_events(
     state: State<'_, StorageState>,
@@ -65,6 +89,16 @@ pub async fn export_list_events(
         _ => Err("Unsupported format".to_string()),
     }
 }
+/// Exports all events in the database in the requested format
+/// 
+/// Retrieves all events from the database and exports them in the specified format.
+/// 
+/// # Parameters
+/// * `state` - Application state containing the database connection
+/// * `fmt` - Format to export to: "ics", "md", or "json"
+/// 
+/// # Returns
+/// * `Result<String, String>` - Exported content as string or error message
 #[tauri::command]
 pub async fn export_all_events(
     state: State<'_, StorageState>,
@@ -78,6 +112,19 @@ pub async fn export_all_events(
     }
 }
 
+/// Exports events within a specific date range in the requested format
+/// 
+/// Retrieves events that fall within the specified timestamp range and
+/// exports them in the requested format.
+/// 
+/// # Parameters
+/// * `state` - Application state containing the database connection
+/// * `start` - Start timestamp (Unix milliseconds)
+/// * `end` - End timestamp (Unix milliseconds)
+/// * `fmt` - Format to export to: "ics", "md", or "json"
+/// 
+/// # Returns
+/// * `Result<String, String>` - Exported content as string or error message
 #[tauri::command]
 pub async fn export_events_by_date_range(
     state: State<'_, StorageState>,
@@ -93,6 +140,18 @@ pub async fn export_events_by_date_range(
     }
 }
 
+/// Exports events with a specific completion status in the requested format
+/// 
+/// Retrieves events with the specified completion status (completed or not completed)
+/// and exports them in the requested format.
+/// 
+/// # Parameters
+/// * `state` - Application state containing the database connection
+/// * `status` - Completion status to filter by (true = completed, false = not completed)
+/// * `fmt` - Format to export to: "ics", "md", or "json"
+/// 
+/// # Returns
+/// * `Result<String, String>` - Exported content as string or error message
 #[tauri::command]
 pub async fn export_events_by_status(
     state: State<'_, StorageState>,

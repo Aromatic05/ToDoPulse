@@ -89,6 +89,16 @@ pub fn parse() -> Result<()> {
     parse_with_path::<PathBuf>(None)
 }
 
+/// Updates a specific section of the application configuration
+/// 
+/// Modifies the specified configuration field (Theme, Info, Model, or WebDAV)
+/// and writes the updated configuration to disk.
+/// 
+/// # Parameters
+/// * `field` - The configuration field to update, wrapped in the appropriate ConfigField variant
+/// 
+/// # Returns
+/// * `Result<(), ErrorKind>` - Success or an error if the configuration couldn't be updated
 #[tauri::command]
 pub fn update_config(field: ConfigField) -> Result<(), ErrorKind> {
     let mut config_lock = CONFIG.lock().unwrap();

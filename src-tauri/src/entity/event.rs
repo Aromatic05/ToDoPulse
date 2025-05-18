@@ -107,6 +107,20 @@ impl Entity for Event {
     }
 }
 
+/// 添加新事件
+/// 
+/// 创建一个新的事件项并保存到数据库中。根据提供的参数生成事件，
+/// 包括创建事件的Markdown内容文件。会使用AI自动生成标签（如果启用）。
+/// 
+/// # 参数
+/// * `state` - 应用状态，包含数据库访问权限
+/// * `title` - 事件的标题
+/// * `listid` - 可选的列表ID，指定事件所属的列表
+/// * `priority` - 事件优先级
+/// * `ddl` - 事件截止时间，毫秒时间戳字符串
+/// 
+/// # 返回
+/// * `Result<Event, ErrorKind>` - 成功时返回创建的事件对象，失败时返回错误
 #[tauri::command]
 pub async fn add_event(
     state: State<'_, StorageState>,
@@ -147,6 +161,18 @@ pub async fn add_event(
     Ok(new_event.clone())
 }
 
+/// 获取事件内容
+/// 
+/// 根据事件UUID获取事件的Markdown内容。系统会首先从缓存中查找，
+/// 如果缓存未命中，则从数据库获取事件信息，再读取对应的内容文件。
+/// 获取后会更新缓存以提高后续访问速度。
+/// 
+/// # 参数
+/// * `state` - 应用状态，包含数据库访问权限
+/// * `uuid` - 事件的唯一标识符
+/// 
+/// # 返回
+/// * `Result<String, ErrorKind>` - 成功时返回事件的Markdown内容，失败时返回错误
 #[tauri::command]
 pub async fn event_content(state: State<'_, StorageState>, uuid: &str) -> Result<String, ErrorKind> {
     // 从缓存中获取
@@ -169,6 +195,18 @@ pub async fn event_content(state: State<'_, StorageState>, uuid: &str) -> Result
     Ok("".to_string())
 }
 
+/// 写入事件内容
+/// 
+/// 更新指定事件的Markdown内容。系统会先从数据库获取事件信息，
+/// 然后将新内容写入到对应的内容文件中，并更新缓存。
+/// 
+/// # 参数
+/// * `state` - 应用状态，包含数据库访问权限
+/// * `uuid` - 事件的唯一标识符
+/// * `content` - 要写入的新Markdown内容
+/// 
+/// # 返回
+/// * `Result<(), ErrorKind>` - 成功时返回空元组，失败时返回错误
 #[tauri::command]
 pub async fn write_content(
     state: State<'_, StorageState>,
@@ -189,6 +227,17 @@ pub async fn write_content(
     Err(ErrorKind::NotFound)
 }
 
+/// 更新事件
+/// 
+/// 根据前端提供的事件数据更新现有事件。系统会先从数据库获取旧事件，
+/// 然后用新数据更新各个字段，并保存到数据库中。同时会清除相关缓存。
+/// 
+/// # 参数
+/// * `state` - 应用状态，包含数据库访问权限
+/// * `f_event` - 前端事件对象，包含要更新的事件数据
+/// 
+/// # 返回
+/// * `Result<(), ErrorKind>` - 成功时返回空元组，失败时返回错误
 #[tauri::command]
 pub async fn update_event(state: State<'_, StorageState>, f_event: FEvent) -> Result<(), ErrorKind> {
     let mut guard = state.0.lock().await;
@@ -220,6 +269,17 @@ pub async fn update_event(state: State<'_, StorageState>, f_event: FEvent) -> Re
     Err(ErrorKind::NotFound)
 }
 
+/// 删除事件
+/// 
+/// 根据UUID删除指定事件。系统会先获取事件信息以确定其所属列表，
+/// 然后从数据库中删除事件，并清除相关缓存。
+/// 
+/// # 参数
+/// * `state` - 应用状态，包含数据库访问权限
+/// * `uuid` - 要删除的事件的唯一标识符
+/// 
+/// # 返回
+/// * `Result<(), ErrorKind>` - 成功时返回空元组，失败时返回错误
 #[tauri::command]
 pub async fn delete_event(state: State<'_, StorageState>, uuid: &str) -> Result<(), ErrorKind> {
     // 获取事件所属的列表ID
@@ -241,6 +301,17 @@ pub async fn delete_event(state: State<'_, StorageState>, uuid: &str) -> Result<
     Ok(())
 }
 
+/// 过滤事件
+/// 
+/// 根据提供的过滤条件字符串查询符合条件的事件。系统会解析过滤字符串为过滤枚举，
+/// 然后应用对应的过滤函数来筛选事件，最后将结果转换为前端事件对象返回。
+/// 
+/// # 参数
+/// * `state` - 应用状态，包含数据库访问权限
+/// * `filter` - 过滤条件字符串，用于构建过滤函数
+/// 
+/// # 返回
+/// * `Result<Vec<FEvent>, ErrorKind>` - 成功时返回符合条件的前端事件列表，失败时返回错误
 #[tauri::command]
 pub async fn filter_events(
     state: State<'_, StorageState>,

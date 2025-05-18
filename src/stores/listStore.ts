@@ -22,6 +22,10 @@ export const useListStore = defineStore('lists', () => {
   })
 
   // 操作
+  /**
+   * 获取所有列表
+   * @returns 列表数组
+   */
   async function fetchLists() {
     isLoading.value = true
     error.value = null
@@ -50,6 +54,12 @@ export const useListStore = defineStore('lists', () => {
     }
   }
 
+  /**
+   * 创建新列表
+   * @param title 列表标题
+   * @param icon 列表图标，默认为'mdi-format-list-bulleted'
+   * @returns 更新后的列表数组
+   */
   async function createList(title: string, icon: string = 'mdi-format-list-bulleted') {
     isLoading.value = true
     error.value = null
@@ -71,6 +81,12 @@ export const useListStore = defineStore('lists', () => {
     }
   }
 
+  /**
+   * 重命名列表
+   * @param id 列表ID
+   * @param newTitle 新的列表标题
+   * @returns 更新后的列表数组
+   */
   async function renameList(id: string, newTitle: string) {
     isLoading.value = true
     error.value = null
@@ -99,6 +115,11 @@ export const useListStore = defineStore('lists', () => {
     }
   }
 
+  /**
+   * 删除列表
+   * @param id 要删除的列表ID
+   * @returns 更新后的列表数组
+   */
   async function deleteList(id: string) {
     isLoading.value = true
     error.value = null
@@ -127,7 +148,9 @@ export const useListStore = defineStore('lists', () => {
     }
   }
 
-  // 清除缓存
+  /**
+   * 清除缓存
+   */
   function clearCache() {
     lists.value = []
     listService.clearAllCache()

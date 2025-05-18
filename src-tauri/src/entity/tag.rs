@@ -54,6 +54,19 @@ impl Tag {
     }
 }
 
+/// Creates a new tag in the database
+/// 
+/// Creates a tag with the given name and color if it doesn't already exist.
+/// The tag's ID is generated from a hash of the tag name.
+/// 
+/// # Parameters
+/// * `state` - Application state containing the database connection
+/// * `tag` - Name of the new tag
+/// * `color` - Color category for the new tag from the TagColor enum
+/// 
+/// # Returns
+/// * `Result<(), ErrorKind>` - Success or an error if the tag couldn't be created
+/// * Returns success without an error if the tag already exists
 #[tauri::command]
 pub async fn add_tag(
     state: State<'_, StorageState>,
@@ -70,6 +83,15 @@ pub async fn add_tag(
     Ok(())
 }
 
+/// Retrieves all tags from the database
+/// 
+/// Fetches all tags from the database and returns them.
+/// 
+/// # Parameters
+/// * `state` - Application state containing the database connection
+/// 
+/// # Returns
+/// * `Result<Vec<Tag>, ErrorKind>` - List of all tags or an error
 #[tauri::command]
 pub async fn get_tags(state: State<'_, StorageState>) -> Result<Vec<Tag>, ErrorKind> {
     let mut guard = state.0.lock().await;
@@ -78,6 +100,16 @@ pub async fn get_tags(state: State<'_, StorageState>) -> Result<Vec<Tag>, ErrorK
     Ok(tags)
 }
 
+/// Deletes a tag from the database
+/// 
+/// Removes the specified tag from the database.
+/// 
+/// # Parameters
+/// * `state` - Application state containing the database connection
+/// * `tag` - Name of the tag to delete
+/// 
+/// # Returns
+/// * `Result<(), ErrorKind>` - Success or an error if the tag couldn't be deleted
 #[tauri::command]
 pub async fn delete_tag(state: State<'_, StorageState>, tag: String) -> Result<(), ErrorKind> {
     let mut guard = state.0.lock().await;

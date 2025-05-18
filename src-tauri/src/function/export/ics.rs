@@ -140,7 +140,18 @@ pub async fn export_all_events_to_ics(state: State<'_, StorageState>) -> Result<
     export_events_to_ics(events)
 }
 
-/// 根据时间范围导出事件为 ICS 格式
+/// Exports events in a date range to ICS calendar format
+/// 
+/// Filters events that fall within the specified time range and exports them
+/// in ICS (iCalendar) format for use with calendar applications.
+/// 
+/// # Parameters
+/// * `state` - Application state containing the database connection
+/// * `start_time` - Start timestamp in milliseconds (Unix time)
+/// * `end_time` - End timestamp in milliseconds (Unix time)
+/// 
+/// # Returns
+/// * `Result<String, String>` - ICS content as string or error message
 #[tauri::command]
 pub async fn export_events_by_date_range_to_ics(
     state: State<'_, StorageState>,

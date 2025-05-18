@@ -31,7 +31,11 @@ export function convertTimestampToTime(timestamp: string): string {
   return `${hours}:${minutes}`;
 }
 
-// 将时间戳字符串转换为日期对象
+/**
+ * 将时间戳字符串转换为日期对象
+ * @param timestamp 时间戳字符串
+ * @returns 日期对象，如果转换失败则返回undefined
+ */
 export const timestampToDate = (timestamp: string): Date | undefined => {
   if (!timestamp || timestamp === "Undefined") {
     return undefined;

@@ -6,7 +6,13 @@ use tauri_plugin_dialog::DialogExt;
 
 use crate::utils::AppPaths;
 
-/// 获取导出目录路径
+/// Gets the path to the export directory
+/// 
+/// Returns the absolute path to the application's export directory
+/// where exported files are saved by default.
+/// 
+/// # Returns
+/// * `Result<String, String>` - Path to the export directory or error message
 #[tauri::command]
 pub async fn get_export_directory() -> Result<String, String> {
     Ok(AppPaths::export_dir()
@@ -15,7 +21,18 @@ pub async fn get_export_directory() -> Result<String, String> {
         .to_string())
 }
 
-/// 打开文件选择对话框选择保存位置
+/// Opens a file save dialog for the user to choose where to save the export
+/// 
+/// Opens a native file save dialog with appropriate filters based on the file type.
+/// The dialog will suggest a default filename with the appropriate extension.
+/// 
+/// # Parameters
+/// * `app_handle` - Handle to the Tauri application
+/// * `suggested_name` - Suggested filename (without extension)
+/// * `extension` - File extension for the export format (e.g., "ics", "json", "md")
+/// 
+/// # Returns
+/// * `Result<Option<String>, String>` - Selected file path or None if cancelled
 #[tauri::command]
 pub async fn select_save_path(
     app_handle: tauri::AppHandle,
@@ -48,7 +65,19 @@ pub async fn select_save_path(
     }
 }
 
-/// 将数据保存到指定文件
+/// Saves exported content to a file
+/// 
+/// Writes the provided content to a file, either at a custom path specified by the user
+/// or in the default export directory. Ensures the path is valid and directories exist.
+/// 
+/// # Parameters
+/// * `content` - The content to write to the file
+/// * `filename` - Base name for the file (without extension)
+/// * `format` - Export format, used to determine the file extension
+/// * `custom_path` - Optional custom path where the file should be saved
+/// 
+/// # Returns
+/// * `Result<String, String>` - Path to the saved file or error message
 #[tauri::command]
 pub async fn save_export_file(
     content: String, 

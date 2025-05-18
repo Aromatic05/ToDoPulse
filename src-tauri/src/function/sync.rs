@@ -149,8 +149,18 @@ pub async fn sync(state: State<'_, SyncState>) -> Result<(), String> {
     Ok(())
 }
 
-/// Tauri命令 - 立即同步
-/// 执行WebDAV文件夹同步操作
+/// Initiates an immediate synchronization with the WebDAV server
+/// 
+/// Starts a WebDAV synchronization process in the background. The function
+/// returns immediately while the sync operation continues asynchronously.
+/// Only one sync operation can run at a time.
+/// 
+/// # Parameters
+/// * `_app_handle` - Handle to the Tauri application
+/// * `state` - Application state containing sync status information
+/// 
+/// # Returns
+/// * `Result<(), String>` - Success or an error message if sync couldn't be started
 #[tauri::command]
 pub async fn sync_now(_app_handle: AppHandle, state: State<'_, SyncState>) -> Result<(), String> {
     log::info!("开始手动同步数据");
@@ -160,15 +170,37 @@ pub async fn sync_now(_app_handle: AppHandle, state: State<'_, SyncState>) -> Re
     });
 }
 
-/// Tauri命令 - 获取同步状态
-/// 返回当前的WebDAV同步状态
+/// Gets the current synchronization status
+/// 
+/// Returns the current state of WebDAV synchronization, which can be:
+/// - Idle (not currently syncing)
+/// - Syncing (sync operation in progress)
+/// - Error (last sync operation failed with error message)
+/// - LastSyncTime (last successful sync timestamp)
+/// 
+/// # Parameters
+/// * `_app_handle` - Handle to the Tauri application
+/// * `state` - Application state containing sync status information
+/// 
+/// # Returns
+/// * `Result<SyncStatus, String>` - Current sync status or error
 #[tauri::command]
 pub async fn get_sync_status(_app_handle: AppHandle, state: State<'_, SyncState>) -> Result<SyncStatus, String> {
     Ok(state.get_status().await)
 }
 
-/// Tauri命令 - 测试WebDAV连接
-/// 测试是否能够连接到WebDAV服务器
+/// Tests the connection to a WebDAV server
+/// 
+/// Attempts to connect to the specified WebDAV server with the provided credentials.
+/// This is used to validate WebDAV settings before enabling sync functionality.
+/// 
+/// # Parameters
+/// * `host` - WebDAV server URL (e.g., "https://nextcloud.example.com/remote.php/dav/files/username/")
+/// * `username` - WebDAV username for authentication
+/// * `password` - WebDAV password for authentication
+/// 
+/// # Returns
+/// * `Result<bool, String>` - true if connection successful, or error message
 #[tauri::command]
 pub async fn test_webdav_connection(
     host: String,

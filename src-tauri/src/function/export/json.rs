@@ -121,7 +121,18 @@ pub async fn export_all_events_to_json(state: State<'_, StorageState>) -> Result
     export_events_to_json(events)
 }
 
-/// 根据时间范围导出事件为JSON格式
+/// Exports events in a date range to JSON format
+/// 
+/// Filters events that fall within the specified time range and exports them
+/// in JSON format for programmatic use.
+/// 
+/// # Parameters
+/// * `state` - Application state containing the database connection
+/// * `start_time` - Start timestamp in milliseconds (Unix time)
+/// * `end_time` - End timestamp in milliseconds (Unix time)
+/// 
+/// # Returns
+/// * `Result<String, String>` - JSON content as string or error message
 #[tauri::command]
 pub async fn export_events_by_date_range_to_json(
     state: State<'_, StorageState>,
