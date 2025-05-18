@@ -30,3 +30,21 @@ export function convertTimestampToTime(timestamp: string): string {
   
   return `${hours}:${minutes}`;
 }
+
+// 将时间戳字符串转换为日期对象
+export const timestampToDate = (timestamp: string): Date | undefined => {
+  if (!timestamp || timestamp === "Undefined") {
+    return undefined;
+  }
+  
+  try {
+    const timestampValue = parseInt(timestamp);
+    if (!isNaN(timestampValue)) {
+      return new Date(timestampValue);
+    }
+  } catch (error) {
+    console.error("无法解析时间戳:", timestamp, error);
+  }
+  
+  return undefined;
+}

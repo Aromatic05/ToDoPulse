@@ -2,19 +2,6 @@
   <div class="calendar-container">
     <div class="calendar-sidebar">
       <div class="calendar-sidebar-section">
-        <h2>操作说明</h2>
-        <ul>
-          <li>点击日期可以创建新事件</li>
-          <li>可以拖拽和调整事件</li>
-          <li>点击事件可以删除</li>
-        </ul>
-      </div>
-      <div class="calendar-sidebar-section">
-        <label class="weekend-toggle">
-          <input type="checkbox" :checked="calendarOptions.weekends"
-            @change="calendarOptions.weekends = !calendarOptions.weekends" />
-          显示周末
-        </label>
       </div>
       <div class="calendar-sidebar-section">
         <h2>所有事件 ({{ currentEvents.length }})</h2>
@@ -48,8 +35,10 @@ import interactionPlugin from '@fullcalendar/interaction';
 import { EventApi, CalendarOptions } from '@fullcalendar/core'; 
 import { invoke } from '@tauri-apps/api/core';
 import { FEvent } from 'src-tauri/bindings/FEvent';
+import { timestampToDate } from '@/services/DateTimeService';
 // import { useEventStore } from '@/stores';
 
+// 将日期范围转换为日期字符串数组
 const iter_calendar=(start:Date, end:Date) => {
   const dates:String[] = [];
   const currentDate = new Date(start);
@@ -87,35 +76,89 @@ export default defineComponent({
     const currentEvents = ref<EventApi[]>([]);
 
     // 在组件挂载时加载所有事件
-    onMounted(async () => {
-      // 此处可以从eventStore获取事件数据并转换为日历格式
-      await loadCalendarEvents();
+    onMounted(() => {
+      console.log("日历组件挂载中...");
+      // 等待日历组件初始化完成
+      setTimeout(() => {
+        if (fullCalendar.value) {
+          console.log("日历初始化完成，设置事件监听");
+          console.log("日历API状态:", fullCalendar.value.getApi());
+          
+          // 监听日期范围变化事件
+          fullCalendar.value.getApi().on('datesSet', async (arg) => {
+            console.log("日期范围变化:", arg.start, arg.end);
+            await loadCalendarEvents();
+          });
+          
+          // 初始加载一次
+          loadCalendarEvents();
+        } else {
+          console.warn("日历组件未能正确初始化");
+        }
+      }, 100); // 给予组件一点时间完全初始化
     });
 
     // 加载日历事件
     const loadCalendarEvents = async () => {
       const range = getCurrentRange();
-      if (!range) return;
+      console.log("当前日期范围:", range);
+      if (!range) {
+        console.error("无法获取当前日期范围");
+        return;
+      }
 
       const dates = iter_calendar(range.start, range.end);
+      console.log(`正在获取 ${dates.length} 天的事件数据...`);
+      
       const events: FEvent[] = [];
       for (const date of dates) {
-        console.log(date);
-        const response:FEvent = await invoke('filter_events', { filter:date });
-        console.log(response);
-        events.push(response);
+        try {
+          // filter_events 返回一个数组，不是单个事件
+          const response:FEvent[] = await invoke('filter_events', { filter:date });
+          // 将该日期的所有事件添加到总事件数组中
+          events.push(...response);
+        } catch (error) {
+          console.error("Error fetching events:", error);
+        }
       }
+      console.log("获取到的事件:", events);
       if (fullCalendar.value) {
         const calendarApi = fullCalendar.value.getApi();
-        events.forEach (
-          event => {
+        // 清除现有事件以防止重复
+        calendarApi.removeAllEvents();
+        
+        events.forEach(event => {
+          // 使用转换函数将时间戳字符串转换为日期对象
+          const startDate: Date | undefined = timestampToDate(event.create);
+          const endDate: Date | undefined = timestampToDate(event.ddl);
+          
+          // 只有当至少有一个日期有效时才添加事件
+          if (startDate || endDate) {
             calendarApi.addEvent({
               id: event.id,
               title: event.title,
-              end: event.color,
+              start: startDate,
+              end: endDate,
+              allDay: true, // 考虑是否需要根据时间设置为false
+              backgroundColor: event.color !== "default" ? event.color : undefined,
+              borderColor: event.color !== "default" ? event.color : undefined,
+              textColor: '#fff', // 可以根据背景颜色自动调整
+              classNames: event.finished ? ['event-completed'] : [],
+              extendedProps: {
+                listid: event.listid,
+                tags: event.tag,
+                finished: event.finished,
+                priority: event.priority,
+                icon: event.icon
+              }
             });
+            
+            // 打印调试信息，帮助诊断事件是否正确添加
+            console.log(`已添加事件: ${event.title}, 开始: ${startDate?.toISOString() || '无'}, 结束: ${endDate?.toISOString() || '无'}`);
+          } else {
+            console.warn(`事件 ${event.title} (ID: ${event.id}) 没有有效的日期，无法显示在日历上`);
           }
-        )
+        });
       }
     };
 
@@ -210,7 +253,8 @@ export default defineComponent({
 
     return {
       calendarOptions,
-      currentEvents
+      currentEvents,
+      fullCalendar,
     };
   }
 });
@@ -345,5 +389,11 @@ export default defineComponent({
   --fc-event-border-color: var(--md-sys-color-primary-container);
   --fc-event-text-color: var(--md-sys-color-on-primary-container);
   --fc-today-bg-color: var(--md-sys-color-surface-container-high);
+}
+
+/* 已完成事件的样式 */
+:deep(.event-completed) {
+  opacity: 0.7;
+  text-decoration: line-through;
 }
 </style>

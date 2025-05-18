@@ -19,6 +19,7 @@ pub fn map_filter(filter: &str)->Result<Filter<Event>> {
         date_str => {
             let date = NaiveDate::parse_from_str(date_str, "%Y-%m-%d")
                 .map_err(|_| anyhow::anyhow!("Invalid date filter"))?;
+            // log::info!("Parsed date: {}", date);
             Ok(B(Box::new(move |event| time_filter(date, &event))))
         }
     }
@@ -122,21 +123,46 @@ mod tests {
     }
 
     #[test]
-    fn test_next_week_filter() {
-        // Event exactly one week from now
-        let next_week_event = create_event_with_time(7, 0);
-        assert!(next_week_filter(&next_week_event), "Should match event scheduled for exactly one week from now");
+    fn test_time_filter() {
+        // 获取今天的日期对象
+        let today = chrono::Local::now().date_naive();
+        println!("Today's date: {}", today);
         
-        // Event 10 days from now (within next week range)
-        let within_week_event = create_event_with_time(10, 0);
-        assert!(next_week_filter(&within_week_event), "Should match event scheduled within next week range");
+        // 创建今天的事件
+        let today_event = create_event_with_time(0, 10);
+        let today_timestamp = today_event.task_time.unwrap();
+        println!("Today event time: {:?}", today_timestamp);
         
-        // Event 15 days from now (outside next week range)
-        let outside_week_event = create_event_with_time(15, 0);
-        assert!(!next_week_filter(&outside_week_event), "Should not match event scheduled outside next week range");
+        // 验证time_filter能正确匹配今天的事件
+        assert!(time_filter(today, &today_event), "Should match event scheduled for today");
         
-        // Today's event
-        let today_event = create_event_with_time(0, 0);
-        assert!(!next_week_filter(&today_event), "Should not match event scheduled for today");
+        // 为昨天和明天创建日期对象
+        let yesterday = today - Duration::days(1);
+        let tomorrow = today + Duration::days(1);
+        
+        // 创建昨天和明天的事件
+        let yesterday_event = create_event_with_time(-1, 10);
+        let tomorrow_event = create_event_with_time(1, 10);
+        
+        // 验证匹配正确的日期
+        assert!(time_filter(yesterday, &yesterday_event), "Should match event scheduled for yesterday");
+        assert!(time_filter(tomorrow, &tomorrow_event), "Should match event scheduled for tomorrow");
+        
+        // 验证不匹配错误的日期
+        assert!(!time_filter(today, &yesterday_event), "Should not match yesterday's event with today's date");
+        assert!(!time_filter(today, &tomorrow_event), "Should not match tomorrow's event with today's date");
+        assert!(!time_filter(yesterday, &today_event), "Should not match today's event with yesterday's date");
+        assert!(!time_filter(tomorrow, &today_event), "Should not match today's event with tomorrow's date");
+        
+        // 测试跨时区边界情况
+        // 23:30的事件应该匹配今天而不是明天
+        let late_today_event = create_event_with_time(0, 23);
+        assert!(time_filter(today, &late_today_event), "Late today event should match today's date");
+        assert!(!time_filter(tomorrow, &late_today_event), "Late today event should not match tomorrow's date");
+        
+        // 00:30的事件应该匹配明天而不是今天
+        let early_tomorrow_event = create_event_with_time(1, 0);
+        assert!(!time_filter(today, &early_tomorrow_event), "Early tomorrow event should not match today's date");
+        assert!(time_filter(tomorrow, &early_tomorrow_event), "Early tomorrow event should match tomorrow's date");
     }
 }
