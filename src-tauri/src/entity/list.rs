@@ -7,7 +7,7 @@ use uuid::Uuid;
 use anyhow::anyhow;
 
 use crate::entity::{Event, FEvent, Repository, StorageState};
-use crate::utils::{event_to_fevent, list_exists, LIST_CACHE, EVENT_LIST_CACHE};
+use crate::utils::{list_exists, LIST_CACHE, EVENT_LIST_CACHE};
 use crate::error::ErrorKind;
 
 use super::Entity;
@@ -200,7 +200,7 @@ pub async fn list_content(
     
     let f_events: Vec<FEvent> = events
         .into_iter()
-        .map(|event| event_to_fevent(&event))
+        .map(|event| FEvent::from(event))
         .collect();
     
     // 更新缓存

@@ -7,7 +7,7 @@ use tauri::State;
 use anyhow::Result;
 
 use crate::entity::{get_tags, StorageState};
-use crate::utils::{get_api_key, use_llm};
+use crate::utils::llm_config;
 
 #[derive(Serialize, Deserialize)]
 struct Message {
@@ -53,7 +53,9 @@ pub async fn gen_tag(
     state: State<'_, StorageState>,
     content_path: &PathBuf,
 ) -> Result<Option<Vec<String>>> {
-    if !use_llm() {
+    let llm_config = llm_config().unwrap_or_default();
+    let use_llm = llm_config.switch;
+    if !use_llm {
         return Ok(None);
     }
     let url = "https://api.siliconflow.cn/v1/chat/completions";
@@ -84,7 +86,7 @@ pub async fn gen_tag(
     };
 
     // Get API key from environment or config
-    let api_key = get_api_key()?;
+    let api_key = llm_config.tokens;
 
     // Send request
     let response = client

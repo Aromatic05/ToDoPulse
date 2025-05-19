@@ -51,7 +51,6 @@ impl Storage {
     }
 }
 
-#[allow(dead_code)]
 pub struct App<R = tauri::Wry>
 where
     R: tauri_runtime::Runtime<tauri::EventLoopMessage>,

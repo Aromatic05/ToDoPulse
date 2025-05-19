@@ -10,6 +10,7 @@ use crate::utils::tag_exists;
 use crate::error::ErrorKind;
 
 use super::Entity;
+use super::{Event, FEvent};
 
 type Table = TableDefinition<'static, &'static [u8], &'static [u8]>;
 
@@ -111,9 +112,35 @@ pub async fn get_tags(state: State<'_, StorageState>) -> Result<Vec<Tag>, ErrorK
 /// # Returns
 /// * `Result<(), ErrorKind>` - Success or an error if the tag couldn't be deleted
 #[tauri::command]
-pub async fn delete_tag(state: State<'_, StorageState>, tag: String) -> Result<(), ErrorKind> {
+pub async fn delete_tag(state: State<'_, StorageState>, tag: &str) -> Result<(), ErrorKind> {
     let mut guard = state.0.lock().await;
     let storage = guard.deref_mut();
     Repository::<Tag>::delete(storage, &tag)?;
     Ok(())
+}
+
+/// Get the events with the given tag
+/// 
+/// Retrieves all events that have been tagged with the specified tag.
+/// 
+/// # Parameters
+/// * `state` - Application state containing the database connection
+/// * `tag` - Name of the tag to filter events by
+/// 
+/// # Returns
+/// * `Result<Vec<FEvent>, ErrorKind>` - List of matching events in frontend format or an error
+#[tauri::command]
+pub async fn tag_content(state: State<'_, StorageState>, tag: &str) -> Result<Vec<FEvent>, ErrorKind> {
+    let mut guard = state.0.lock().await;
+    let storage = guard.deref_mut();
+    let events = Repository::<Event>::filter(storage, |event| {
+        event.metadata.tag.as_ref().map_or(false, |tags| {
+            tags.iter().any(|t| t == tag)
+        })
+    })?;
+    let f_events: Vec<FEvent> = events
+        .into_iter()
+        .map(|event| FEvent::from(event))
+        .collect();
+    Ok(f_events)
 }

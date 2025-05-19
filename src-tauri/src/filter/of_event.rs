@@ -5,8 +5,7 @@ use anyhow::{Ok, Result};
 
 use crate::entity::Event;
 
-use super::Filter::{A, B};
-use super::Filter;
+use super::Filter::{A, B, self};
 
 const ONE_DAY: u64 = 24 * 60 * 60 * 1000;
 const ONE_WEEK: u64 = 7 * ONE_DAY;

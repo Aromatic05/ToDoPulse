@@ -7,35 +7,12 @@ use tauri::State;
 // 项目内部导入
 use crate::entity::{
     Entity,
-    Event,
-    FEvent,
     List,
     Repository,
     Storage,
     StorageState, // 存储和实体接口
     Tag,          // 数据类型
 };
-
-pub fn event_to_fevent(event: &Event) -> FEvent {
-    FEvent {
-        id: event.metadata.uuid.clone(),
-        listid: match &event.metadata.list {
-            None => "Undefined".to_string(),
-            Some(listid) => listid.to_string(),
-        },
-        ddl: match event.task_time {
-            None => "Undefined".to_string(),
-            Some(time) => time.to_string(),
-        },
-        tag: event.metadata.tag.clone(),
-        title: event.title.clone(),
-        create: event.metadata.timestamp.to_string(),
-        finished: event.finished,
-        priority: event.priority.clone(),
-        color: event.color.clone(),
-        icon: event.icon.clone(),
-    }
-}
 
 async fn exists<T>(state: &State<'_, StorageState>, id: &str) -> bool
 where

@@ -30,6 +30,11 @@ remote_dir = "/ToDoPulse"
 sync_interval = 30
 "#;
 
+// 解析DEFAULT_CONFIG以复用默认值
+static DEFAULT_VALUES: Lazy<Config> = Lazy::new(|| {
+    toml::from_str(DEFAULT_CONFIG).expect("默认配置解析失败")
+});
+
 static CONFIG: Lazy<Mutex<Option<Config>>> = Lazy::new(|| Mutex::new(None));
 
 #[derive(Deserialize, Serialize, Clone, TS)]
@@ -42,27 +47,66 @@ pub struct WebDav {
     pub sync_interval: u64,
 }
 
+impl Default for WebDav {
+    fn default() -> Self {
+        DEFAULT_VALUES.webdav.clone()
+    }
+}
+
 #[derive(Deserialize, Serialize, Clone, TS)]
 pub struct Theme {
     color: String,
 }
+
+impl Default for Theme {
+    fn default() -> Self {
+        DEFAULT_VALUES.theme.clone()
+    }
+}
+
 #[derive(Deserialize, Serialize, Clone, TS)]
 pub struct Model {
-    switch: bool,
-    name: String,
-    tokens: String,
+    pub switch: bool,
+    pub name: String,
+    pub tokens: String,
 }
-#[derive(Deserialize,Serialize , Clone, TS)]
+
+impl Default for Model {
+    fn default() -> Self {
+        DEFAULT_VALUES.model.clone()
+    }
+}
+
+#[derive(Deserialize, Serialize, Clone, TS)]
 pub struct Info {
     pub switch: bool,
     pub time: Option<Vec<String>>,
 }
+
+impl Default for Info {
+    fn default() -> Self {
+        DEFAULT_VALUES.info.clone()
+    }
+}
+
 #[derive(Deserialize, Serialize)]
 struct Config {
     theme: Theme,
     info: Info,
     model: Model,
     webdav: WebDav,
+}
+
+// Config也实现Default，使用各字段的Default实现
+impl Default for Config {
+    fn default() -> Self {
+        Self {
+            theme: Theme::default(),
+            info: Info::default(),
+            model: Model::default(),
+            webdav: WebDav::default(),
+        }
+    }
 }
 
 #[derive(Clone, TS, Deserialize, Serialize)]
@@ -156,20 +200,13 @@ pub fn parse_with_path<P: AsRef<Path>>(custom_path: Option<P>) -> Result<()> {
     Ok(())
 }
 
-pub fn get_api_key() -> Result<String> {
+pub fn llm_config() -> Result<Model> {
     let config_lock = CONFIG.lock().unwrap();
     if let Some(config) = &*config_lock {
-        return Ok(config.model.name.clone());
+        return Ok(config.model.clone());
     }
-    Err(anyhow::anyhow!("API key not found").into())
-}
-
-pub fn use_llm() -> bool {
-    let config_lock = CONFIG.lock().unwrap();
-    if let Some(config) = &*config_lock {
-        return config.model.switch;
-    }
-    false
+    log::error!("LLM config not found");
+    Err(anyhow::anyhow!("LLM config not found").into())
 }
 
 pub fn info() -> Result<Info> {
@@ -205,30 +242,7 @@ mod tests {
         let config_dir = temp_dir.path().to_path_buf();
         config_dir
     }
-    
-    #[test]
-    fn test_get_api_key_after_parse() {
-        let config_dir = setup_test_env();
-        
-        // 先使用自定义路径解析，然后获取 API 密钥
-        parse_with_path(Some(&config_dir)).unwrap();
-        let result = get_api_key();
-        
-        assert!(result.is_ok());
-        // 断言存在值，但不断言具体值
-        assert!(!result.unwrap().is_empty());
-    }
-    
-    #[test]
-    fn test_use_llm_default() {
-        // 重置 CONFIG 确保测试独立性
-        *CONFIG.lock().unwrap() = None;
-        
-        // 获取默认值
-        let result = use_llm();
-        assert_eq!(result, false);
-    }
-    
+
     #[test]
     fn test_custom_config_values() {
         let config_dir = setup_test_env();
@@ -260,8 +274,6 @@ mod tests {
         parse_with_path(Some(&config_dir)).unwrap();
         let webdav_config = get_webdav_config().unwrap();
 
-        assert_eq!(use_llm(), true);
-        assert_eq!(get_api_key().unwrap(), "test-model");
         assert_eq!(webdav_config.enabled, true);
         assert_eq!(webdav_config.host, "https://webdav-1690957.pd1.123pan.cn/webdav/webdav");
     }

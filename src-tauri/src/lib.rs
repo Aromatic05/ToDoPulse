@@ -1,4 +1,3 @@
-mod debug; // 调试工具
 mod entity; // 核心数据实体和存储定义
 mod error; // 错误处理
 mod filter;
@@ -39,6 +38,7 @@ pub fn run() -> std::io::Result<()> {
             tag::add_tag,
             tag::get_tags,
             tag::delete_tag,
+            tag::tag_content,
             export::export_events,
             export::export_list_events,
             export::export_all_events,
