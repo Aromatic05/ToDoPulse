@@ -156,6 +156,7 @@ fn connect_to_db() -> Result<Database> {
         let _ = txn.open_table(LIST_TABLE)?;
         let _ = txn.open_table(TAG_TABLE)?;
     }
+    txn.commit()?;
     Ok(db)
 }
 
