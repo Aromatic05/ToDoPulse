@@ -55,7 +55,7 @@
 
 <script setup lang="ts">
 import { reactive, computed } from 'vue';
-import { FList } from 'src-tauri/bindings/FList';
+import type { FList } from 'src-tauri/bindings/FList';
 
 const props = defineProps({
     show: {
