@@ -1,6 +1,8 @@
 <template>
     <Teleport to="body">
         <div v-if="modelValue" class="modal-mask" @click.self="handleClose">
+            <!-- 标签添加弹窗 -->
+            <AddTagModal v-model="showAddTagModal" @created="handleTagCreated" />
             <div class="modal-container">
                 <div class="modal-header">
                     <!-- <button @click="handleClose" aria-label="关闭弹窗">&times;</button> -->
@@ -17,8 +19,46 @@
                                     placeholder="输入标题" variant="outlined" density="compact"></v-text-field>
                             </div>
                             <div class="form-group">
-                                <v-text-field clearable label="标签" id="tag" v-model="tagInput" type="text"
-                                    placeholder="如: #重要 #今日" variant="outlined" density="compact"></v-text-field>
+                                <v-autocomplete
+                                    v-model="selectedTags"
+                                    :items="allTags"
+                                    item-title="name"
+                                    item-value="name"
+                                    label="标签"
+                                    placeholder="选择或输入标签"
+                                    variant="outlined"
+                                    density="compact"
+                                    chips
+                                    multiple
+                                    closable-chips
+                                    :menu-props="{ maxHeight: 400 }"
+                                    :append-inner-icon="'mdi-plus'"
+                                    @click:append-inner="openAddTagModal"
+                                >
+                                    <template v-slot:chip="{ props, item }">
+                                        <v-chip
+                                            v-bind="props"
+                                            :color="item.raw && item.raw.color ? getTagColor(item.raw) : 'default'"
+                                        >
+                                            {{ item.title }}
+                                        </v-chip>
+                                    </template>
+                                    <template v-slot:item="{ props, item }">
+                                        <v-list-item
+                                            v-bind="props"
+                                            :prepend-icon="'mdi-tag'"
+                                            :subtitle="'点击选择'"
+                                            :color="item.raw && item.raw.color ? getTagColor(item.raw) : 'default'"
+                                        >
+                                            <v-list-item-title
+                                                :style="item.raw && item.raw.color ?
+                                                    { color: getTagColor(item.raw) } : {}"
+                                            >
+                                                {{ item.raw && item.raw.name ? item.raw.name : item.title }}
+                                            </v-list-item-title>
+                                        </v-list-item>
+                                    </template>
+                                </v-autocomplete>
                             </div>
                             <div class="form-group">
                                 <VDatePicker v-model="dateValue" mode="dateTime" is24hr :is-dark="isDarkMode()"
@@ -70,13 +110,15 @@
 </template>
 
 <script lang="ts">
-import { defineComponent, ref, watch, onBeforeUnmount, nextTick, computed, onErrorCaptured } from 'vue';
+import { defineComponent, ref, watch, onBeforeUnmount, nextTick, computed, onErrorCaptured, onMounted } from 'vue';
 import Vditor from 'vditor';
 import 'vditor/dist/index.css';
 import type { FEvent } from 'src-tauri/bindings/FEvent';
-import { useEventStore } from '@/stores';
+import { useEventStore, useTagStore } from '@/stores';
 import { DatePicker } from 'v-calendar';
 import 'v-calendar/dist/style.css';
+import type { Tag } from '@/services/TagService';
+import AddTagModal from './AddTagModal.vue';
 
 declare module 'vditor' {
     interface IVditor {
@@ -89,7 +131,8 @@ declare module 'vditor' {
 export default defineComponent({
     name: 'CardContentModal',
     components: {
-        VDatePicker: DatePicker
+        VDatePicker: DatePicker,
+        AddTagModal
     },
     props: {
         modelValue: {
@@ -103,8 +146,9 @@ export default defineComponent({
     },
     emits: ['update:modelValue', 'confirm'],
     setup(props, { emit }) {
-        // 使用eventStore
+        // 使用store
         const eventStore = useEventStore();
+        const tagStore = useTagStore();
 
         const vditor = ref<Vditor | null>(null);
         const content = ref<string>('');
@@ -124,9 +168,9 @@ export default defineComponent({
             color: props.cardData.color || ''
         });
 
-        const tagInput = ref(
-            processTags(props.cardData.tag || [])
-        );
+        const allTags = ref<Tag[]>([]);
+        const selectedTags = ref<string[]>(props.cardData.tag || []);
+        const showAddTagModal = ref(false);
 
         // 简化日期值的计算属性
         const dateValue = computed({
@@ -191,9 +235,46 @@ export default defineComponent({
             }
         };
 
+        // 加载所有标签
+        const loadTags = async () => {
+            try {
+                allTags.value = await tagStore.fetchTags();
+            } catch (error) {
+                console.error('加载标签失败:', error);
+            }
+        };
+
+        // 获取标签颜色
+        const getTagColor = (tag: Tag | undefined): string => {
+            if (!tag || !tag.color) return 'default';
+            
+            // 处理枚举值或字符串
+            if (typeof tag.color === 'string') {
+                return tag.color.toLowerCase();
+            } else {
+                // 处理枚举类型 (TagColor)
+                return String(tag.color).toLowerCase();
+            }
+        };
+
+        // 打开添加标签弹窗
+        const openAddTagModal = () => {
+            showAddTagModal.value = true;
+        };
+
+        // 处理标签创建成功
+        const handleTagCreated = async (tagName: string) => {
+            await loadTags(); // 重新加载标签列表
+            // 将新标签添加到已选择的标签中
+            if (!selectedTags.value.includes(tagName)) {
+                selectedTags.value = [...selectedTags.value, tagName];
+            }
+        };
+
         const handleOpen = async () => {
             formData.value = { ...props.cardData };
-            tagInput.value = processTags(props.cardData.tag || []);
+            selectedTags.value = props.cardData.tag || [];
+            await loadTags();
             await loadContent();
             await initEditor();
         };
@@ -208,17 +289,7 @@ export default defineComponent({
                     }
                 }
 
-                const tagArray = Array.from(
-                    new Set(
-                        tagInput.value
-                            .split(/\s+/)
-                            .map(tag => tag.trim())
-                            .filter(tag => tag.length > 0 && tag.length <= 20)
-                            .map(tag => tag.startsWith('#') ? tag.slice(1) : tag)
-                    )
-                );
-
-                formData.value.tag = tagArray;
+                formData.value.tag = selectedTags.value;
 
                 emit('confirm', formData.value);
                 handleClose();
@@ -254,7 +325,7 @@ export default defineComponent({
             (newVal) => {
                 if (props.modelValue) {
                     formData.value = { ...newVal };
-                    tagInput.value = processTags(newVal.tag || []);
+                    selectedTags.value = newVal.tag || [];
                 }
             },
             { deep: true }
@@ -311,12 +382,18 @@ export default defineComponent({
             }
         });
 
+        // 初始加载标签
+        onMounted(loadTags);
+
         return {
             formData,
-            tagInput,
+            selectedTags,
+            allTags,
             isLoading,
             handleConfirm,
             handleClose,
+            openAddTagModal,
+            getTagColor,
             vditorRef: ref(null),
             dateValue,
             handleDateSelected,
@@ -325,17 +402,12 @@ export default defineComponent({
             isDarkMode,
             availableIcons,
             selectedIconIndex,
+            showAddTagModal,
+            handleTagCreated,
         };
     }
 });
 
-// 辅助函数
-function processTags(tags: string[]): string {
-    return tags
-        .filter(tag => tag && tag.trim() !== '')
-        .map(tag => tag.startsWith('#') ? tag : `#${tag}`)
-        .join(' ');
-}
 </script>
 
 

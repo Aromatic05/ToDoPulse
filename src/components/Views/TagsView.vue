@@ -38,13 +38,13 @@
                         <v-form @submit.prevent="addTag" class="flex-grow-1 d-flex flex-column">
                             <v-text-field v-model="newTag.name" label="标签名称" required class="mb-2"></v-text-field>
 
-                            <v-select v-model="newTag.color" label="标签颜色" :items="availableColors" item-title="text"
+                            <v-select v-model="newTag.color" label="标签颜色" :items="availableColors" item-title="value"
                                 item-value="value" class="mb-4">
                                 <template v-slot:selection="{ item }">
                                     <div class="d-flex align-center">
                                         <div class="color-square mr-2"
                                             :style="{ backgroundColor: getColorValue(item.value) }"></div>
-                                        {{ item.value }}
+                                        <span :style="{ color: getColorValue(item.value) }">{{ item.value }}</span>
                                     </div>
                                 </template>
                             </v-select>
@@ -68,7 +68,7 @@
         </v-row>
 
         <!-- Add the TagModal component -->
-        <TagModal v-model="showTagModal" :tag="selectedTag" />
+        <TagModal v-model="showTagModal" :tag="selectedTag" @tag-removed="handleTagRemoved" />
 
         <!-- Add the TagContextMenu component -->
         <TagContextMenu v-model:show="contextMenu.show" :activator-element="contextMenu.activatorElement"
@@ -107,12 +107,12 @@ const newTag = ref({
 
 // 颜色选项，与TagColor枚举对应
 const availableColors = [
-    { text: '主要', value: 'Primary' as TagColor },
-    { text: '次要', value: 'Secondary' as TagColor },
-    { text: '成功', value: 'Success' as TagColor },
-    { text: '信息', value: 'Info' as TagColor },
-    { text: '警告', value: 'Warning' as TagColor },
-    { text: '错误', value: 'Error' as TagColor }
+    { value: 'Primary' as TagColor },
+    { value: 'Secondary' as TagColor },
+    { value: 'Success' as TagColor },
+    { value: 'Info' as TagColor },
+    { value: 'Warning' as TagColor },
+    { value: 'Error' as TagColor }
 ]
 
 // 模态框状态
@@ -120,9 +120,8 @@ const showTagModal = ref(false);
 const selectedTag = ref<UITag>({ id: 0, name: '', color: 'Primary', count: 0 });
 
 function getColorValue(color: string): string {
-    // 这里可以根据需要返回实际的颜色值
-    // 为了简单起见，我们直接返回Vuetify的颜色变量名
-    return `var(--v-theme-${color})`;
+    // 返回颜色变量
+    return `var(--v-theme-${color.toLowerCase()})`;
 }
 
 // 将TagColor映射为Vuetify颜色
@@ -240,6 +239,20 @@ async function deleteTag(name: string) {
         await tagStore.deleteTag(name);
     } catch (err) {
         console.error('删除标签失败:', err);
+    }
+}
+
+// 处理标签从事件中移除
+async function handleTagRemoved(tagName: string) {
+    // 清除缓存并刷新数据
+    tagStore.clearCache();
+    
+    // 重新获取所有标签
+    await fetchTags();
+    
+    // 重新加载当前选中标签的内容（如果需要）
+    if (selectedTag.value && selectedTag.value.name === tagName) {
+        await tagStore.getTagContent(tagName);
     }
 }
 
