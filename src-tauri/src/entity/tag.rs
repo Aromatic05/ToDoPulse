@@ -21,7 +21,7 @@ const TAG_TABLE: Table = TableDefinition::new("tag");
 pub enum TagColor {
     Primary,
     Secondary,
-    Sucess,
+    Success,
     Info,
     Warning,
     Error,
