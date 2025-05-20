@@ -251,10 +251,10 @@ export default defineComponent({
             // 处理枚举值或字符串
             if (typeof tag.color === 'string') {
                 return tag.color.toLowerCase();
-            } else {
-                // 处理枚举类型 (TagColor)
-                return String(tag.color).toLowerCase();
             }
+            
+            // 处理枚举类型 (TagColor)
+            return String(tag.color).toLowerCase();
         };
 
         // 打开添加标签弹窗
