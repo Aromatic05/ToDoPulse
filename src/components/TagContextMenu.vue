@@ -9,19 +9,32 @@
         :open-on-click="false"
     >
         <v-list density="compact" bg-color="var(--md-sys-color-surface-container-high)">
-            <v-list-item @click="triggerRename" prepend-icon="mdi-pencil" title="重命名"></v-list-item>
-            <v-list-item @click="triggerDelete" prepend-icon="mdi-delete" title="删除"></v-list-item>
+            <v-list-item
+                :disabled="props.targetTag?.count !== 0"
+                @click="triggerRename"
+                prepend-icon="mdi-pencil"
+                :title="props.targetTag?.count === 0 ? '重命名' : '无法重命名(标签已被使用)'"
+            >
+            </v-list-item>
+            <v-list-item
+                :disabled="props.targetTag?.count !== 0"
+                @click="triggerDelete"
+                prepend-icon="mdi-delete"
+                :title="props.targetTag?.count === 0 ? '删除' : '无法删除(标签已被使用)'"
+            >
+            </v-list-item>
         </v-list>
     </v-menu>
 
     <!-- 重命名对话框 -->
     <v-dialog v-model="renameDialog.show" max-width="500px">
         <v-card>
-            <v-card-title>重命名列表</v-card-title>
+            <v-card-title>重命名标签</v-card-title>
             <v-card-text>
+                <p class="text-caption mb-2">注意：只能重命名未使用的标签（无关联事件）。</p>
                 <v-text-field 
                     v-model="renameDialog.newName" 
-                    label="列表名称" 
+                    label="标签名称"
                     placeholder="输入新名称"
                     variant="outlined" 
                     density="compact" 
@@ -42,7 +55,8 @@
         <v-card>
             <v-card-title>删除标签</v-card-title>
             <v-card-text>
-                确定要删除标签 "{{ deleteDialog.tagName }}" 吗？此操作无法撤销。
+                <p>确定要删除标签 "{{ deleteDialog.tagName }}" 吗？</p>
+                <p class="text-caption mt-2">注意：只能删除未使用的标签（无关联事件）。此操作无法撤销。</p>
             </v-card-text>
             <v-card-actions>
                 <v-spacer></v-spacer>
@@ -55,7 +69,14 @@
 
 <script setup lang="ts">
 import { reactive, computed } from 'vue';
-import type { FList } from 'src-tauri/bindings/FList';
+
+// 定义标签接口
+interface TagLike {
+    id: number;
+    name: string;
+    color: string;
+    count: number;
+}
 
 const props = defineProps({
     show: {
@@ -97,7 +118,7 @@ const deleteDialog = reactive({
 });
 
 function triggerRename() {
-    if (props.targetTag) {
+    if (props.targetTag && props.targetTag.count === 0) {
         renameDialog.targetTag = props.targetTag;
         renameDialog.newName = props.targetTag.name;
         renameDialog.show = true;
@@ -106,7 +127,7 @@ function triggerRename() {
 }
 
 function triggerDelete() {
-    if (props.targetTag) {
+    if (props.targetTag && props.targetTag.count === 0) {
         deleteDialog.targetTag = props.targetTag;
         deleteDialog.tagName = props.targetTag.name;
         deleteDialog.show = true;
@@ -115,7 +136,7 @@ function triggerDelete() {
 }
 
 function confirmRename() {
-    if (renameDialog.targetTag && renameDialog.newName.trim() !== '') {
+    if (renameDialog.targetTag && renameDialog.targetTag.count === 0 && renameDialog.newName.trim() !== '') {
         emit('rename', renameDialog.targetTag.name, renameDialog.newName.trim());
         renameDialog.show = false;
         renameDialog.targetTag = null;
@@ -123,7 +144,7 @@ function confirmRename() {
 }
 
 function confirmDelete() {
-    if (deleteDialog.targetTag) {
+    if (deleteDialog.targetTag && deleteDialog.targetTag.count === 0) {
         emit('delete', deleteDialog.targetTag.name);
         deleteDialog.show = false;
         deleteDialog.targetTag = null;
