@@ -5,13 +5,15 @@
                 <v-chip :color="props.tag.color" class="me-3" variant="tonal">{{ props.tag.name }}</v-chip>
                 <span>标签下的所有任务</span>
                 <v-spacer></v-spacer>
-                <span class="text-caption">({{ dummyEvents.length }} 项)</span>
+                <span class="text-caption">({{ tagEvents.length }} 项)</span>
             </v-card-title>
 
             <v-divider></v-divider>
 
             <v-card-text class="pt-4">
-                <v-data-table :headers="headers" :items="dummyEvents" :items-per-page="5"
+                <v-progress-circular v-if="isLoading" indeterminate color="primary" class="ma-4"></v-progress-circular>
+                <v-alert v-if="error" type="error" class="mb-4">{{ error }}</v-alert>
+                <v-data-table v-else :headers="headers" :items="tagEvents" :items-per-page="5"
                     class="elevation-1 rounded material-table" density="compact">
                     <template v-slot:item="{ item }">
                         <tr>
@@ -38,9 +40,13 @@
 </template>
 
 <script setup lang="ts">
-import { ref, watch } from 'vue';
+import { ref, watch, onMounted } from 'vue';
+import { useTagStore } from '@/stores/index';
 import ListCard from '@/components/Cards/ListCard.vue';
-import { useEventStore } from '@/stores/eventStore';
+import { FEvent } from 'src-tauri/bindings/FEvent';
+
+// 获取tagStore
+const tagStore = useTagStore();
 
 // Define interfaces
 interface Tag {
@@ -50,15 +56,6 @@ interface Tag {
     count: number;
 }
 
-interface FEvent {
-    id: string;
-    title: string;
-    priority: string;
-    date?: string;
-    finished: boolean;
-    listId: string;
-    tags?: number[]; // IDs of tags associated with this event
-}
 
 type HeaderAlign = 'start' | 'end' | 'center';
 interface DataTableHeader {
@@ -82,6 +79,9 @@ const emit = defineEmits(['update:modelValue']);
 
 // Local state
 const show = ref(props.modelValue);
+const tagEvents = ref<FEvent[]>([]);
+const isLoading = ref(false);
+const error = ref<string | null>(null);
 
 // Headers for the data table
 const headers: DataTableHeader[] = [
@@ -92,38 +92,49 @@ const headers: DataTableHeader[] = [
     { title: '操作', key: 'actions', sortable: false, align: 'center', width: '100px' }
 ];
 
-// Dummy data for frontend display only
-const dummyEvents = [
-    {
-        id: "task1",
-        title: "完成项目报告",
-        priority: "High",
-        date: "2025-05-20",
-        finished: false,
-        listId: "list1",
-        tags: [1, 2]
-    },
-    {
-        id: "task2",
-        title: "准备会议演示",
-        priority: "Medium",
-        date: "2025-05-18",
-        finished: true,
-        listId: "list1",
-        tags: [1, 3]
+// 加载标签内容
+async function loadTagContent() {
+    if (!props.tag.name) return;
+    
+    isLoading.value = true;
+    error.value = null;
+    
+    try {
+        const events = await tagStore.getTagContent(props.tag.name);
+        tagEvents.value = events;
+    } catch (err) {
+        console.error('加载标签内容失败:', err);
+        error.value = `加载标签内容失败: ${err}`;
+    } finally {
+        isLoading.value = false;
     }
-];
+}
 
 // Watch for changes in the modelValue prop
 watch(() => props.modelValue, (val) => {
     show.value = val;
-    // No data fetching for now
+    if (val) {
+        loadTagContent();
+    }
 });
 
 // Watch for changes in the show value
 watch(show, (val) => {
     emit('update:modelValue', val);
-    // No data fetching for now
+});
+
+// Watch for changes in the tag prop
+watch(() => props.tag, () => {
+    if (show.value) {
+        loadTagContent();
+    }
+}, { deep: true });
+
+// Load tag content when component is mounted
+onMounted(() => {
+    if (show.value) {
+        loadTagContent();
+    }
 });
 
 // Get color based on priority

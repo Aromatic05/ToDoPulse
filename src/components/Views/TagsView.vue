@@ -5,14 +5,26 @@
         <v-row class="fill-height">
             <v-col cols="12" md="8" class="d-flex">
                 <v-card class="pa-4 flex-grow-1">
-                    <v-card-title>所有标签</v-card-title>
+                    <v-card-title class="d-flex align-center">
+                        所有标签
+                        <v-spacer></v-spacer>
+                        <v-btn v-if="!isLoading" icon="mdi-refresh" size="small" @click="fetchTags" variant="text"></v-btn>
+                        <v-progress-circular v-else size="24" indeterminate color="primary"></v-progress-circular>
+                    </v-card-title>
+                    
                     <v-card-text>
-                        <div class="d-flex flex-wrap">
-                            <v-chip v-for="tag in tags" :key="tag.id" :color="tag.color" @click="openTagModal(tag)"
-                                @contextmenu.prevent="showContextMenu(tag, $event.currentTarget)" class="ma-1"
+                        <v-alert v-if="error" type="error" class="mb-4">{{ error }}</v-alert>
+                        
+                        <div v-if="tags.length === 0 && !isLoading" class="text-center pa-4">
+                            <p>暂无标签</p>
+                        </div>
+                        
+                        <div v-else class="d-flex flex-wrap">
+                            <v-chip v-for="tag in tags" :key="tag.id" :color="mapTagColor(tag.color)" @click="openTagModal(tag)"
+                                @contextmenu.prevent="showContextMenu(convertTagForUI(tag), $event.currentTarget)" class="ma-1"
                                 variant="tonal">
                                 {{ tag.name }}
-                                <span class="ms-2 text-caption">({{ tag.count }})</span>
+                                <span class="ms-2 text-caption">({{ getTagEventCount(tag.name) }})</span>
                             </v-chip>
                         </div>
                     </v-card-text>
@@ -56,44 +68,56 @@
         </v-row>
 
         <!-- Add the TagModal component -->
-        <TagModal v-model="showTagModal" :tag="selectedTag" @save="updateTag" />
+        <TagModal v-model="showTagModal" :tag="selectedTag" />
 
         <!-- Add the TagContextMenu component -->
         <TagContextMenu v-model:show="contextMenu.show" :activator-element="contextMenu.activatorElement"
-            :target-tag="contextMenu.targetTag" @rename="renameTag" @delete="deleteTag" />
+            :target-tag="contextMenu.targetTag" @rename="handleRename" @delete="handleDelete" />
     </div>
 </template>
 
 <script setup lang="ts">
-import { ref, nextTick, reactive } from 'vue'
+import { ref, nextTick, reactive, computed, onMounted } from 'vue'
+import { useTagStore } from '@/stores/index'
 import TagModal from '@/components/Modals/TagModal.vue';
 import TagContextMenu from '@/components/TagContextMenu.vue';
+import { TagColor } from 'src-tauri/bindings/TagColor';
+import { Tag } from '@/services/TagService';
 
-const tags = ref([
-    { id: 1, name: '工作', color: 'primary', count: 5 },
-    { id: 2, name: '个人', color: 'secondary', count: 3 },
-    { id: 3, name: '紧急', color: 'error', count: 2 },
-    { id: 4, name: '学习', color: 'info', count: 4 },
-    { id: 5, name: '家庭', color: 'success', count: 1 }
-])
+// UI中使用的标签类型
+interface UITag {
+    id: number;
+    name: string;
+    color: string;
+    count: number;
+}
+
+// 获取tagStore
+const tagStore = useTagStore();
+
+// 从store获取状态
+const tags = computed(() => tagStore.tags);
+const isLoading = computed(() => tagStore.isLoading);
+const error = computed(() => tagStore.error);
 
 const newTag = ref({
     name: '',
-    color: 'primary'
+    color: 'Primary' as TagColor
 })
 
+// 颜色选项，与TagColor枚举对应
 const availableColors = [
-    'primary',
-    'secondary',
-    'success',
-    'info',
-    'warning',
-    'error'
+    { text: '主要', value: 'Primary' as TagColor },
+    { text: '次要', value: 'Secondary' as TagColor },
+    { text: '成功', value: 'Success' as TagColor },
+    { text: '信息', value: 'Info' as TagColor },
+    { text: '警告', value: 'Warning' as TagColor },
+    { text: '错误', value: 'Error' as TagColor }
 ]
 
-// Add new refs for the modal
+// 模态框状态
 const showTagModal = ref(false);
-const selectedTag = ref({ id: 0, name: '', color: 'primary', count: 0 });
+const selectedTag = ref<UITag>({ id: 0, name: '', color: 'Primary', count: 0 });
 
 function getColorValue(color: string): string {
     // 这里可以根据需要返回实际的颜色值
@@ -101,49 +125,76 @@ function getColorValue(color: string): string {
     return `var(--v-theme-${color})`;
 }
 
-function removeTag(id: number) {
-    const index = tags.value.findIndex(tag => tag.id === id)
-    if (index !== -1) {
-        tags.value.splice(index, 1)
-    }
+// 将TagColor映射为Vuetify颜色
+function mapTagColor(color: TagColor): string {
+    // Vuetify使用小写颜色名，而TagColor枚举是大写开头
+    return color.toLowerCase();
 }
 
-function addTag() {
+// 将后端Tag转换为UI使用的Tag
+function convertTagForUI(tag: Tag): UITag {
+    return {
+        id: typeof tag.id === 'number' ? tag.id : parseInt(String(tag.id)),
+        name: tag.name,
+        color: mapTagColor(tag.color),
+        count: getTagEventCount(tag.name)
+    };
+}
+
+// 获取标签下的事件数量
+function getTagEventCount(tagName: string): number {
+    return tagStore.getEventsByTagName(tagName).length;
+}
+
+// 加载所有标签
+async function fetchTags() {
+    await tagStore.fetchTags();
+}
+
+// 添加新标签
+async function addTag() {
     if (newTag.value.name) {
-        const id = Math.max(0, ...tags.value.map(t => t.id)) + 1
-        tags.value.push({
-            id,
-            name: newTag.value.name,
-            color: newTag.value.color,
-            count: 0
-        })
-        newTag.value.name = ''
+        await tagStore.addTag(newTag.value.name, newTag.value.color);
+        newTag.value.name = '';
+        newTag.value.color = 'Primary';
     }
 }
 
-// Function to open the tag modal
-function openTagModal(tag: { id: number; name: string; color: string; count: number; } | { id: number; name: string; color: string; count: number; }) {
-    selectedTag.value = { ...tag };
+// 打开标签模态框
+async function openTagModal(tag: Tag) {
+    // 先加载标签内容
+    await tagStore.getTagContent(tag.name);
+    
+    // 设置选中的标签
+    selectedTag.value = convertTagForUI(tag);
     showTagModal.value = true;
 }
 
-// Function to update the tag when saved
-function updateTag(updatedTag: { id: number; name: string; color: string; count: number; }) {
-    const index = tags.value.findIndex(tag => tag.id === updatedTag.id);
-    if (index !== -1) {
-        tags.value[index] = updatedTag;
-    }
-}
+// 不再使用此函数，因为TagModal现在直接使用tagStore获取数据
+// function updateTag(updatedTag: UITag) {
+//     const index = tags.value.findIndex(tag => tag.id === updatedTag.id);
+//     if (index !== -1) {
+//         tags.value[index] = updatedTag;
+//     }
+// }
+
+// 不再需要此函数，因为TagModal现在直接使用tagStore获取数据
+// function updateTag(updatedTag: { id: number; name: string; color: string; count: number; }) {
+//     const index = tags.value.findIndex(tag => tag.id === updatedTag.id);
+//     if (index !== -1) {
+//         tags.value[index] = updatedTag;
+//     }
+// }
 
 // Context menu state
 const contextMenu = reactive({
     show: false,
-    targetTag: undefined as { id: number; name: string; color: string; count: number; } | undefined,
+    targetTag: undefined as UITag | undefined,
     activatorElement: undefined as HTMLElement | undefined
 });
 
 // Function to show context menu
-async function showContextMenu(tag: { id: number; name: string; color: string; count: number; }, element: HTMLElement) {
+async function showContextMenu(tag: UITag, element: HTMLElement) {
     if (contextMenu.show) {
         contextMenu.show = false;
         await nextTick();
@@ -153,21 +204,49 @@ async function showContextMenu(tag: { id: number; name: string; color: string; c
     contextMenu.show = true;
 }
 
-// Handle tag renaming
-function renameTag(id: number, newName: string) {
-    const index = tags.value.findIndex(tag => tag.id === id);
-    if (index !== -1) {
-        tags.value[index].name = newName;
+// 处理从上下文菜单发起的重命名
+function handleRename(oldName: string, newName: string) {
+    renameTag(oldName, newName);
+}
+
+// 处理从上下文菜单发起的删除
+function handleDelete(name: string) {
+    deleteTag(name);
+}
+
+// 处理标签重命名
+// 注意：后端没有直接提供重命名API，需要删除旧标签并创建新标签
+async function renameTag(oldName: string, newName: string) {
+    if (oldName === newName) return;
+    
+    try {
+        // 获取原标签的颜色
+        const oldTag = tagStore.getTagByName(oldName);
+        if (!oldTag) return;
+        
+        // 创建新标签
+        await tagStore.addTag(newName, oldTag.color);
+        
+        // 删除旧标签
+        await tagStore.deleteTag(oldName);
+    } catch (err) {
+        console.error('重命名标签失败:', err);
     }
 }
 
-// Handle tag deletion
-function deleteTag(id: number) {
-    const index = tags.value.findIndex(tag => tag.id === id);
-    if (index !== -1) {
-        tags.value.splice(index, 1);
+// 处理标签删除
+async function deleteTag(name: string) {
+    try {
+        await tagStore.deleteTag(name);
+    } catch (err) {
+        console.error('删除标签失败:', err);
     }
 }
+
+// 组件挂载时加载标签
+onMounted(() => {
+    fetchTags();
+});
 </script>
 
 <style scoped>

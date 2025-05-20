@@ -40,9 +40,9 @@
     <!-- 删除确认对话框 -->
     <v-dialog v-model="deleteDialog.show" max-width="500px">
         <v-card>
-            <v-card-title>删除列表</v-card-title>
+            <v-card-title>删除标签</v-card-title>
             <v-card-text>
-                确定要删除列表 "{{ deleteDialog.listTitle }}" 吗？此操作无法撤销。
+                确定要删除标签 "{{ deleteDialog.tagName }}" 吗？此操作无法撤销。
             </v-card-text>
             <v-card-actions>
                 <v-spacer></v-spacer>
@@ -55,7 +55,15 @@
 
 <script setup lang="ts">
 import { reactive, computed } from 'vue';
-import { FList } from 'src-tauri/bindings/FList';
+import { Tag } from '@/services/TagService';
+
+// 定义一个更通用的标签接口，兼容UI中使用的标签类型
+interface TagLike {
+    id: number | string;
+    name: string;
+    color: string | any; // 可以是字符串或TagColor枚举
+    [key: string]: any; // 允许其他任意属性
+}
 
 const props = defineProps({
     show: {
@@ -66,13 +74,9 @@ const props = defineProps({
         type: Object,
         default: undefined
     },
-    targetList: {
-        type: Object as () => FList | null,
+    targetTag: {
+        type: Object as () => TagLike | null,
         default: null
-    },
-    targetIndex: {
-        type: Number,
-        default: -1
     }
 });
 
@@ -90,50 +94,47 @@ const show = computed({
 const renameDialog = reactive({
     show: false,
     newName: '',
-    targetList: null as FList | null
+    targetTag: null as TagLike | null
 });
 
 // 删除确认对话框
 const deleteDialog = reactive({
     show: false,
-    listTitle: '',
-    targetList: null as FList | null,
-    targetIndex: -1
+    tagName: '',
+    targetTag: null as TagLike | null
 });
 
 function triggerRename() {
-    if (props.targetList) {
-        renameDialog.targetList = props.targetList;
-        renameDialog.newName = props.targetList.title;
+    if (props.targetTag) {
+        renameDialog.targetTag = props.targetTag;
+        renameDialog.newName = props.targetTag.name;
         renameDialog.show = true;
         show.value = false;
     }
 }
 
 function triggerDelete() {
-    if (props.targetList !== null && props.targetIndex !== -1) {
-        deleteDialog.targetList = props.targetList;
-        deleteDialog.listTitle = props.targetList.title;
-        deleteDialog.targetIndex = props.targetIndex;
+    if (props.targetTag) {
+        deleteDialog.targetTag = props.targetTag;
+        deleteDialog.tagName = props.targetTag.name;
         deleteDialog.show = true;
         show.value = false;
     }
 }
 
 function confirmRename() {
-    if (renameDialog.targetList && renameDialog.newName.trim() !== '') {
-        emit('rename', renameDialog.targetList.id, renameDialog.newName.trim());
+    if (renameDialog.targetTag && renameDialog.newName.trim() !== '') {
+        emit('rename', renameDialog.targetTag.name, renameDialog.newName.trim());
         renameDialog.show = false;
-        renameDialog.targetList = null;
+        renameDialog.targetTag = null;
     }
 }
 
 function confirmDelete() {
-    if (deleteDialog.targetList && deleteDialog.targetIndex !== -1) {
-        emit('delete', deleteDialog.targetList.id, deleteDialog.targetIndex);
+    if (deleteDialog.targetTag) {
+        emit('delete', deleteDialog.targetTag.name);
         deleteDialog.show = false;
-        deleteDialog.targetList = null;
-        deleteDialog.targetIndex = -1;
+        deleteDialog.targetTag = null;
     }
 }
 </script>
