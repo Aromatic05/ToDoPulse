@@ -45,6 +45,9 @@
 
 <script setup lang="ts">
 import { ref, watch, onMounted } from 'vue';
+import { useTagStore } from '@/stores/index';
+import ListCard from '@/components/Cards/ListCard.vue';
+import type { FEvent } from 'src-tauri/bindings/FEvent';
 import { useTagStore, useEventStore } from '@/stores/index';
 import TagCard from '@/components/Cards/TagCard.vue';
 import { FEvent } from 'src-tauri/bindings/FEvent';

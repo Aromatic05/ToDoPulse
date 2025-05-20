@@ -345,7 +345,7 @@ export default defineComponent({
 
         // 简化的日期选择完成处理
         const handleDateSelected = (date: Date | null) => {
-            if (date && !isNaN(date.getTime())) {
+            if (date && !Number.isNaN(date.getTime())) {
                 formData.value.ddl = date.getTime().toString();
             } else {
                 formData.value.ddl = '';

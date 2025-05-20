@@ -64,7 +64,7 @@
 
 <script lang="ts">
 import { defineComponent, defineAsyncComponent, computed } from 'vue';
-import { FEvent } from 'src-tauri/bindings/FEvent';
+import type { FEvent } from 'src-tauri/bindings/FEvent';
 import { convertTimestampToDate, convertTimestampToTime } from '@/services/DateTimeService';
 
 // 懒加载模态框组件

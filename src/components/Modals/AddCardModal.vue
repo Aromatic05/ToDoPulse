@@ -39,7 +39,7 @@
 <script setup lang="ts">
 import { reactive } from 'vue';
 import { useEventStore } from '@/stores';
-import { Priority } from 'src-tauri/bindings/Priority';
+import type { Priority } from 'src-tauri/bindings/Priority';
 
 // Props
 const props = defineProps({

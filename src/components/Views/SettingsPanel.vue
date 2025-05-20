@@ -330,10 +330,11 @@ const exportAllEvents = async () => {
                 message: '未选择保存位置'
             };
         }
-    } catch (error: any) {
+    } catch (error: unknown) {
+        const errorMessage = error instanceof Error ? error.message : String(error);
         exportResult.value = {
             success: false,
-            message: `导出失败: ${error?.toString() || '未知错误'}`
+            message: `导出失败: ${errorMessage || '未知错误'}`
         };
     } finally {
         exporting.value = false;
@@ -371,10 +372,11 @@ const exportSelectedLists = async () => {
                 message: '未选择保存位置'
             };
         }
-    } catch (error: any) {
+    } catch (error: unknown) {
+        const errorMessage = error instanceof Error ? error.message : String(error);
         exportResult.value = {
             success: false,
-            message: `导出失败: ${error?.toString() || '未知错误'}`
+            message: `导出失败: ${errorMessage || '未知错误'}`
         };
     } finally {
         exporting.value = false;
@@ -386,7 +388,7 @@ const exportFilteredEvents = async () => {
     exporting.value = true;
     try {
         // 确定文件名和格式
-        let filename;
+        let filename: string;
         switch (exportFilter.value) {
             case 'completed':
                 filename = 'completed_events';
@@ -402,7 +404,7 @@ const exportFilteredEvents = async () => {
         const customPath = await selectSavePathForExport(filename, format);
         
         if (customPath) {
-            let result;
+            let result: string;
             // 使用用户选择的路径
             const savePath = customPath;
             
@@ -440,10 +442,11 @@ const exportFilteredEvents = async () => {
                 message: '未选择保存位置'
             };
         }
-    } catch (error: any) {
+    } catch (error: unknown) {
+        const errorMessage = error instanceof Error ? error.message : String(error);
         exportResult.value = {
             success: false,
-            message: `导出失败: ${error?.toString() || '未知错误'}`
+            message: `导出失败: ${errorMessage || '未知错误'}`
         };
     } finally {
         exporting.value = false;
@@ -481,10 +484,11 @@ const testWebDAVConnection = async () => {
             };
             webdavConnectionTested.value = false;
         }
-    } catch (error: any) {
+    } catch (error: unknown) {
+        const errorMessage = error instanceof Error ? error.message : String(error);
         webdavResult.value = {
             success: false,
-            message: `连接错误: ${error?.toString() || '未知错误'}`
+            message: `连接错误: ${errorMessage || '未知错误'}`
         };
         webdavConnectionTested.value = false;
     } finally {
@@ -531,10 +535,11 @@ const syncWithWebDAV = async () => {
                 message: '目录同步失败'
             };
         }
-    } catch (error: any) {
+    } catch (error: unknown) {
+        const errorMessage = error instanceof Error ? error.message : String(error);
         webdavResult.value = {
             success: false,
-            message: `同步错误: ${error?.toString() || '未知错误'}`
+            message: `同步错误: ${errorMessage || '未知错误'}`
         };
     } finally {
         syncingWebDAV.value = false;

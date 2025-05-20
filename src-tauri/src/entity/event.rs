@@ -153,8 +153,12 @@ pub async fn add_event(
     ddl: &str,
 ) -> Result<Event, ErrorKind> {
     let mut metadata = EventMetadata::new();
-    metadata.list = listid.map(|id| id.to_string()); // 直接使用字符串，不再解析为u64
-    let content_path = AppPaths::data_dir().join(format!("{}.md", title));
+    metadata.list = listid.map(|id| id.to_string());
+    let content_dir = AppPaths::data_dir().join(format!("{}", title));
+    if !content_dir.exists() {
+        fs::create_dir_all(&content_dir)?;
+    }
+    let content_path = content_dir.join(format!("{}.md", title));
     fs::write(&content_path, "")?;
     let mut new_event = Event {
         metadata,

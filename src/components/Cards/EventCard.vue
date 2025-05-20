@@ -26,7 +26,7 @@
 
 <script lang="ts">
 import { defineComponent, defineAsyncComponent, computed} from 'vue';
-import { FEvent } from 'src-tauri/bindings/FEvent';
+import type { FEvent } from 'src-tauri/bindings/FEvent';
 import { convertTimestampToTime } from '@/services/DateTimeService';
 
 // 动态导入模态框组件，减少初始加载时间
