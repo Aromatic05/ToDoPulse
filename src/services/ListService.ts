@@ -1,6 +1,6 @@
-import { FList } from 'src-tauri/bindings/FList'
+import type { FList } from 'src-tauri/bindings/FList'
 import { invoke } from '@tauri-apps/api/core'
-import { FEvent } from 'src-tauri/bindings/FEvent'
+import type { FEvent } from 'src-tauri/bindings/FEvent'
 
 interface ListCache {
   data: FList[]
@@ -74,7 +74,7 @@ export class ListService {
    * @param page 页码，默认为1
    * @returns 包含事件数组和是否有更多数据的对象
    */
-  async getListContent(listId: string, page: number = 1): Promise<{ events: FEvent[], hasMore: boolean }> {
+  async getListContent(listId: string, page = 1): Promise<{ events: FEvent[], hasMore: boolean }> {
     const cacheKey = listId
     const cache = this.listContentsCache.get(cacheKey)
     const now = Date.now()
@@ -141,7 +141,7 @@ export class ListService {
    * @param icon 列表图标，默认为"mdi-folder"
    * @returns 新创建的列表对象
    */
-  async createList(title: string, icon: string = "mdi-folder"): Promise<FList> {
+  async createList(title: string, icon = "mdi-folder"): Promise<FList> {
     try {
       const newList = await invoke<FList>('new_list', { title, icon })
       

@@ -1,7 +1,7 @@
 import { defineStore } from 'pinia'
 import { ref, reactive, computed } from 'vue'
-import { FEvent } from 'src-tauri/bindings/FEvent'
-import { Priority } from 'src-tauri/bindings/Priority'
+import type { FEvent } from 'src-tauri/bindings/FEvent'
+import type { Priority } from 'src-tauri/bindings/Priority'
 import { invoke } from '@tauri-apps/api/core'
 
 export interface TimelineGroup {

@@ -78,11 +78,11 @@ function changeTheme(themeName: string): void {
  */
 function applyTheme(): void {
     // 先移除所有主题相关的类
-    document.body.classList.forEach((className: string) => {
+    for (const className of Array.from(document.body.classList)) {
         if (className === 'dark' || className.endsWith('-light') || className.endsWith('-dark')) {
             document.body.classList.remove(className);
         }
-    });
+    }
 
     // 应用当前主题
     const themeClassName: string = getThemeClassName(currentTheme.value, isDarkMode.value);

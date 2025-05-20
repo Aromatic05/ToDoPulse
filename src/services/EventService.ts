@@ -1,6 +1,6 @@
-import { FEvent } from 'src-tauri/bindings/FEvent'
+import type { FEvent } from 'src-tauri/bindings/FEvent'
 import { invoke } from '@tauri-apps/api/core'
-import { Priority } from 'src-tauri/bindings/Priority'
+import type { Priority } from 'src-tauri/bindings/Priority'
 
 interface EventCache {
   data: FEvent[]
@@ -41,7 +41,7 @@ export class EventService {
    * @param page 页码，默认为1
    * @returns 包含事件数组和是否有更多数据的对象
    */
-  async getEventsByListId(listId: string, page: number = 1): Promise<{ events: FEvent[], hasMore: boolean }> {
+  async getEventsByListId(listId: string, page = 1): Promise<{ events: FEvent[], hasMore: boolean }> {
     const cacheKey = `${listId}`
     const cache = this.eventCache.get(cacheKey)
     const now = Date.now()

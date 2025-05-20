@@ -1,6 +1,6 @@
 import { defineStore } from 'pinia'
 import { ref, computed } from 'vue'
-import { FList } from 'src-tauri/bindings/FList'
+import type { FList } from 'src-tauri/bindings/FList'
 import ListService from '../services/ListService'
 
 export const useListStore = defineStore('lists', () => {
@@ -63,6 +63,15 @@ export const useListStore = defineStore('lists', () => {
     async function createList(title: string, icon: string = 'mdi-format-list-bulleted') {
         isLoading.value = true
         error.value = null
+  /**
+   * 创建新列表
+   * @param title 列表标题
+   * @param icon 列表图标，默认为'mdi-format-list-bulleted'
+   * @returns 更新后的列表数组
+   */
+  async function createList(title: string, icon = 'mdi-format-list-bulleted') {
+    isLoading.value = true
+    error.value = null
 
         try {
             // 使用 ListService 创建列表

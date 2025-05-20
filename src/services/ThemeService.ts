@@ -40,7 +40,7 @@ const themeColors: ThemeColorMap = themes.reduce<ThemeColorMap>((acc, theme) => 
  * @returns 是否为深色主题
  */
 export function getSystemThemePreference(): boolean {
-    return window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches;
+    return window.matchMedia?.('(prefers-color-scheme: dark)')?.matches ?? false;
 }
 
 /**

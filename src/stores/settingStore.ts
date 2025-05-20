@@ -6,10 +6,10 @@ import type { FEvent } from 'src-tauri/bindings/FEvent'
 export type ExportFormat = 'ics' | 'json' | 'md' | 'markdown'
 
 interface AppSettings {
-    theme: string
-    exportDirectory: string
-    notificationsEnabled: boolean
-    [key: string]: any
+  theme: string
+  exportDirectory: string
+  notificationsEnabled: boolean
+  [key: string]: string | boolean | number | undefined
 }
 
 export const useSettingStore = defineStore('settings', () => {
@@ -136,9 +136,9 @@ export const useSettingStore = defineStore('settings', () => {
         isLoading.value = true
         error.value = null
 
-        try {
-            let exportContent = ''
-            let filename = format === 'ics' ? 'all_todopulse_events' : 'all_todopulse_events'
+    try {
+      let exportContent = ''
+      const filename = format === 'ics' ? 'all_todopulse_events' : 'all_todopulse_events'
 
             // 根据不同格式调用相应API
             switch (format) {
@@ -190,8 +190,8 @@ export const useSettingStore = defineStore('settings', () => {
                 throw new Error('没有选择任何事件')
             }
 
-            let exportContent = ''
-            let filename = format === 'ics' ? 'todopulse_events' : 'todopulse_events'
+      const exportContent = ''
+      const filename = format === 'ics' ? 'todopulse_events' : 'todopulse_events'
 
             // 根据不同格式调用相应API
             await invoke<string>('export_events_to_ics', { format, eventIds })
@@ -267,10 +267,10 @@ export const useSettingStore = defineStore('settings', () => {
         isLoading.value = true
         error.value = null
 
-        try {
-            let exportContent = ''
-            const status = finished ? 'completed' : 'pending'
-            let filename = `${status}_events`
+    try {
+      let exportContent = ''
+      const status = finished ? 'completed' : 'pending'
+      const filename = `${status}_events`
 
             // 根据格式选择相应的API
             switch (format) {

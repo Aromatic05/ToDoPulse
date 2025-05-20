@@ -42,8 +42,8 @@ export const timestampToDate = (timestamp: string): Date | undefined => {
   }
   
   try {
-    const timestampValue = parseInt(timestamp);
-    if (!isNaN(timestampValue)) {
+    const timestampValue = Number.parseInt(timestamp);
+    if (!Number.isNaN(timestampValue)) {
       return new Date(timestampValue);
     }
   } catch (error) {

@@ -2,25 +2,25 @@ import { invoke } from '@tauri-apps/api/core';
 import type { FList } from 'src-tauri/bindings/FList';
 import { useListStore } from '@/stores/listStore';
 
-export class SettingService {
+export const SettingService = {
   /**
    * 获取默认导出路径
    */
-  static async getDefaultExportPath(): Promise<string> {
+  async getDefaultExportPath(): Promise<string> {
     try {
       return await invoke<string>('get_export_directory');
     } catch (error) {
       console.error('获取默认导出路径失败', error);
       return '';
     }
-  }
+  },
 
   /**
    * 选择导出文件的保存路径
    * @param suggestedName 建议的文件名
    * @param extension 文件扩展名
    */
-  static async selectSavePath(suggestedName: string, extension: string): Promise<string | null> {
+  async selectSavePath(suggestedName: string, extension: string): Promise<string | null> {
     try {
       // 调用后端的文件选择对话框
       const result = await invoke<string | null>('select_save_path', {
@@ -32,23 +32,23 @@ export class SettingService {
       console.error('选择保存路径失败', error);
       return null;
     }
-  }
+  },
 
   /**
    * 保存应用设置
    * @param settings 设置对象
    */
-  static async saveSettings(settings: any): Promise<void> {
+  async saveSettings(settings: Record<string, unknown>): Promise<void> {
     // 实际项目中可能涉及到调用Tauri的API保存设置
     // 这里暂时只打印一下
     console.log('保存设置', settings);
     return Promise.resolve();
-  }
+  },
 
   /**
    * 获取可以导出的事件列表
    */
-  static async getExportableLists(): Promise<FList[]> {
+  async getExportableLists(): Promise<FList[]> {
     try {
       const listStore = useListStore();
       // 调用后端API获取所有事件列表
@@ -57,17 +57,17 @@ export class SettingService {
       console.error('获取事件列表失败', error);
       throw error;
     }
-  }
+  },
 
   /**
    * 导出所有事件
    * @param format 导出格式
    * @param customPath 自定义保存路径
    */
-  static async exportAllEvents(format: string, customPath?: string): Promise<string> {
+  async exportAllEvents(format: string, customPath?: string): Promise<string> {
     try {
       let exportContent = '';
-      let filename = format === 'ics' ? 'all_todopulse_events' : 'all_todopulse_events';
+      const filename = format === 'ics' ? 'all_todopulse_events' : 'all_todopulse_events';
 
       // 根据不同格式直接调用相应的全部导出API
       switch (format) {
@@ -100,7 +100,7 @@ export class SettingService {
       console.error('导出所有事件失败', error);
       throw error;
     }
-  }
+  },
 
   /**
    * 导出选定的事件
@@ -108,14 +108,14 @@ export class SettingService {
    * @param format 导出格式
    * @param customPath 自定义保存路径
    */
-  static async exportLists(lists: string[], format: string, customPath?: string): Promise<string> {
+  async exportLists(lists: string[], format: string, customPath?: string): Promise<string> {
     try {
       if (lists.length === 0) {
         throw new Error('没有选择任何事件');
       }
 
       let exportContent = '';
-      let filename = format === 'ics' ? 'todopulse_events' : 'todopulse_events';
+      const filename = format === 'ics' ? 'todopulse_events' : 'todopulse_events';
 
       // 根据不同格式调用不同的后端导出API
       try {
@@ -144,7 +144,7 @@ export class SettingService {
       console.error('导出事件失败', error);
       throw error;
     }
-  }
+  },
 
   /**
    * 导出单个事件
@@ -152,7 +152,7 @@ export class SettingService {
    * @param format 导出格式
    * @param customPath 自定义保存路径
    */
-  static async exportSingleEvent(eventId: string, format: string, customPath?: string): Promise<string> {
+  async exportSingleEvent(eventId: string, format: string, customPath?: string): Promise<string> {
     try {
       let exportContent = '';
       
@@ -177,7 +177,7 @@ export class SettingService {
       console.error('导出单个事件失败', error);
       throw error;
     }
-  }
+  },
 
   /**
    * 测试 WebDAV 连接
@@ -186,7 +186,7 @@ export class SettingService {
    * @param password 密码
    * @returns 连接是否成功
    */
-  static async testWebDAVConnection(host: string, username: string, password: string): Promise<boolean> {
+  async testWebDAVConnection(host: string, username: string, password: string): Promise<boolean> {
     try {
       return await invoke<boolean>('test_webdav_connection', {
         host,
@@ -197,7 +197,7 @@ export class SettingService {
       console.error('测试WebDAV连接失败', error);
       return false;
     }
-  }
+  },
 
   /**
    * 同步目录到WebDAV服务器
@@ -208,7 +208,7 @@ export class SettingService {
    * @param remoteDir 远程目录路径
    * @returns 同步是否成功
    */
-  static async syncDirectoryWithWebDAV(
+  async syncDirectoryWithWebDAV(
     host: string,
     username: string,
     password: string,
@@ -228,7 +228,7 @@ export class SettingService {
       console.error('WebDAV同步失败', error);
       return false;
     }
-  }
+  },
 
   /**
    * 根据状态导出事件（已完成/未完成）
@@ -236,11 +236,11 @@ export class SettingService {
    * @param format 导出格式
    * @param customPath 自定义保存路径
    */
-  static async exportEventsByStatus(finished: boolean, format: string, customPath?: string): Promise<string> {
+  async exportEventsByStatus(finished: boolean, format: string, customPath?: string): Promise<string> {
     try {
       let exportContent = '';
       const status = finished ? 'completed' : 'pending';
-      let filename = `${status}_events`;
+      const filename = `${status}_events`;
 
       // 根据格式选择相应的API
       switch (format) {

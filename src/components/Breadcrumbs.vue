@@ -17,14 +17,14 @@
 <script setup lang="ts">
 import { ref, computed, onMounted, onUnmounted } from 'vue';
 import { useListStore } from '@/stores';
-import { FList } from 'src-tauri/bindings/FList';
+import type { FList } from 'src-tauri/bindings/FList';
 
 // 初始化listStore
 const listStore = useListStore();
 
 // 当前列表数据
 const currentList = ref<FList | null>(null);
-const lists = ref<any[]>([]);
+const lists = ref<FList[]>([]);
 
 // 初始化获取列表数据
 const initLists = async () => {

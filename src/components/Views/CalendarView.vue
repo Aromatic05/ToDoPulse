@@ -32,10 +32,9 @@ import FullCalendar from '@fullcalendar/vue3';
 import dayGridPlugin from '@fullcalendar/daygrid';
 import timeGridPlugin from '@fullcalendar/timegrid';
 import interactionPlugin from '@fullcalendar/interaction';
-import type { EventApi, CalendarOptions } from '@fullcalendar/core'; 
+import type { EventApi, CalendarOptions, DateSelectArg, EventClickArg } from '@fullcalendar/core'; 
 import { invoke } from '@tauri-apps/api/core';
 import type { FEvent } from 'src-tauri/bindings/FEvent';
-import type { Calendar } from '@fullcalendar/core';
 import { timestampToDate } from '@/services/DateTimeService';
 // import { useEventStore } from '@/stores';
 
@@ -164,25 +163,7 @@ export default defineComponent({
     };
 
     // 处理日期选择
-    // 添加类型定义
-    interface DateSelectArg {
-      start: Date;
-      end: Date;
-      startStr: string;
-      endStr: string;
-      allDay: boolean;
-      view: {
-        calendar: Calendar;
-      };
-    }
-
-    interface EventClickArg {
-      event: {
-        id: string;
-        title: string;
-        remove: () => void;
-      };
-    }
+    // 使用从 @fullcalendar/core 导入的类型
 
     const handleDateSelect = (selectInfo: DateSelectArg) => {
       const title = prompt('请输入事件标题');
