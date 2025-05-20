@@ -15,6 +15,11 @@ pub use list::List;
 pub use tag::{get_tags, Tag};
 
 const DB_NAME: &str = "data.db";
+type Table = TableDefinition<'static, &'static [u8], &'static [u8]>;
+const EVENT_TABLE: Table = TableDefinition::new("events");
+const LIST_TABLE: Table = TableDefinition::new("lists");
+const TAG_TABLE: Table = TableDefinition::new("tag");
+
 
 pub trait Entity: Clone + Serialize + for<'de> Deserialize<'de> {
     fn table_def() -> TableDefinition<'static, &'static [u8], &'static [u8]>;
@@ -25,7 +30,6 @@ pub trait Entity: Clone + Serialize + for<'de> Deserialize<'de> {
 pub trait Repository<T: Entity> {
     fn add(&self, entity: &T) -> Result<()>;
     fn delete(&self, name: &str) -> Result<()>;
-    #[allow(dead_code)]
     fn update<F>(&self, id: &str, update_fn: F) -> Result<()>
     where
         F: FnOnce(&mut T) -> Result<()>;
@@ -146,6 +150,12 @@ impl<T: Entity> Repository<T> for Storage {
 fn connect_to_db() -> Result<Database> {
     let db_path = AppPaths::data_dir().join(DB_NAME);
     let db = Database::create(db_path)?;
+    let txn = db.begin_write()?;
+    {
+        let _ = txn.open_table(EVENT_TABLE)?;
+        let _ = txn.open_table(LIST_TABLE)?;
+        let _ = txn.open_table(TAG_TABLE)?;
+    }
     Ok(db)
 }
 

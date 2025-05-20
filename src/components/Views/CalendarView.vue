@@ -32,15 +32,16 @@ import FullCalendar from '@fullcalendar/vue3';
 import dayGridPlugin from '@fullcalendar/daygrid';
 import timeGridPlugin from '@fullcalendar/timegrid';
 import interactionPlugin from '@fullcalendar/interaction';
-import { EventApi, CalendarOptions } from '@fullcalendar/core'; 
+import type { EventApi, CalendarOptions } from '@fullcalendar/core'; 
 import { invoke } from '@tauri-apps/api/core';
-import { FEvent } from 'src-tauri/bindings/FEvent';
+import type { FEvent } from 'src-tauri/bindings/FEvent';
+import type { Calendar } from '@fullcalendar/core';
 import { timestampToDate } from '@/services/DateTimeService';
 // import { useEventStore } from '@/stores';
 
 // 将日期范围转换为日期字符串数组
 const iter_calendar=(start:Date, end:Date) => {
-  const dates:String[] = [];
+  const dates:string[] = [];
   const currentDate = new Date(start);
   while (currentDate <= end) {
     const year = currentDate.getFullYear();
@@ -127,7 +128,7 @@ export default defineComponent({
         // 清除现有事件以防止重复
         calendarApi.removeAllEvents();
         
-        events.forEach(event => {
+        for (const event of events) {
           // 使用转换函数将时间戳字符串转换为日期对象
           const startDate: Date | undefined = timestampToDate(event.create);
           const endDate: Date | undefined = timestampToDate(event.ddl);
@@ -158,7 +159,7 @@ export default defineComponent({
           } else {
             console.warn(`事件 ${event.title} (ID: ${event.id}) 没有有效的日期，无法显示在日历上`);
           }
-        });
+        }
       }
     };
 
@@ -171,7 +172,7 @@ export default defineComponent({
       endStr: string;
       allDay: boolean;
       view: {
-        calendar: any;
+        calendar: Calendar;
       };
     }
 
@@ -184,8 +185,8 @@ export default defineComponent({
     }
 
     const handleDateSelect = (selectInfo: DateSelectArg) => {
-      let title = prompt('请输入事件标题');
-      let calendarApi = selectInfo.view.calendar;
+      const title = prompt('请输入事件标题');
+      const calendarApi = selectInfo.view.calendar;
 
       calendarApi.unselect();
 

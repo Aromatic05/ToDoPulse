@@ -55,15 +55,7 @@
 
 <script setup lang="ts">
 import { reactive, computed } from 'vue';
-import { Tag } from '@/services/TagService';
-
-// 定义一个更通用的标签接口，兼容UI中使用的标签类型
-interface TagLike {
-    id: number | string;
-    name: string;
-    color: string | any; // 可以是字符串或TagColor枚举
-    [key: string]: any; // 允许其他任意属性
-}
+import type { FList } from 'src-tauri/bindings/FList';
 
 const props = defineProps({
     show: {

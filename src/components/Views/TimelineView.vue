@@ -45,7 +45,7 @@
 <script setup lang="ts">
 import { computed, onMounted } from 'vue'
 import EventCard from '@/components/Cards/EventCard.vue'
-import { FEvent } from 'src-tauri/bindings/FEvent';
+import type { FEvent } from 'src-tauri/bindings/FEvent';
 import { useTimelineStore } from '@/stores'
 
 // 使用Pinia store管理时间线数据

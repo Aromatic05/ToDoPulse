@@ -54,11 +54,11 @@ const props = defineProps({
 
 const listTitle = ref('我的列表')
 const listId = computed(() => {
-    let match;
+    let match: RegExpMatchArray | null = null;
     if (props.viewId.startsWith('list/')) {
-        match = props.viewId.match(/list\/([^\/]+)/);
+        match = props.viewId.match(/list\/([^/]+)/);
     } else if (props.viewId.startsWith('list-item/')) {
-        match = props.viewId.match(/list-item\/([^\/]+)/);
+        match = props.viewId.match(/list-item\/([^/]+)/);
     }
     return match ? match[1] : null;
 })

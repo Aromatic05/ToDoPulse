@@ -37,7 +37,6 @@ pub async fn list_exists(state: &State<'_, StorageState>, uuid: &str) -> bool {
 }
 
 #[allow(dead_code)]
-// 这一段代码是函数式编程的风格，写在这里装个逼
 pub async fn with_storage<F, T>(state: &State<'_, StorageState>, f: F) -> Result<T, String>
 where
     F: FnOnce(&mut Storage) -> Result<T, String>,
