@@ -1,8 +1,8 @@
 import { defineStore } from 'pinia'
 import { ref, computed } from 'vue'
-import { TagColor } from 'src-tauri/bindings/TagColor'
-import { FEvent } from 'src-tauri/bindings/FEvent'
-import TagService, { Tag } from '../services/TagService'
+import type { TagColor } from 'src-tauri/bindings/TagColor'
+import type { FEvent } from 'src-tauri/bindings/FEvent'
+import TagService, { type Tag } from '../services/TagService'
 
 export const useTagStore = defineStore('tags', () => {
   // 状态

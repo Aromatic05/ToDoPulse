@@ -67,7 +67,7 @@ export const useEventStore = defineStore('events', () => {
      * @param loadMore 是否加载更多，默认为false
      * @returns 更新后的事件数组
      */
-    async function fetchEventsByListId(listId: string, loadMore: boolean = false) {
+    async function fetchEventsByListId(listId: string, loadMore = false) {
         isLoading.value = true
         error.value = null
 

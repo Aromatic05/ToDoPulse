@@ -54,26 +54,17 @@ export const useListStore = defineStore('lists', () => {
         }
     }
 
-    /**
-     * 创建新列表
-     * @param title 列表标题
-     * @param icon 列表图标，默认为'mdi-format-list-bulleted'
-     * @returns 更新后的列表数组
-     */
-    async function createList(title: string, icon: string = 'mdi-format-list-bulleted') {
-        isLoading.value = true
-        error.value = null
-  /**
-   * 创建新列表
-   * @param title 列表标题
-   * @param icon 列表图标，默认为'mdi-format-list-bulleted'
-   * @returns 更新后的列表数组
-   */
-  async function createList(title: string, icon = 'mdi-format-list-bulleted') {
+/**
+ * 创建新列表
+ * @param title 列表标题
+ * @param icon 列表图标，默认为'mdi-format-list-bulleted'
+ * @returns 更新后的列表数组
+ */
+async function createList(title: string, icon = 'mdi-format-list-bulleted') {
     isLoading.value = true
     error.value = null
 
-        try {
+    try {
             // 使用 ListService 创建列表
             const newList = await listService.createList(title, icon)
 

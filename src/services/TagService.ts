@@ -1,6 +1,6 @@
 import { invoke } from '@tauri-apps/api/core'
-import { TagColor } from 'src-tauri/bindings/TagColor'
-import { FEvent } from 'src-tauri/bindings/FEvent'
+import type { TagColor } from 'src-tauri/bindings/TagColor'
+import type { FEvent } from 'src-tauri/bindings/FEvent'
 
 // 标签接口
 export interface Tag {
