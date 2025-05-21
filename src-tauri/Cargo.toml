@@ -30,6 +30,7 @@ tokio = { version = "1", features = ["full"] }
 dirs = "6.0.0"
 chrono = "0.4.40"
 uuid = { version = "1.16.0", features = ["v4"] }
+base64 = "0.21.7"
 reqwest = { version = "0.12.15", features = ["json"] }
 reqwest_dav = "0.2.1"
 httpdate = "1.0"

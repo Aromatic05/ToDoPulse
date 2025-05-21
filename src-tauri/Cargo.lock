@@ -9,6 +9,7 @@ dependencies = [
  "anyhow",
  "async-std",
  "async-trait",
+ "base64 0.21.7",
  "chrono",
  "cron",
  "dirs",

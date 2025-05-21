@@ -19,41 +19,21 @@
                                     placeholder="输入标题" variant="outlined" density="compact"></v-text-field>
                             </div>
                             <div class="form-group">
-                                <v-autocomplete
-                                    v-model="selectedTags"
-                                    :items="allTags"
-                                    item-title="name"
-                                    item-value="name"
-                                    label="标签"
-                                    placeholder="选择或输入标签"
-                                    variant="outlined"
-                                    density="compact"
-                                    chips
-                                    multiple
-                                    closable-chips
-                                    :menu-props="{ maxHeight: 400 }"
-                                    :append-inner-icon="'mdi-plus'"
-                                    @click:append-inner="openAddTagModal"
-                                >
+                                <v-autocomplete v-model="selectedTags" :items="allTags" item-title="name"
+                                    item-value="name" label="标签" placeholder="选择或输入标签" variant="outlined"
+                                    density="compact" chips multiple closable-chips :menu-props="{ maxHeight: 400 }"
+                                    :append-inner-icon="'mdi-plus'" @click:append-inner="openAddTagModal">
                                     <template v-slot:chip="{ props, item }">
-                                        <v-chip
-                                            v-bind="props"
-                                            :color="item.raw && item.raw.color ? getTagColor(item.raw) : 'default'"
-                                        >
+                                        <v-chip v-bind="props"
+                                            :color="item.raw && item.raw.color ? getTagColor(item.raw) : 'default'">
                                             {{ item.title }}
                                         </v-chip>
                                     </template>
                                     <template v-slot:item="{ props, item }">
-                                        <v-list-item
-                                            v-bind="props"
-                                            :prepend-icon="'mdi-tag'"
-                                            :subtitle="'点击选择'"
-                                            :color="item.raw && item.raw.color ? getTagColor(item.raw) : 'default'"
-                                        >
-                                            <v-list-item-title
-                                                :style="item.raw && item.raw.color ?
-                                                    { color: getTagColor(item.raw) } : {}"
-                                            >
+                                        <v-list-item v-bind="props" :prepend-icon="'mdi-tag'" :subtitle="'点击选择'"
+                                            :color="item.raw && item.raw.color ? getTagColor(item.raw) : 'default'">
+                                            <v-list-item-title :style="item.raw && item.raw.color ?
+                                                { color: getTagColor(item.raw) } : {}">
                                                 {{ item.raw && item.raw.name ? item.raw.name : item.title }}
                                             </v-list-item-title>
                                         </v-list-item>
@@ -119,6 +99,8 @@ import { DatePicker } from 'v-calendar';
 import 'v-calendar/dist/style.css';
 import type { Tag } from '@/services/TagService';
 import AddTagModal from './AddTagModal.vue';
+import { invoke } from '@tauri-apps/api/core'
+import { path } from '@tauri-apps/api';
 
 declare module 'vditor' {
     interface IVditor {
@@ -213,6 +195,147 @@ export default defineComponent({
                 },
                 input: (value: string) => {
                     content.value = value;
+                },
+                // 配置图片上传功能
+                upload: {
+                    url: '/upload-handler', // 仅为占位，实际由handler接管
+                    max: 10 * 1024 * 1024, // 10MB
+                    accept: 'image/*, .pdf, .docx, .xlsx, .zip', // 接受的文件类型
+                    multiple: true,
+                    fieldName: 'file',
+                    // 自定义处理器，使用Tauri API
+                    handler: async (files: File[]) => {
+                        // 确保有事件ID
+                        if (!formData.value.id) {
+                            return '请先保存事件后再上传文件';
+                        }
+
+                        try {
+                            const eventId = formData.value.id;
+                            const promises = files.map(async (file) => {
+                                try {
+                                    // 将文件内容转换为Base64字符串
+                                    const arrayBuffer = await file.arrayBuffer();
+                                    const uint8Array = new Uint8Array(arrayBuffer);
+                                    const base64 = btoa(String.fromCharCode(...new Uint8Array(arrayBuffer)));
+                                    
+                                    // 直接使用invoke调用Tauri后端函数
+                                    const result = await invoke('upload_file', {
+                                        filename: file.name,
+                                        filedata: base64,
+                                        eventid: eventId
+                                    });
+                                    return result;
+                                } catch (err) {
+                                    console.error('文件上传失败:', err);
+                                    return {
+                                        code: 1,
+                                        msg: `上传失败: ${err}`,
+                                        data: {
+                                            errFiles: [file.name],
+                                            succMap: {}
+                                        }
+                                    };
+                                }
+                            });
+
+                            const results = await Promise.all(promises);
+                            // 合并所有上传结果
+                            const combinedResult = {
+                                code: 0,
+                                msg: '上传成功',
+                                data: {
+                                    errFiles: [] as string[],
+                                    succMap: {} as Record<string, string>
+                                }
+                            };
+
+                            results.forEach((result: any) => {
+                                try {
+                                    // 如果结果是字符串，尝试解析为JSON
+                                    const parsedResult = typeof result === 'string' ? JSON.parse(result) : result;
+
+                                    if (parsedResult.code === 0 && parsedResult.data) {
+                                        // 合并成功映射
+                                        Object.assign(combinedResult.data.succMap, parsedResult.data.succMap);
+
+                                        // 添加错误文件（如果有）
+                                        if (parsedResult.data.errFiles && parsedResult.data.errFiles.length > 0) {
+                                            combinedResult.data.errFiles.push(...parsedResult.data.errFiles);
+                                        }
+                                    } else {
+                                        // 处理错误响应
+                                        combinedResult.data.errFiles.push(
+                                            parsedResult.msg || '上传失败，未知错误'
+                                        );
+                                    }
+                                } catch (e) {
+                                    // 处理解析错误
+                                    console.error('解析上传结果失败:', e, result);
+                                    combinedResult.data.errFiles.push('上传结果解析失败');
+                                }
+                            });
+
+                            return JSON.stringify(combinedResult);
+                        } catch (error) {
+                            console.error('文件上传失败:', error);
+                            return `上传失败: ${error}`;
+                        }
+                    },
+                    // 处理剪贴板图片上传 (网络图片地址)
+                    linkToImgFormat: (responseText) => {
+                        try {
+                            const result = JSON.parse(responseText);
+                            if (result.code === 0 && result.data && result.data.url) {
+                                return JSON.stringify({
+                                    code: 0,
+                                    data: {
+                                        errFiles: [],
+                                        succMap: {
+                                            [result.data.originalURL]: result.data.url
+                                        }
+                                    }
+                                });
+                            }
+                        } catch (e) {
+                            console.error('解析上传响应失败', e);
+                        }
+                        return responseText;
+                    },
+                    // 处理剪贴板中的图片URL
+                    linkToImgUrl: '/remote-image-handler', // 仅为占位，实际由回调处理
+                    linkToImgCallback: async (responseText) => {
+                        try {
+                            // 解析JSON以获取URL
+                            const urlData = JSON.parse(responseText);
+                            const url = urlData.url;
+
+                            // 确保有事件ID
+                            if (!formData.value.id) {
+                                console.error('保存远程图片失败: 没有事件ID');
+                                return '';
+                            }
+
+                            // 直接使用invoke调用Tauri后端函数
+                            const result = await invoke('save_remote_image', {
+                                url: url,
+                                event_id: formData.value.id
+                            });
+
+                            // 解析响应
+                            const resultData = result as any;
+                            if (resultData.code === 0 && resultData.data && resultData.data.url) {
+                                // 返回本地图片URL
+                                return resultData.data.url;
+                            } else {
+                                console.error('保存远程图片失败:', resultData);
+                                return '';
+                            }
+                        } catch (e) {
+                            console.error('处理远程图片失败:', e);
+                            return '';
+                        }
+                    }
                 }
             });
         };
@@ -247,12 +370,12 @@ export default defineComponent({
         // 获取标签颜色
         const getTagColor = (tag: Tag | undefined): string => {
             if (!tag || !tag.color) return 'default';
-            
+
             // 处理枚举值或字符串
             if (typeof tag.color === 'string') {
                 return tag.color.toLowerCase();
             }
-            
+
             // 处理枚举类型 (TagColor)
             return String(tag.color).toLowerCase();
         };
@@ -419,11 +542,13 @@ export default defineComponent({
 @import '@/styles/vditor.css';
 
 .v-overlay--active {
-    z-index: 9999999 !important; /* 非常高的z-index值 */
+    z-index: 9999999 !important;
+    /* 非常高的z-index值 */
 }
 
 .priority-select-menu {
-    z-index: 9999999 !important; /* 非常高的z-index值 */
+    z-index: 9999999 !important;
+    /* 非常高的z-index值 */
     position: fixed !important;
 }
 </style>

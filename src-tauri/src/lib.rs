@@ -6,7 +6,7 @@ mod init; // 初始化模块
 mod utils; // 通用工具函数
 
 use entity::{event, list, tag};
-use function::{export, sync};
+use function::{export, sync, upload};
 use utils::config;
 use tauri_plugin_dialog;
 
@@ -51,6 +51,8 @@ pub fn run() -> std::io::Result<()> {
             sync::sync_now,
             sync::get_sync_status,
             config::update_config,
+            upload::upload_file,
+            upload::save_remote_image,
         ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");
