@@ -1,16 +1,12 @@
 <template>
     <Teleport to="body">
         <div v-if="modelValue" class="modal-mask" @click.self="handleClose">
-            <!-- 标签添加弹窗 -->
             <AddTagModal v-model="showAddTagModal" @created="handleTagCreated" />
             <div class="modal-container">
                 <div class="modal-header">
-                    <!-- <button @click="handleClose" aria-label="关闭弹窗">&times;</button> -->
-                </div>
+                    </div>
                 <div class="modal-body">
-                    <!-- 改为左右两栏布局 -->
                     <div class="modal-layout">
-                        <!-- 左侧表单字段 -->
                         <div class="form-section">
                             <h3>卡片详情</h3>
                             <br>
@@ -48,8 +44,8 @@
                                         isInteractive: true
                                     }" is-expanded :min-date="minDate" :max-date="maxDate">
                                     <template #default="{ inputEvents }">
-                                        <v-text-field clearable label="日期" v-model="formData.ddl"
-                                            :value="formData.ddl ? new Date(Number(formData.ddl)).toLocaleString() : ''"
+                                        <v-text-field clearable label="日期"
+                                            :model-value="formData.ddl ? new Date(Number(formData.ddl)).toLocaleString() : ''"
                                             v-on="inputEvents" placeholder="选择日期和时间" class="date-input" readonly
                                             variant="outlined" density="compact"></v-text-field>
                                     </template>
@@ -61,7 +57,6 @@
                                     label="优先级" variant="outlined" density="compact" class="mb-4"></v-select>
                             </div>
 
-                            <!-- 将图标输入改为图标选择 -->
                             <div class="form-group">
                                 <p class="text-subtitle-1 mb-2">图标选择</p>
                                 <v-chip-group v-model="selectedIconIndex" column>
@@ -73,10 +68,17 @@
                             </div>
                         </div>
 
-                        <!-- 右侧编辑器 -->
                         <div class="editor-section">
                             <label for="content">内容</label>
-                            <div id="vditor" ref="vditorRef"></div>
+                            <VditorEditor v-if="formData.id"
+                                          :event-id="formData.id"
+                                          :card-title="formData.title"
+                                          v-model="editorContent"
+                                          editor-id="card-content-editor"
+                                          @initialized="onEditorInitialized" />
+                            <div v-else>
+                                <p>请先保存卡片以启用内容编辑器和文件上传功能。</p>
+                            </div>
                         </div>
                     </div>
                 </div>
@@ -90,31 +92,23 @@
 </template>
 
 <script lang="ts">
-import { defineComponent, ref, watch, onBeforeUnmount, nextTick, computed, onErrorCaptured, onMounted } from 'vue';
-import Vditor from 'vditor';
-import 'vditor/dist/index.css';
+import { defineComponent, ref, watch, nextTick, computed, onErrorCaptured, onMounted } from 'vue';
 import type { FEvent } from 'src-tauri/bindings/FEvent';
 import { useEventStore, useTagStore } from '@/stores';
 import { DatePicker } from 'v-calendar';
 import 'v-calendar/dist/style.css';
 import type { Tag } from '@/services/TagService';
 import AddTagModal from './AddTagModal.vue';
-import { invoke, convertFileSrc  } from '@tauri-apps/api/core'
-import { appDataDir, join } from '@tauri-apps/api/path'; // 或者 @tauri-apps/plugin-path
+import VditorEditor from '@/components/VditorEditor.vue';
 
-declare module 'vditor' {
-    interface IVditor {
-        destroy: () => void;
-        getValue: () => string;
-        setValue: (content: string) => void;
-    }
-}
+// 不再需要 IVditor 接口定义，因为它在 VditorEditor.vue 中
 
 export default defineComponent({
     name: 'CardContentModal',
     components: {
         VDatePicker: DatePicker,
-        AddTagModal
+        AddTagModal,
+        VditorEditor // 注册新的编辑器组件
     },
     props: {
         modelValue: {
@@ -128,14 +122,12 @@ export default defineComponent({
     },
     emits: ['update:modelValue', 'confirm'],
     setup(props, { emit }) {
-        // 使用store
         const eventStore = useEventStore();
         const tagStore = useTagStore();
 
-        const vditor = ref<Vditor | null>(null);
-        const content = ref<string>('');
-        const isLoading = computed(() => eventStore.isLoading);
-        const isInitialized = ref(false);
+        const editorContent = ref<string>(''); // 用于存储编辑器内容
+        // const isLoading = computed(() => eventStore.isLoading); // isLoading 似乎未在模板中使用，如果确实不用可以移除
+        // const isEditorInitialized = ref(false); // 由 VditorEditor 内部管理和通过事件通知
 
         const formData = ref<FEvent>({
             id: props.cardData.id || '',
@@ -154,11 +146,10 @@ export default defineComponent({
         const selectedTags = ref<string[]>(props.cardData.tag || []);
         const showAddTagModal = ref(false);
 
-        // 简化日期值的计算属性
         const dateValue = computed({
             get: () => formData.value.ddl ? new Date(Number(formData.value.ddl)) : null,
             set: (date: Date | null) => {
-                formData.value.ddl = date ? date.getTime().toString() : ''
+                formData.value.ddl = date ? date.getTime().toString() : '';
             }
         });
 
@@ -166,246 +157,32 @@ export default defineComponent({
             return document.body.classList.contains('dark') || document.body.classList.toString().includes('-dark');
         };
 
-        // 新版初始化编辑器函数
-        const initEditor = async () => {
-            const dynamicLinkBase = await getDynamicLinkBase();
-            await nextTick();
+        // Vditor 实例现在由 VditorEditor 组件管理
+        // const vditorComponentRef = ref<InstanceType<typeof VditorEditor> | null>(null); // 如果需要调用子组件方法
 
-            // 销毁旧实例
-            if (vditor.value) {
-                vditor.value.destroy();
-                vditor.value = null;
-                isInitialized.value = false;
-            }
-
-            // 创建新实例
-            vditor.value = new Vditor('vditor', {
-                height: 500,
-                width: '100%',
-                theme: isDarkMode() ? 'dark' : 'classic',
-                toolbarConfig: { pin: true },
-                cache: { enable: false },
-                placeholder: '请输入内容...',
-                mode: 'wysiwyg',
-                preview: {
-                    markdown: {
-                        linkBase: dynamicLinkBase // 设置链接相对路径前缀
-                    }
-                },
-                after: () => {
-                    isInitialized.value = true;
-                    // 设置初始内容
-                    if (content.value) {
-                        vditor.value?.setValue(content.value);
-                    }
-                },
-                input: (value: string) => {
-                    content.value = value;
-                },
-                // 配置图片上传功能
-                upload: {
-                    url: '/upload-handler', // 仅为占位，实际由handler接管
-                    max: 10 * 1024 * 1024, // 10MB
-                    accept: 'image/*, .pdf, .docx, .xlsx, .zip', // 接受的文件类型
-                    multiple: true,
-                    fieldName: 'file',
-                    success: (editor, responseText) => {
-                        try {
-                            const response = JSON.parse(responseText);
-                            if (response.code === 0 && response.data && response.data.succMap) {
-                                // 遍历所有成功上传的文件
-                                Object.values(response.data.succMap).forEach((markdownLink) => {
-                                    // 直接插入Markdown格式的图片链接到编辑器
-                                    console.log('插入链接:', markdownLink);
-                                    vditor.value?.insertValue(markdownLink + '\n');
-                                });
-                            }
-                        } catch (e) {
-                            console.error('处理上传响应失败:', e);
-                        }
-                    },
-                    // 自定义处理器，使用Tauri API
-                    handler: async (files: File[]) => {
-                        // 确保有事件ID
-                        if (!formData.value.id) {
-                            return '请先保存事件后再上传文件';
-                        }
-
-                        try {
-                            const eventId = formData.value.id;
-                            const promises = files.map(async (file) => {
-                                try {
-                                    // 将文件内容转换为Base64字符串
-                                    const arrayBuffer = await file.arrayBuffer();
-                                    const uint8Array = new Uint8Array(arrayBuffer);
-                                    
-                                    // 分块处理，避免栈溢出
-                                    let base64 = '';
-                                    const chunkSize = 524288; // 每次处理512KB
-                                    
-                                    for (let i = 0; i < uint8Array.length; i += chunkSize) {
-                                        const chunk = uint8Array.slice(i, i + chunkSize);
-                                        base64 += String.fromCharCode.apply(null, Array.from(chunk));
-                                    }
-                                    
-                                    const base64Data = btoa(base64);
-
-                                    // 直接使用invoke调用Tauri后端函数
-                                    const result = await invoke('upload_file', {
-                                        filename: file.name,
-                                        filedata: base64Data,
-                                        eventid: eventId
-                                    });
-                                    return result;
-                                } catch (err) {
-                                    console.error('文件上传失败:', err);
-                                    return {
-                                        code: 1,
-                                        msg: `上传失败: ${err}`,
-                                        data: {
-                                            errFiles: [file.name],
-                                            succMap: {}
-                                        }
-                                    };
-                                }
-                            });
-
-                            const results = await Promise.all(promises);
-                            // 合并所有上传结果
-                            const combinedResult = {
-                                code: 0,
-                                msg: '上传成功',
-                                data: {
-                                    errFiles: [] as string[],
-                                    succMap: {} as Record<string, string>
-                                }
-                            };
-
-                            results.forEach((result: any) => {
-                                try {
-                                    // 如果结果是字符串，尝试解析为JSON
-                                    const parsedResult = typeof result === 'string' ? JSON.parse(result) : result;
-
-                                    if (parsedResult.code === 0 && parsedResult.data) {
-                                        // 处理后端返回的蛇形命名字段
-                                        if (parsedResult.data.succ_map) {
-                                            // 将文件URL转换为Markdown图片语法
-                                            Object.entries(parsedResult.data.succ_map).forEach(([filename, url]) => {
-                                                combinedResult.data.succMap[filename] = `![${filename}](${url})`;
-                                            });
-                                        }
-
-                                        // 添加错误文件（如果有）
-                                        if (parsedResult.data.err_files && parsedResult.data.err_files.length > 0) {
-                                            combinedResult.data.errFiles.push(...parsedResult.data.err_files);
-                                        }
-                                    } else {
-                                        // 处理错误响应
-                                        combinedResult.data.errFiles.push(
-                                            parsedResult.msg || '上传失败，未知错误'
-                                        );
-                                    }
-                                } catch (e) {
-                                    // 处理解析错误
-                                    console.error('解析上传结果失败:', e, result);
-                                    combinedResult.data.errFiles.push('上传结果解析失败');
-                                }
-                            });
-
-                            // 在返回结果之前，处理成功上传的文件
-                            if (combinedResult.code === 0 && combinedResult.data.succMap) {
-                                console.log('开始处理上传结果');
-                                // 遍历所有成功上传的文件
-                                Object.values(combinedResult.data.succMap).forEach((markdownLink) => {
-                                    console.log('插入链接:', markdownLink);
-                                    // 直接插入Markdown格式的图片链接到编辑器
-                                    vditor.value?.insertValue(markdownLink + '\n');
-                                });
-                            }
-
-                            return JSON.stringify(combinedResult);
-                        } catch (error) {
-                            console.error('文件上传失败:', error);
-                            return `上传失败: ${error}`;
-                        }
-                    },
-                    // 处理剪贴板图片上传 (网络图片地址)
-                    linkToImgFormat: (responseText) => {
-                        try {
-                            const result = JSON.parse(responseText);
-                            if (result.code === 0 && result.data && result.data.url) {
-                                return JSON.stringify({
-                                    code: 0,
-                                    data: {
-                                        errFiles: [],
-                                        succMap: {
-                                            [result.data.originalURL]: result.data.url
-                                        }
-                                    }
-                                });
-                            }
-                        } catch (e) {
-                            console.error('解析上传响应失败', e);
-                        }
-                        return responseText;
-                    },
-                    // 处理剪贴板中的图片URL
-                    linkToImgUrl: '/remote-image-handler', // 仅为占位，实际由回调处理
-                    linkToImgCallback: async (responseText) => {
-                        try {
-                            // 解析JSON以获取URL
-                            const urlData = JSON.parse(responseText);
-                            const url = urlData.url;
-
-                            // 确保有事件ID
-                            if (!formData.value.id) {
-                                console.error('保存远程图片失败: 没有事件ID');
-                                return '';
-                            }
-
-                            // 直接使用invoke调用Tauri后端函数
-                            const result = await invoke('save_remote_image', {
-                                url: url,
-                                event_id: formData.value.id
-                            });
-
-                            // 解析响应
-                            const resultData = result as any;
-                            if (resultData.code === 0 && resultData.data && resultData.data.url) {
-                                // 返回本地图片URL
-                                return resultData.data.url;
-                            } else {
-                                console.error('保存远程图片失败:', resultData);
-                                return '';
-                            }
-                        } catch (e) {
-                            console.error('处理远程图片失败:', e);
-                            return '';
-                        }
-                    }
-                }
-            });
+        const onEditorInitialized = () => {
+            // console.log("Editor is ready in parent.");
+            // isEditorInitialized.value = true;
+            // 如果有初始加载逻辑，可以在这里触发，确保编辑器已准备好
+            // 例如，如果内容加载依赖编辑器初始化，可以在这里调用 loadContent
+            // 但由于 VditorEditor 内部会在 after 回调中设置初始值，可能不需要父组件再次设置
         };
 
-        // 改进内容加载函数 - 使用eventStore
         const loadContent = async () => {
-            if (!props.cardData.id) return;
-
+            if (!formData.value.id) { // 使用 formData.value.id
+                editorContent.value = ''; // 清空内容
+                return;
+            }
             try {
-                const newContent = await eventStore.getEventContent(props.cardData.id);
-                content.value = newContent || '';
-
-                // 如果编辑器已初始化，立即更新内容
-                if (isInitialized.value && vditor.value) {
-                    vditor.value.setValue(content.value);
-                }
+                const fetchedContent = await eventStore.getEventContent(formData.value.id);
+                editorContent.value = fetchedContent || '';
+                // VditorEditor 组件将通过 watch props.modelValue (即这里的 editorContent) 来更新其内部值
             } catch (error) {
                 console.error('加载内容失败:', error);
-                content.value = '';
+                editorContent.value = '';
             }
         };
 
-        // 加载所有标签
         const loadTags = async () => {
             try {
                 allTags.value = await tagStore.fetchTags();
@@ -414,53 +191,47 @@ export default defineComponent({
             }
         };
 
-        // 获取标签颜色
         const getTagColor = (tag: Tag | undefined): string => {
             if (!tag || !tag.color) return 'default';
-
-            // 处理枚举值或字符串
-            if (typeof tag.color === 'string') {
-                return tag.color.toLowerCase();
-            }
-
-            // 处理枚举类型 (TagColor)
+            if (typeof tag.color === 'string') return tag.color.toLowerCase();
             return String(tag.color).toLowerCase();
         };
 
-        // 打开添加标签弹窗
         const openAddTagModal = () => {
             showAddTagModal.value = true;
         };
 
-        // 处理标签创建成功
         const handleTagCreated = async (tagName: string) => {
-            await loadTags(); // 重新加载标签列表
-            // 将新标签添加到已选择的标签中
+            await loadTags();
             if (!selectedTags.value.includes(tagName)) {
                 selectedTags.value = [...selectedTags.value, tagName];
             }
         };
 
         const handleOpen = async () => {
+            // 确保 formData 更新后再加载内容，因为 editorContent 依赖 formData.id
             formData.value = { ...props.cardData };
             selectedTags.value = props.cardData.tag || [];
-            await loadTags();
-            await loadContent();
-            await initEditor();
+
+            await loadTags(); // 加载标签
+
+            // 仅当 cardData.id 存在时才加载内容
+            if (props.cardData.id) {
+                 await loadContent(); // 加载编辑器内容
+            } else {
+                editorContent.value = ''; // 新卡片，内容为空
+            }
+            // VditorEditor 会在其 onMounted 和 props.eventId watch 中自行初始化
         };
 
         const handleConfirm = async () => {
             try {
-                if (vditor.value) {
-                    content.value = vditor.value.getValue();
-                    if (formData.value.id && content.value !== null) {
-                        // 使用eventStore保存内容
-                        await eventStore.saveEventContent(formData.value.id, content.value);
-                    }
+                // editorContent 已经通过 v-model 与 VditorEditor 同步
+                if (formData.value.id && editorContent.value !== null) {
+                    await eventStore.saveEventContent(formData.value.id, editorContent.value);
                 }
 
                 formData.value.tag = selectedTags.value;
-
                 emit('confirm', formData.value);
                 handleClose();
             } catch (error) {
@@ -470,121 +241,90 @@ export default defineComponent({
 
         const handleClose = () => {
             emit('update:modelValue', false);
-            setTimeout(() => {
-                if (vditor.value) {
-                    vditor.value.destroy();
-                    vditor.value = null;
-                    isInitialized.value = false;
-                }
-            }, 10);
+            // VditorEditor 的清理工作由其自身的 onBeforeUnmount 处理
+            // isEditorInitialized.value = false; // 重置状态
+            editorContent.value = ''; // 清空内容，以便下次打开是干净的
         };
 
-        // 简化 watch 逻辑
         watch(
             () => props.modelValue,
             async (val) => {
                 if (val) {
+                    await nextTick(); // 确保DOM更新，特别是Teleport的内容
                     await handleOpen();
+                } else {
+                    // Modal 关闭时，可以做一些清理， editorContent 已经在 handleClose 中清理
                 }
             },
-            { immediate: true }
+            { immediate: true } // 初始打开时也执行
         );
 
         watch(
             () => props.cardData,
-            (newVal) => {
-                if (props.modelValue) {
-                    formData.value = { ...newVal };
+            async (newVal) => {
+                if (props.modelValue) { // 仅当模态框可见时更新
+                    const prevId = formData.value.id;
+                    formData.value = { ...newVal }; // 更新表单数据
                     selectedTags.value = newVal.tag || [];
+
+                    // 如果 ID 发生变化，或者从无 ID 变为有 ID，则重新加载内容
+                    if (newVal.id && newVal.id !== prevId) {
+                        await loadContent();
+                    } else if (!newVal.id) {
+                        editorContent.value = ''; // 如果新卡片没有ID（例如新建状态），清空内容
+                    }
+                    // VditorEditor 将通过其内部的 watch(props.eventId) 来响应 ID 变化
                 }
             },
             { deep: true }
         );
 
-        // 移除不必要的 onMounted 逻辑，依赖 watch
-        onBeforeUnmount(() => {
-            if (vditor.value) {
-                vditor.value.destroy();
-                vditor.value = null;
-            }
-        });
+        // 移除 Vditor 相关的 onBeforeUnmount
+        // onBeforeUnmount 会在 VditorEditor 组件内部处理
 
-        // 定义日期范围常量
         const minDate = new Date(2000, 0, 1);
         const maxDate = new Date(2100, 11, 31);
 
-        // 简化的日期选择完成处理
-        const handleDateSelected = (date: Date | null) => {
-            if (date && !Number.isNaN(date.getTime())) {
-                formData.value.ddl = date.getTime().toString();
-            } else {
-                formData.value.ddl = '';
-            }
-        };
+        // handleDateSelected 似乎未被直接使用，VDatePicker 直接通过 v-model 更新 dateValue -> formData.ddl
+        // const handleDateSelected = (date: Date | null) => { ... }
 
-        // 添加错误边界
         onErrorCaptured((err) => {
             if (String(err).includes('dayIndex')) {
                 console.warn('日历组件数据异常，已拦截:', err);
-                return false; // 阻止错误继续传播
+                return false;
             }
             return true;
         });
 
-        const availableIcons = [
-            'mdi-home',
-            'mdi-account',
-            'mdi-briefcase',
-            'mdi-shopping',
-            'mdi-star',
-        ];
-
-        // 同步图标选择和formData.icon
+        const availableIcons = ['mdi-home', 'mdi-account', 'mdi-briefcase', 'mdi-shopping', 'mdi-star'];
         const selectedIconIndex = computed({
-            get: () => {
-                const index = availableIcons.findIndex(icon => icon === formData.value.icon);
-                return index !== -1 ? index : -1;
-            },
+            get: () => availableIcons.findIndex(icon => icon === formData.value.icon),
             set: (index: number) => {
                 if (index >= 0 && index < availableIcons.length) {
                     formData.value.icon = availableIcons[index];
+                } else {
+                    formData.value.icon = ''; // 如果索引无效，则清空图标或设为默认
                 }
             }
         });
 
-        // 初始加载标签
-        onMounted(loadTags);
-
-        async function getDynamicLinkBase() {
-            try {
-                const dataDir = await appDataDir();
-                const targetDirectoryPath = await join(dataDir, formData.value.title);
-                let linkBaseUrl = convertFileSrc(targetDirectoryPath);
-                if (!linkBaseUrl.endsWith('/')) {
-                    linkBaseUrl += '/';
-                }
-
-                console.log('Dynamically constructed linkBase (using convertFileSrc):', linkBaseUrl);
-                return linkBaseUrl;
-
-            } catch (error) {
-                console.error("Error constructing dynamic linkBase with convertFileSrc:", error);
-                return ''; // Or a default CDN, or throw the error
-            }
-        }
+        onMounted(() => {
+            loadTags(); // 初始加载一次标签列表
+            // handleOpen 将在 modelValue 变为 true 时被调用
+        });
+        
+        // getDynamicLinkBase 已移至 VditorEditor
 
         return {
             formData,
+            editorContent, // 用于 v-model 绑定到 VditorEditor
             selectedTags,
             allTags,
-            isLoading,
             handleConfirm,
             handleClose,
             openAddTagModal,
             getTagColor,
-            vditorRef: ref(null),
             dateValue,
-            handleDateSelected,
             minDate,
             maxDate,
             isDarkMode,
@@ -592,29 +332,29 @@ export default defineComponent({
             selectedIconIndex,
             showAddTagModal,
             handleTagCreated,
-            getDynamicLinkBase
+            onEditorInitialized,
+            // vditorComponentRef // 如果需要调用子组件方法时使用
         };
     }
 });
-
 </script>
-
 
 <style scoped>
 @import '@/styles/Modals/contentmodal.css';
 </style>
 
 <style>
+/* 全局 Vditor 样式导入可以保留在这里，或者移到 main.ts/App.vue */
+/* 如果 VditorEditor.vue 已经导入了 'vditor/dist/index.css'，这里可能就不再需要了 */
+/* 但是，你可能有一些自定义的全局 Vditor 覆盖样式 */
 @import '@/styles/vditor.css';
 
 .v-overlay--active {
     z-index: 9999999 !important;
-    /* 非常高的z-index值 */
 }
 
 .priority-select-menu {
     z-index: 9999999 !important;
-    /* 非常高的z-index值 */
     position: fixed !important;
 }
 </style>

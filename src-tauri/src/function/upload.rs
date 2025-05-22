@@ -3,7 +3,7 @@ use anyhow::Result;
 use base64::{engine::general_purpose, Engine as _};
 use serde::{Deserialize, Serialize};
 use std::fs;
-use std::io::{Read, Write};
+use std::io::{Write};
 use std::ops::DerefMut;
 use std::path::{Path, PathBuf};
 use tauri::State;
