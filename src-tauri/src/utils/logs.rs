@@ -1,5 +1,5 @@
-use std::fs::OpenOptions;
 use env_logger::Builder;
+use std::fs::OpenOptions;
 use std::io::Write;
 
 use crate::utils::AppPaths;
@@ -29,8 +29,7 @@ pub fn init_log() {
                 record.args()
             )
         })
-        .target(env_logger::Target::Pipe(Box::new(log))
-            )
+        .target(env_logger::Target::Pipe(Box::new(log)))
         .init();
     log::info!("Log initialized at {}", log_path.display());
 }

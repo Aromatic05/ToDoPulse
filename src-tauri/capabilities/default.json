@@ -11,6 +11,30 @@
     "core:event:default",
     "updater:default",
     "dialog:default",
-    "dialog:default"
+    "fs:default",
+    {
+      "identifier": "fs:read-all",
+      "allow": [
+        {
+          "path": "$APPDATA/**"
+        }
+      ]
+    },
+    {
+      "identifier": "fs:write-all",
+      "allow": [
+        {
+          "path": "$APPDATA/**"
+        }
+      ]
+    },
+    {
+      "identifier": "fs:allow-exists",
+      "allow": [
+        {
+          "path": "$APPDATA/**"
+        }
+      ]
+    }
   ]
 }

@@ -1,13 +1,13 @@
+use crate::entity::{Event, Repository, StorageState};
+use anyhow::Result;
+use base64::{engine::general_purpose, Engine as _};
+use serde::{Deserialize, Serialize};
 use std::fs;
 use std::io::{Read, Write};
-use std::path::{Path, PathBuf};
-use anyhow::Result;
-use serde::{Deserialize, Serialize};
-use tauri::{State};
-use uuid::Uuid;
-use base64::{Engine as _, engine::general_purpose};
-use crate::entity::{Event, Repository, StorageState};
 use std::ops::DerefMut;
+use std::path::{Path, PathBuf};
+use tauri::State;
+use uuid::Uuid;
 
 /// 上传文件的响应格式
 #[derive(Serialize, Deserialize)]
@@ -42,7 +42,7 @@ pub async fn upload_file(
     state: State<'_, StorageState>,
     filename: String,
     filedata: String,
-    eventid: String
+    eventid: String,
 ) -> Result<UploadResponse, String> {
     // 1. 获取事件信息，确定文件保存目录
     let mut guard = state.0.lock().await;
@@ -50,51 +50,51 @@ pub async fn upload_file(
     let event = match Repository::<Event>::get_by_name(storage, &eventid) {
         Ok(Some(event)) => event,
         Ok(None) => return Err(format!("事件不存在: {}", eventid)),
-        Err(e) => return Err(format!("查询事件失败: {}", e))
+        Err(e) => return Err(format!("查询事件失败: {}", e)),
     };
-    
+
     // 2. 提取事件内容文件路径，确定文件保存目录
     let content_path = PathBuf::from(&event.content);
     let dir_path = match content_path.parent() {
         Some(dir) => dir.to_path_buf(),
-        None => return Err("无法获取事件内容目录".to_string())
+        None => return Err("无法获取事件内容目录".to_string()),
     };
 
     // 3. 解码Base64数据
     let file_content = match general_purpose::STANDARD.decode(filedata) {
         Ok(data) => data,
-        Err(e) => return Err(format!("解码文件数据失败: {}", e))
+        Err(e) => return Err(format!("解码文件数据失败: {}", e)),
     };
-    
+
     // 4. 生成文件名 (使用UUID避免冲突)
     let file_ext = Path::new(&filename)
         .extension()
         .and_then(|ext| ext.to_str())
         .unwrap_or("bin");
-    
+
     let unique_filename = format!("{}.{}", Uuid::new_v4(), file_ext);
     let target_path = dir_path.join(&unique_filename);
-    
+
     // 5. 写入目标文件
     match fs::File::create(&target_path).and_then(|mut file| file.write_all(&file_content)) {
         Ok(_) => {
             // 6. 返回文件URL (相对路径)
             let mut succ_map = std::collections::HashMap::new();
-            
+
             // 创建相对路径 - 使用事件目录下的文件
             let file_url = format!("./{}", unique_filename);
             succ_map.insert(filename, file_url);
-            
+
             Ok(UploadResponse {
                 code: 0,
                 msg: "上传成功".to_string(),
                 data: UploadData {
                     err_files: vec![],
                     succ_map,
-                }
+                },
             })
-        },
-        Err(e) => Err(format!("保存文件失败: {}", e))
+        }
+        Err(e) => Err(format!("保存文件失败: {}", e)),
     }
 }
 
@@ -111,7 +111,7 @@ pub async fn upload_file(
 pub async fn save_remote_image(
     state: State<'_, StorageState>,
     url: String,
-    eventid: String
+    eventid: String,
 ) -> Result<serde_json::Value, String> {
     // 1. 获取事件信息，确定文件保存目录
     let mut guard = state.0.lock().await;
@@ -119,14 +119,14 @@ pub async fn save_remote_image(
     let event = match Repository::<Event>::get_by_name(storage, &eventid) {
         Ok(Some(event)) => event,
         Ok(None) => return Err(format!("事件不存在: {}", eventid)),
-        Err(e) => return Err(format!("查询事件失败: {}", e))
+        Err(e) => return Err(format!("查询事件失败: {}", e)),
     };
-    
+
     // 2. 提取事件内容文件路径，确定文件保存目录
     let content_path = PathBuf::from(&event.content);
     let dir_path = match content_path.parent() {
         Some(dir) => dir.to_path_buf(),
-        None => return Err("无法获取事件内容目录".to_string())
+        None => return Err("无法获取事件内容目录".to_string()),
     };
 
     // 3. 从URL提取文件扩展名
@@ -135,25 +135,29 @@ pub async fn save_remote_image(
         .last()
         .and_then(|ext| {
             let ext = ext.split('?').next().unwrap_or(ext); // 移除查询参数
-            if ext.len() <= 4 { Some(ext) } else { None }
+            if ext.len() <= 4 {
+                Some(ext)
+            } else {
+                None
+            }
         })
         .unwrap_or("jpg");
 
     // 4. 生成唯一文件名
     let unique_filename = format!("{}.{}", Uuid::new_v4(), file_ext);
     let file_path = dir_path.join(&unique_filename);
-    
+
     // 5. 下载图片
     let response = match reqwest::get(&url).await {
         Ok(res) => res,
-        Err(e) => return Err(format!("下载图片失败: {}", e))
+        Err(e) => return Err(format!("下载图片失败: {}", e)),
     };
-    
+
     let bytes = match response.bytes().await {
         Ok(b) => b,
-        Err(e) => return Err(format!("读取图片数据失败: {}", e))
+        Err(e) => return Err(format!("读取图片数据失败: {}", e)),
     };
-    
+
     // 6. 保存图片到事件内容目录
     match fs::File::create(&file_path).and_then(|mut file| file.write_all(&bytes)) {
         Ok(_) => {
@@ -168,7 +172,7 @@ pub async fn save_remote_image(
                 }
             });
             Ok(response)
-        },
-        Err(e) => Err(format!("保存图片失败: {}", e))
+        }
+        Err(e) => Err(format!("保存图片失败: {}", e)),
     }
 }

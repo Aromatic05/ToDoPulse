@@ -530,4 +530,3 @@ pub async fn load_sync_state() -> Result<(Option<FileSystemState>, Option<FileSy
 
     Ok((local_state, remote_state))
 }
-

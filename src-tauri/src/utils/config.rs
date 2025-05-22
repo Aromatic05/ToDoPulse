@@ -2,13 +2,13 @@ use anyhow::Result;
 use once_cell::sync::Lazy;
 use serde::{Deserialize, Serialize};
 use std::fs;
-use std::sync::Mutex;
 use std::path::{Path, PathBuf};
+use std::sync::Mutex;
 use toml;
 use ts_rs::TS;
 
-use crate::utils::path::AppPaths;
 use crate::error::ErrorKind;
+use crate::utils::path::AppPaths;
 
 const CONFIG_FILE: &str = "config.toml";
 const DEFAULT_CONFIG: &str = r#"
@@ -31,9 +31,8 @@ sync_interval = 30
 "#;
 
 // 解析DEFAULT_CONFIG以复用默认值
-static DEFAULT_VALUES: Lazy<Config> = Lazy::new(|| {
-    toml::from_str(DEFAULT_CONFIG).expect("默认配置解析失败")
-});
+static DEFAULT_VALUES: Lazy<Config> =
+    Lazy::new(|| toml::from_str(DEFAULT_CONFIG).expect("默认配置解析失败"));
 
 static CONFIG: Lazy<Mutex<Option<Config>>> = Lazy::new(|| Mutex::new(None));
 
@@ -127,20 +126,20 @@ impl ConfigField {
             ConfigField::WebDav(webdav) => config.webdav = webdav.clone(),
         }
     }
-} 
+}
 
 pub fn parse() -> Result<()> {
     parse_with_path::<PathBuf>(None)
 }
 
 /// Updates a specific section of the application configuration
-/// 
+///
 /// Modifies the specified configuration field (Theme, Info, Model, or WebDAV)
 /// and writes the updated configuration to disk.
-/// 
+///
 /// # Parameters
 /// * `field` - The configuration field to update, wrapped in the appropriate ConfigField variant
-/// 
+///
 /// # Returns
 /// * `Result<(), ErrorKind>` - Success or an error if the configuration couldn't be updated
 #[tauri::command]
@@ -161,10 +160,7 @@ pub fn write_config() -> Result<()> {
     let config_path = AppPaths::config_dir().join(CONFIG_FILE);
     let config_lock = CONFIG.lock().unwrap();
     if let Some(config) = &*config_lock {
-        fs::write(
-            &config_path,
-            toml::to_string(config)?,
-        )?;
+        fs::write(&config_path, toml::to_string(config)?)?;
         Ok(())
     } else {
         log::error!("Config not found");
@@ -181,16 +177,13 @@ pub fn parse_with_path<P: AsRef<Path>>(custom_path: Option<P>) -> Result<()> {
             } else {
                 path_buf
             }
-        },
+        }
         None => AppPaths::config_dir().join(CONFIG_FILE),
     };
 
     if !config_path.exists() {
         fs::create_dir_all(config_path.parent().unwrap())?;
-        fs::write(
-            &config_path,
-            DEFAULT_CONFIG,
-        )?;
+        fs::write(&config_path, DEFAULT_CONFIG)?;
     }
     let config_str = fs::read_to_string(&config_path)?;
     let config: Config = toml::from_str(&config_str)?;
@@ -232,8 +225,8 @@ pub fn get_webdav_config() -> Result<WebDav> {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use tempfile::tempdir;
     use std::path::PathBuf;
+    use tempfile::tempdir;
 
     // 创建测试环境
     fn setup_test_env() -> PathBuf {
@@ -246,7 +239,7 @@ mod tests {
     #[test]
     fn test_custom_config_values() {
         let config_dir = setup_test_env();
-        
+
         // 写入自定义配置
         let config_content = r#"
         [theme]
@@ -266,15 +259,18 @@ mod tests {
         remote_dir = "/ToDoPulse"
         sync_interval = 30
         "#;
-        
+
         fs::create_dir_all(&config_dir).unwrap();
         fs::write(config_dir.join(CONFIG_FILE), config_content).unwrap();
-        
+
         // 使用自定义路径解析配置
         parse_with_path(Some(&config_dir)).unwrap();
         let webdav_config = get_webdav_config().unwrap();
 
         assert_eq!(webdav_config.enabled, true);
-        assert_eq!(webdav_config.host, "https://webdav-1690957.pd1.123pan.cn/webdav/webdav");
+        assert_eq!(
+            webdav_config.host,
+            "https://webdav-1690957.pd1.123pan.cn/webdav/webdav"
+        );
     }
 }

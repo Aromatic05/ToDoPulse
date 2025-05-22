@@ -28,13 +28,16 @@ fn create_notify_desktop_task(
 pub async fn setup() {
     let info_config = info().unwrap_or_else(|_| {
         log::error!("Info config not found");
-        Info { switch: false, time: None }
+        Info {
+            switch: false,
+            time: None,
+        }
     });
     let time = info_config.time.unwrap_or_default();
     if info_config.switch {
-      let task = create_notify_desktop_task("", "content"
-      , time.iter().map(|s| s.as_str()).collect())
-          .unwrap();
-      TaskManager::start(Box::new(task)).await;
+        let task =
+            create_notify_desktop_task("", "content", time.iter().map(|s| s.as_str()).collect())
+                .unwrap();
+        TaskManager::start(Box::new(task)).await;
     }
 }

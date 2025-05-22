@@ -19,6 +19,7 @@
     "@popperjs/core": "^2.11.8",
     "@tauri-apps/api": "^2.0.1",
     "@tauri-apps/plugin-dialog": "~2",
+    "@tauri-apps/plugin-fs": "~2.3.0",
     "@tauri-apps/plugin-opener": "^2",
     "@tauri-apps/plugin-shell": "^2.2.1",
     "@types/node": "^22.15.2",

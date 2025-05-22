@@ -99,8 +99,8 @@ import { DatePicker } from 'v-calendar';
 import 'v-calendar/dist/style.css';
 import type { Tag } from '@/services/TagService';
 import AddTagModal from './AddTagModal.vue';
-import { invoke } from '@tauri-apps/api/core'
-import { path } from '@tauri-apps/api';
+import { invoke, convertFileSrc  } from '@tauri-apps/api/core'
+import { appDataDir, join } from '@tauri-apps/api/path'; // 或者 @tauri-apps/plugin-path
 
 declare module 'vditor' {
     interface IVditor {
@@ -168,6 +168,7 @@ export default defineComponent({
 
         // 新版初始化编辑器函数
         const initEditor = async () => {
+            const dynamicLinkBase = await getDynamicLinkBase();
             await nextTick();
 
             // 销毁旧实例
@@ -186,6 +187,11 @@ export default defineComponent({
                 cache: { enable: false },
                 placeholder: '请输入内容...',
                 mode: 'wysiwyg',
+                preview: {
+                    markdown: {
+                        linkBase: dynamicLinkBase // 设置链接相对路径前缀
+                    }
+                },
                 after: () => {
                     isInitialized.value = true;
                     // 设置初始内容
@@ -203,6 +209,21 @@ export default defineComponent({
                     accept: 'image/*, .pdf, .docx, .xlsx, .zip', // 接受的文件类型
                     multiple: true,
                     fieldName: 'file',
+                    success: (editor, responseText) => {
+                        try {
+                            const response = JSON.parse(responseText);
+                            if (response.code === 0 && response.data && response.data.succMap) {
+                                // 遍历所有成功上传的文件
+                                Object.values(response.data.succMap).forEach((markdownLink) => {
+                                    // 直接插入Markdown格式的图片链接到编辑器
+                                    console.log('插入链接:', markdownLink);
+                                    vditor.value?.insertValue(markdownLink + '\n');
+                                });
+                            }
+                        } catch (e) {
+                            console.error('处理上传响应失败:', e);
+                        }
+                    },
                     // 自定义处理器，使用Tauri API
                     handler: async (files: File[]) => {
                         // 确保有事件ID
@@ -217,12 +238,22 @@ export default defineComponent({
                                     // 将文件内容转换为Base64字符串
                                     const arrayBuffer = await file.arrayBuffer();
                                     const uint8Array = new Uint8Array(arrayBuffer);
-                                    const base64 = btoa(String.fromCharCode(...new Uint8Array(arrayBuffer)));
                                     
+                                    // 分块处理，避免栈溢出
+                                    let base64 = '';
+                                    const chunkSize = 524288; // 每次处理512KB
+                                    
+                                    for (let i = 0; i < uint8Array.length; i += chunkSize) {
+                                        const chunk = uint8Array.slice(i, i + chunkSize);
+                                        base64 += String.fromCharCode.apply(null, Array.from(chunk));
+                                    }
+                                    
+                                    const base64Data = btoa(base64);
+
                                     // 直接使用invoke调用Tauri后端函数
                                     const result = await invoke('upload_file', {
                                         filename: file.name,
-                                        filedata: base64,
+                                        filedata: base64Data,
                                         eventid: eventId
                                     });
                                     return result;
@@ -256,12 +287,17 @@ export default defineComponent({
                                     const parsedResult = typeof result === 'string' ? JSON.parse(result) : result;
 
                                     if (parsedResult.code === 0 && parsedResult.data) {
-                                        // 合并成功映射
-                                        Object.assign(combinedResult.data.succMap, parsedResult.data.succMap);
+                                        // 处理后端返回的蛇形命名字段
+                                        if (parsedResult.data.succ_map) {
+                                            // 将文件URL转换为Markdown图片语法
+                                            Object.entries(parsedResult.data.succ_map).forEach(([filename, url]) => {
+                                                combinedResult.data.succMap[filename] = `![${filename}](${url})`;
+                                            });
+                                        }
 
                                         // 添加错误文件（如果有）
-                                        if (parsedResult.data.errFiles && parsedResult.data.errFiles.length > 0) {
-                                            combinedResult.data.errFiles.push(...parsedResult.data.errFiles);
+                                        if (parsedResult.data.err_files && parsedResult.data.err_files.length > 0) {
+                                            combinedResult.data.errFiles.push(...parsedResult.data.err_files);
                                         }
                                     } else {
                                         // 处理错误响应
@@ -275,6 +311,17 @@ export default defineComponent({
                                     combinedResult.data.errFiles.push('上传结果解析失败');
                                 }
                             });
+
+                            // 在返回结果之前，处理成功上传的文件
+                            if (combinedResult.code === 0 && combinedResult.data.succMap) {
+                                console.log('开始处理上传结果');
+                                // 遍历所有成功上传的文件
+                                Object.values(combinedResult.data.succMap).forEach((markdownLink) => {
+                                    console.log('插入链接:', markdownLink);
+                                    // 直接插入Markdown格式的图片链接到编辑器
+                                    vditor.value?.insertValue(markdownLink + '\n');
+                                });
+                            }
 
                             return JSON.stringify(combinedResult);
                         } catch (error) {
@@ -508,6 +555,24 @@ export default defineComponent({
         // 初始加载标签
         onMounted(loadTags);
 
+        async function getDynamicLinkBase() {
+            try {
+                const dataDir = await appDataDir();
+                const targetDirectoryPath = await join(dataDir, formData.value.title);
+                let linkBaseUrl = convertFileSrc(targetDirectoryPath);
+                if (!linkBaseUrl.endsWith('/')) {
+                    linkBaseUrl += '/';
+                }
+
+                console.log('Dynamically constructed linkBase (using convertFileSrc):', linkBaseUrl);
+                return linkBaseUrl;
+
+            } catch (error) {
+                console.error("Error constructing dynamic linkBase with convertFileSrc:", error);
+                return ''; // Or a default CDN, or throw the error
+            }
+        }
+
         return {
             formData,
             selectedTags,
@@ -527,6 +592,7 @@ export default defineComponent({
             selectedIconIndex,
             showAddTagModal,
             handleTagCreated,
+            getDynamicLinkBase
         };
     }
 });

@@ -6,8 +6,8 @@ use tauri::State;
 use ts_rs::TS;
 
 use crate::entity::{Repository, StorageState};
-use crate::utils::tag_exists;
 use crate::error::ErrorKind;
+use crate::utils::tag_exists;
 
 use super::Entity;
 use super::{Event, FEvent};
@@ -56,15 +56,15 @@ impl Tag {
 }
 
 /// Creates a new tag in the database
-/// 
+///
 /// Creates a tag with the given name and color if it doesn't already exist.
 /// The tag's ID is generated from a hash of the tag name.
-/// 
+///
 /// # Parameters
 /// * `state` - Application state containing the database connection
 /// * `tag` - Name of the new tag
 /// * `color` - Color category for the new tag from the TagColor enum
-/// 
+///
 /// # Returns
 /// * `Result<(), ErrorKind>` - Success or an error if the tag couldn't be created
 /// * Returns success without an error if the tag already exists
@@ -85,12 +85,12 @@ pub async fn add_tag(
 }
 
 /// Retrieves all tags from the database
-/// 
+///
 /// Fetches all tags from the database and returns them.
-/// 
+///
 /// # Parameters
 /// * `state` - Application state containing the database connection
-/// 
+///
 /// # Returns
 /// * `Result<Vec<Tag>, ErrorKind>` - List of all tags or an error
 #[tauri::command]
@@ -102,13 +102,13 @@ pub async fn get_tags(state: State<'_, StorageState>) -> Result<Vec<Tag>, ErrorK
 }
 
 /// Deletes a tag from the database
-/// 
+///
 /// Removes the specified tag from the database.
-/// 
+///
 /// # Parameters
 /// * `state` - Application state containing the database connection
 /// * `tag` - Name of the tag to delete
-/// 
+///
 /// # Returns
 /// * `Result<(), ErrorKind>` - Success or an error if the tag couldn't be deleted
 #[tauri::command]
@@ -120,23 +120,28 @@ pub async fn delete_tag(state: State<'_, StorageState>, tag: &str) -> Result<(),
 }
 
 /// Get the events with the given tag
-/// 
+///
 /// Retrieves all events that have been tagged with the specified tag.
-/// 
+///
 /// # Parameters
 /// * `state` - Application state containing the database connection
 /// * `tag` - Name of the tag to filter events by
-/// 
+///
 /// # Returns
 /// * `Result<Vec<FEvent>, ErrorKind>` - List of matching events in frontend format or an error
 #[tauri::command]
-pub async fn tag_content(state: State<'_, StorageState>, tag: &str) -> Result<Vec<FEvent>, ErrorKind> {
+pub async fn tag_content(
+    state: State<'_, StorageState>,
+    tag: &str,
+) -> Result<Vec<FEvent>, ErrorKind> {
     let mut guard = state.0.lock().await;
     let storage = guard.deref_mut();
     let events = Repository::<Event>::filter(storage, |event| {
-        event.metadata.tag.as_ref().map_or(false, |tags| {
-            tags.iter().any(|t| t == tag)
-        })
+        event
+            .metadata
+            .tag
+            .as_ref()
+            .map_or(false, |tags| tags.iter().any(|t| t == tag))
     })?;
     let f_events: Vec<FEvent> = events
         .into_iter()

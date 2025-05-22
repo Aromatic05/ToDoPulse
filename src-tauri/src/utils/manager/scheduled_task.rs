@@ -102,7 +102,7 @@ where
         });
         handle
     }
-    
+
     fn name(&self) -> String {
         self.name.clone()
     }

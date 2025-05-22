@@ -1,20 +1,18 @@
+use crate::function::sync::model::{DiffEntry, DiffResult, DiffType, FileSystemState};
 use anyhow::Result;
-use log::{info, debug};
-use chrono::{DateTime, Utc, Duration};
-use crate::function::sync::model::{
-    FileSystemState, DiffResult, DiffEntry, DiffType
-};
+use chrono::{DateTime, Duration, Utc};
+use log::{debug, info};
 
 /// 差异比较配置
 pub struct DiffConfig {
     /// 修改时间容差（秒）
     /// 有些文件系统的时间戳精度可能不同，允许一定的误差
     pub time_tolerance: i64,
-    
+
     /// 是否比较文件内容哈希
     /// 如果为true，则需要两个状态中都包含内容哈希
     pub compare_hash: bool,
-    
+
     /// 是否忽略修改时间，仅比较大小和/或哈希
     pub ignore_time: bool,
 }
@@ -38,9 +36,9 @@ fn time_equals(t1: &Option<DateTime<Utc>>, t2: &Option<DateTime<Utc>>, tolerance
             } else {
                 time2.signed_duration_since(*time1)
             };
-            
+
             duration <= Duration::seconds(tolerance)
-        },
+        }
         // 如果有一个时间戳缺失，则认为不相等
         _ => false,
     }
@@ -48,20 +46,23 @@ fn time_equals(t1: &Option<DateTime<Utc>>, t2: &Option<DateTime<Utc>>, tolerance
 
 /// 比较两个文件系统状态，生成差异报告
 pub fn compare_states(
-    local: &FileSystemState, 
+    local: &FileSystemState,
     remote: &FileSystemState,
-    config: &DiffConfig
+    config: &DiffConfig,
 ) -> Result<DiffResult> {
-    debug!("比较文件系统状态: 本地 {} 个条目, 远程 {} 个条目", 
-           local.entry_count(), remote.entry_count());
-    
+    debug!(
+        "比较文件系统状态: 本地 {} 个条目, 远程 {} 个条目",
+        local.entry_count(),
+        remote.entry_count()
+    );
+
     let mut result = DiffResult::new();
     let mut processed_paths = std::collections::HashSet::new();
-    
+
     // 第一步：遍历本地状态，与远程对比
     for (path, local_entry) in &local.entries {
         processed_paths.insert(path.clone());
-        
+
         if let Some(remote_entry) = remote.entries.get(path) {
             // 条目在两端都存在，检查是否有差异
             let is_same = if local_entry.is_directory() && remote_entry.is_directory() {
@@ -70,17 +71,17 @@ pub fn compare_states(
             } else if local_entry.is_file() && remote_entry.is_file() {
                 // 对于文件，检查大小和修改时间
                 let size_same = local_entry.size == remote_entry.size;
-                
+
                 let time_same = if config.ignore_time {
                     true
                 } else {
                     time_equals(
-                        &local_entry.modified, 
-                        &remote_entry.modified, 
-                        config.time_tolerance
+                        &local_entry.modified,
+                        &remote_entry.modified,
+                        config.time_tolerance,
                     )
                 };
-                
+
                 // 如果配置为比较哈希值
                 if config.compare_hash {
                     let hash_same = match (&local_entry.content_hash, &remote_entry.content_hash) {
@@ -96,7 +97,7 @@ pub fn compare_states(
                 // 类型不同（一个是文件，一个是目录）
                 false
             };
-            
+
             if is_same {
                 // 条目相同
                 result.add_entry(DiffEntry {
@@ -127,7 +128,7 @@ pub fn compare_states(
             });
         }
     }
-    
+
     // 第二步：查找仅存在于远程的条目
     for (path, remote_entry) in &remote.entries {
         if !processed_paths.contains(path) {
@@ -141,7 +142,7 @@ pub fn compare_states(
             });
         }
     }
-    
+
     // 记录差异统计信息
     info!(
         "差异比较完成: 添加 {}, 删除 {}, 修改 {}, 未变更 {}",
@@ -150,6 +151,6 @@ pub fn compare_states(
         result.modified_count(),
         result.unchanged_count()
     );
-    
+
     Ok(result)
 }

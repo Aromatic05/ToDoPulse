@@ -1,10 +1,10 @@
+use anyhow::Result;
 use log::{error, info};
 use reqwest;
 use serde::{Deserialize, Serialize};
 use std::fs;
 use std::path::PathBuf;
 use tauri::State;
-use anyhow::Result;
 
 use crate::entity::{get_tags, StorageState};
 use crate::utils::llm_config;
@@ -132,6 +132,7 @@ pub async fn gen_tag(
             "AI service request failed: {}, with status: {}",
             error_text,
             status
-        ).into())
+        )
+        .into())
     }
 }

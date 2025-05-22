@@ -1,14 +1,14 @@
 use crate::function::sync::model::{EntryState, FileSystemState};
 use crate::function::sync::state::{
-    should_exclude, compute_file_hash, collect_local_state, save_state, load_state,
-    StateCollectionConfig, system_time_to_datetime,
+    collect_local_state, compute_file_hash, load_state, save_state, should_exclude,
+    system_time_to_datetime, StateCollectionConfig,
 };
 
-use std::io::Write;
-use tempfile::tempdir;
 use anyhow::Result;
 use chrono::Utc;
+use std::io::Write;
 use std::path::Path;
+use tempfile::tempdir;
 
 #[test]
 fn test_should_exclude() {
@@ -226,7 +226,7 @@ async fn test_system_time_to_datetime() {
 async fn test_state_collection_config_default() {
     // 测试StateCollectionConfig的默认值
     let config = StateCollectionConfig::default();
-    
+
     // 验证默认值
     assert_eq!(config.compute_hash, false);
     assert!(config.exclusion_patterns.contains(&".DS_Store".to_string()));
@@ -257,11 +257,17 @@ async fn test_collect_state_with_hash() -> Result<()> {
 
     // 验证收集到了状态
     assert_eq!(state.entry_count(), 1);
-    
+
     // 验证文件哈希
-    let file_entry = state.entries.get("/file_with_hash.txt").expect("文件应该存在");
+    let file_entry = state
+        .entries
+        .get("/file_with_hash.txt")
+        .expect("文件应该存在");
     assert!(file_entry.content_hash.is_some(), "应该计算哈希值");
-    assert!(!file_entry.content_hash.as_ref().unwrap().is_empty(), "哈希值不应为空");
+    assert!(
+        !file_entry.content_hash.as_ref().unwrap().is_empty(),
+        "哈希值不应为空"
+    );
 
     Ok(())
 }
@@ -271,14 +277,14 @@ async fn test_collect_state_edge_cases() -> Result<()> {
     // 测试不存在的目录
     let non_existent_path = Path::new("/non_existent_dir_for_test");
     let config = StateCollectionConfig::default();
-    
+
     let result = collect_local_state(non_existent_path, &config).await;
     assert!(result.is_err(), "应该返回错误，因为目录不存在");
 
     // 测试空目录
     let temp_dir = tempdir()?;
     let empty_dir = temp_dir.path();
-    
+
     let state = collect_local_state(empty_dir, &config).await?;
     assert_eq!(state.entry_count(), 0, "空目录应该没有条目");
 

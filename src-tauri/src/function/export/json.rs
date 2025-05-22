@@ -1,7 +1,7 @@
+use chrono::{TimeZone, Utc};
+use serde_json::{json, Value};
 use std::ops::DerefMut;
 use tauri::State;
-use serde_json::{json, Value};
-use chrono::{TimeZone, Utc};
 
 use crate::entity::{Event, Repository, StorageState};
 
@@ -12,7 +12,7 @@ fn export_event_to_json(event: &Event) -> Result<Value, String> {
         .timestamp_millis_opt(event.metadata.timestamp as i64)
         .single()
         .ok_or_else(|| "无效的时间戳".to_string())?;
-    
+
     // 任务时间（如果有）
     let task_time = if let Some(time) = event.task_time {
         let dt = Utc
@@ -23,7 +23,7 @@ fn export_event_to_json(event: &Event) -> Result<Value, String> {
     } else {
         None
     };
-    
+
     // 优先级
     let priority_str = match event.priority {
         crate::entity::event::Priority::High => "高",
@@ -31,7 +31,7 @@ fn export_event_to_json(event: &Event) -> Result<Value, String> {
         crate::entity::event::Priority::Low => "低",
         crate::entity::event::Priority::Undefined => "未定义",
     };
-    
+
     // 创建JSON对象
     let json_event = json!({
         "id": event.metadata.uuid,
@@ -46,22 +46,20 @@ fn export_event_to_json(event: &Event) -> Result<Value, String> {
         "list_id": event.metadata.list,
         "content": std::fs::read_to_string(&event.content).unwrap_or_else(|_| event.content.clone())
     });
-    
+
     Ok(json_event)
 }
 
 /// 导出多个事件为JSON格式
-pub fn export_events_to_json(
-    events: Vec<Event>,
-) -> Result<String, String> {
+pub fn export_events_to_json(events: Vec<Event>) -> Result<String, String> {
     let mut json_events = Vec::new();
-    
+
     // 添加所有指定的事件
     for event in &events {
         let json_event = export_event_to_json(event)?;
         json_events.push(json_event);
     }
-    
+
     // 创建包含元数据的根对象
     let root = json!({
         "metadata": {
@@ -70,31 +68,38 @@ pub fn export_events_to_json(
         },
         "events": json_events
     });
-    
+
     // 序列化为JSON字符串
     serde_json::to_string_pretty(&root).map_err(|e| e.to_string())
 }
 
 /// 导出特定列表中的所有事件为JSON格式
-pub async fn export_list_events_to_json(state: State<'_, StorageState>, list_id: &str) -> Result<String, String> {
+pub async fn export_list_events_to_json(
+    state: State<'_, StorageState>,
+    list_id: &str,
+) -> Result<String, String> {
     // 在内部作用域中获取events，确保MutexGuard在作用域结束时被释放
     let events = {
         let mut guard = state.0.lock().await;
         let storage = guard.deref_mut();
-        
+
         // 获取指定列表中的所有事件
         let filtered_events = Repository::<Event>::filter(storage, |event| {
-            event.metadata.list.as_ref().map_or(false, |list| list == list_id)
+            event
+                .metadata
+                .list
+                .as_ref()
+                .map_or(false, |list| list == list_id)
         })
         .map_err(|e| e.to_string())?;
-        
+
         if filtered_events.is_empty() {
             return Err("列表中没有事件".to_string());
         }
-        
+
         filtered_events
     };
-    
+
     // 导出事件（MutexGuard已释放）
     export_events_to_json(events)
 }
@@ -105,45 +110,44 @@ pub async fn export_all_events_to_json(state: State<'_, StorageState>) -> Result
     let events = {
         let mut guard = state.0.lock().await;
         let storage = guard.deref_mut();
-        
+
         // 获取所有事件
-        let all_events = Repository::<Event>::get_all(storage)
-            .map_err(|e| e.to_string())?;
-        
+        let all_events = Repository::<Event>::get_all(storage).map_err(|e| e.to_string())?;
+
         if all_events.is_empty() {
             return Err("没有任何事件".to_string());
         }
-        
+
         all_events
     };
-    
+
     // 导出事件（MutexGuard已释放）
     export_events_to_json(events)
 }
 
 /// Exports events in a date range to JSON format
-/// 
+///
 /// Filters events that fall within the specified time range and exports them
 /// in JSON format for programmatic use.
-/// 
+///
 /// # Parameters
 /// * `state` - Application state containing the database connection
 /// * `start_time` - Start timestamp in milliseconds (Unix time)
 /// * `end_time` - End timestamp in milliseconds (Unix time)
-/// 
+///
 /// # Returns
 /// * `Result<String, String>` - JSON content as string or error message
 #[tauri::command]
 pub async fn export_events_by_date_range_to_json(
     state: State<'_, StorageState>,
     start_time: u64,
-    end_time: u64
+    end_time: u64,
 ) -> Result<String, String> {
     // 在内部作用域中获取events，确保MutexGuard在作用域结束时被释放
     let events = {
         let mut guard = state.0.lock().await;
         let storage = guard.deref_mut();
-        
+
         // 过滤在时间范围内的事件
         let filtered_events = Repository::<Event>::filter(storage, |event| {
             if let Some(task_time) = event.task_time {
@@ -153,14 +157,14 @@ pub async fn export_events_by_date_range_to_json(
             }
         })
         .map_err(|e| e.to_string())?;
-        
+
         if filtered_events.is_empty() {
             return Err("指定时间范围内没有事件".to_string());
         }
-        
+
         filtered_events
     };
-    
+
     // 导出事件（MutexGuard已释放）
     export_events_to_json(events)
 }
@@ -168,27 +172,26 @@ pub async fn export_events_by_date_range_to_json(
 /// 根据完成状态导出事件为JSON格式
 pub async fn export_events_by_status_to_json(
     state: State<'_, StorageState>,
-    finished: bool
+    finished: bool,
 ) -> Result<String, String> {
     // 在内部作用域中获取events，确保MutexGuard在作用域结束时被释放
     let events = {
         let mut guard = state.0.lock().await;
         let storage = guard.deref_mut();
-        
+
         // 过滤特定完成状态的事件
-        let filtered_events = Repository::<Event>::filter(storage, |event| {
-            event.finished == finished
-        })
-        .map_err(|e| e.to_string())?;
-        
+        let filtered_events =
+            Repository::<Event>::filter(storage, |event| event.finished == finished)
+                .map_err(|e| e.to_string())?;
+
         if filtered_events.is_empty() {
             let status = if finished { "已完成" } else { "未完成" };
             return Err(format!("没有{}的事件", status));
         }
-        
+
         filtered_events
     };
-    
+
     // 导出事件（MutexGuard已释放）
     export_events_to_json(events)
 }

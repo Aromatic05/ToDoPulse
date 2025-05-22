@@ -7,19 +7,20 @@ mod utils; // 通用工具函数
 
 use entity::{event, list, tag};
 use function::{export, sync, upload};
-use utils::config;
 use tauri_plugin_dialog;
+use utils::config;
 
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() -> std::io::Result<()> {
     tauri::Builder::default()
+        .plugin(tauri_plugin_fs::init())
         .plugin(tauri_plugin_dialog::init())
         .setup(|app| {
             tauri::async_runtime::block_on(async {
-              let res=init::initialize_app(app).await;
-              if let Err(e) = res {
-                  log::error!("Error initializing app: {}", e);
-              }
+                let res = init::initialize_app(app).await;
+                if let Err(e) = res {
+                    log::error!("Error initializing app: {}", e);
+                }
             });
             Ok(())
         })

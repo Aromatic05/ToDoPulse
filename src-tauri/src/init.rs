@@ -1,9 +1,9 @@
 use crate::entity::{App, Storage, StorageState};
 use crate::function::{notify, sync};
+use crate::utils::config;
 use crate::utils::logs;
 use crate::utils::manager::tasker;
 use crate::utils::AppPaths;
-use crate::utils::config;
 use anyhow::Result;
 use tauri::Manager;
 use tokio::sync::Mutex;

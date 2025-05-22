@@ -1,7 +1,7 @@
+use once_cell::sync::Lazy;
 use std::collections::HashMap;
 use std::sync::{Arc, Mutex};
 use std::time::{Duration, Instant};
-use once_cell::sync::Lazy;
 
 // 缓存条目
 struct CacheEntry<T> {
@@ -33,10 +33,13 @@ impl<T: Clone> Cache<T> {
     }
 
     fn set(&mut self, key: &str, value: T) {
-        self.data.insert(key.to_string(), CacheEntry {
-            value,
-            timestamp: Instant::now(),
-        });
+        self.data.insert(
+            key.to_string(),
+            CacheEntry {
+                value,
+                timestamp: Instant::now(),
+            },
+        );
     }
 
     fn remove(&mut self, key: &str) {

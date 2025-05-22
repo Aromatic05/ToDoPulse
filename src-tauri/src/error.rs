@@ -1,9 +1,9 @@
+use anyhow::Error;
+use log::error;
 use serde::Serialize;
 use ts_rs::TS;
-use log::error;
-use anyhow::Error;
 
-#[derive(Debug,TS, Serialize)]
+#[derive(Debug, TS, Serialize)]
 #[ts(export)]
 #[allow(dead_code)]
 pub enum ErrorKind {
@@ -32,10 +32,9 @@ impl std::fmt::Display for ErrorKind {
             ErrorKind::UnknownError => write!(f, "Unknown error"),
         }
     }
-    
 }
 
-impl std::error::Error for ErrorKind{}
+impl std::error::Error for ErrorKind {}
 
 impl From<anyhow::Error> for ErrorKind {
     fn from(e: anyhow::Error) -> Self {
@@ -48,11 +47,10 @@ impl From<anyhow::Error> for ErrorKind {
             }
         } else if let Some(_db_err) = Error::downcast_ref::<redb::Error>(&e) {
             ErrorKind::DatabaseError
-        } else  {
+        } else {
             ErrorKind::UnknownError
         }
     }
-    
 }
 
 impl From<std::io::Error> for ErrorKind {
@@ -64,7 +62,6 @@ impl From<std::io::Error> for ErrorKind {
             _ => ErrorKind::IoError,
         }
     }
-    
 }
 
 impl From<reqwest::Error> for ErrorKind {
@@ -76,5 +73,4 @@ impl From<reqwest::Error> for ErrorKind {
             ErrorKind::UnknownError
         }
     }
-    
 }

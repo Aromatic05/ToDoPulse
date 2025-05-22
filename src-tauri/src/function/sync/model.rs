@@ -1,7 +1,7 @@
-use std::path::{PathBuf};
 use chrono::{DateTime, Utc};
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
+use std::path::PathBuf;
 
 /// 文件/目录类型
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
@@ -137,7 +137,7 @@ impl DiffEntry {
     pub fn is_file(&self) -> bool {
         self.entry_type == EntryType::File
     }
-    
+
     /// 检查是否为目录
     pub fn is_directory(&self) -> bool {
         self.entry_type == EntryType::Directory
@@ -169,22 +169,34 @@ impl DiffResult {
 
     /// 获取添加的条目数量
     pub fn added_count(&self) -> usize {
-        self.entries.iter().filter(|e| e.diff_type == DiffType::Added).count()
+        self.entries
+            .iter()
+            .filter(|e| e.diff_type == DiffType::Added)
+            .count()
     }
 
     /// 获取删除的条目数量
     pub fn deleted_count(&self) -> usize {
-        self.entries.iter().filter(|e| e.diff_type == DiffType::Deleted).count()
+        self.entries
+            .iter()
+            .filter(|e| e.diff_type == DiffType::Deleted)
+            .count()
     }
 
     /// 获取修改的条目数量
     pub fn modified_count(&self) -> usize {
-        self.entries.iter().filter(|e| e.diff_type == DiffType::Modified).count()
+        self.entries
+            .iter()
+            .filter(|e| e.diff_type == DiffType::Modified)
+            .count()
     }
 
     /// 获取未变更的条目数量
     pub fn unchanged_count(&self) -> usize {
-        self.entries.iter().filter(|e| e.diff_type == DiffType::Unchanged).count()
+        self.entries
+            .iter()
+            .filter(|e| e.diff_type == DiffType::Unchanged)
+            .count()
     }
 }
 
@@ -336,36 +348,48 @@ impl SyncSession {
 
     /// 获取会话的统计信息
     pub fn get_stats(&self) -> SyncSessionStats {
-        let completed = self.operations.iter()
+        let completed = self
+            .operations
+            .iter()
             .filter(|op| op.status == SyncOperationStatus::Completed)
             .count();
 
-        let failed = self.operations.iter()
+        let failed = self
+            .operations
+            .iter()
             .filter(|op| op.status == SyncOperationStatus::Failed)
             .count();
-        
-        let skipped = self.operations.iter()
+
+        let skipped = self
+            .operations
+            .iter()
             .filter(|op| op.status == SyncOperationStatus::Skipped)
             .count();
-        
-        let uploaded = self.operations.iter()
-            .filter(|op| 
-                op.status == SyncOperationStatus::Completed && 
-                op.operation_type == SyncOperationType::Upload
-            )
+
+        let uploaded = self
+            .operations
+            .iter()
+            .filter(|op| {
+                op.status == SyncOperationStatus::Completed
+                    && op.operation_type == SyncOperationType::Upload
+            })
             .count();
-        
-        let downloaded = self.operations.iter()
-            .filter(|op| 
-                op.status == SyncOperationStatus::Completed && 
-                op.operation_type == SyncOperationType::Download
-            )
+
+        let downloaded = self
+            .operations
+            .iter()
+            .filter(|op| {
+                op.status == SyncOperationStatus::Completed
+                    && op.operation_type == SyncOperationType::Download
+            })
             .count();
-        
+
         let duration = if let Some(end) = self.end_time {
             end.signed_duration_since(self.start_time).num_seconds()
         } else {
-            Utc::now().signed_duration_since(self.start_time).num_seconds()
+            Utc::now()
+                .signed_duration_since(self.start_time)
+                .num_seconds()
         };
 
         SyncSessionStats {
