@@ -12,23 +12,25 @@
     transition: all 0.3s ease;
     cursor: pointer;
     box-sizing: border-box;
-    min-width: 800px;
+    min-width: 800px; /* 这是桌面端的最小宽度 */
     margin-bottom: 12px; /* 添加下边距 */
 }
 
 .card-base:hover {
     transform: translateY(-3px);
-    box-shadow: 0 4px 8px var(--md-sys-color-shadow);
+    /* box-shadow: 0 4px 8px var(--md-sys-color-shadow); /* 原始阴影，选择一个即可 */
     background: var(--md-sys-color-surface-container-high);
-    box-shadow: 0 4px 15px rgba(0, 0, 0, 0.12);
+    box-shadow: 0 4px 15px rgba(0, 0, 0, 0.12); /* 效果更明显的阴影 */
 }
 
 .card-main {
     flex: 1;
-    margin-right: 16px;
+    /* 在移动端，如果card-header和card-main不再并排，这个margin可能需要调整 */
+    /* margin-right: 16px; */
 }
 
 .card-header {
+    /* 在移动端，如果希望header部分宽度自适应，可以覆盖这些 */
     min-width: 100px;
     max-width: 100px;
 }
@@ -39,6 +41,7 @@
     align-items: center;
     width: 100%;
     margin-bottom: 8px; /* 与标签行的间距 */
+    gap: 12px; /* 原始gap，移动端可调整 */
 }
 
 /* 卡片标题通用样式 */
@@ -55,12 +58,13 @@
 
 /* 卡片内容通用样式 */
 .card-content {
+    /* 原始样式是绝对定位居中，这在移动端通常不是最佳选择 */
     position: absolute;
     left: 50%;
     top: 50%;
     transform: translate(-50%, -50%);
     color: var(--md-sys-color-on-surface-variant);
-    margin: 0;
+    margin: 0; /* 绝对定位时，margin:0 常常使用 */
     line-height: 1.5;
     width: calc(60%);  /* 减去标签区域和边距的宽度 */
     text-align: center;
@@ -78,7 +82,7 @@
     flex-wrap: wrap;
     gap: 8px;
     align-items: center;
-    margin-top: 4px;
+    margin-top: 4px; /* 注意：如果.card-content变成流式布局，这个margin可能需要调整 */
 }
 
 /* 标签项样式 */
@@ -92,36 +96,28 @@
     border: 1px solid var(--md-sys-color-outline-variant);
 }
 
-.card-content-row {
-    display: flex;
-    align-items: center;
-    gap: 12px;
-}
-
 /* 圆形复选框样式 */
 .card-checkbox {
     cursor: pointer;
     width: 18px;
     height: 18px;
     flex-shrink: 0;
-    appearance: none; /* 移除默认样式 */
+    appearance: none;
     -webkit-appearance: none;
     -moz-appearance: none;
     background-color: transparent;
     border: 2px solid var(--md-sys-color-outline);
-    border-radius: 50%; /* 圆形边框 */
+    border-radius: 50%;
     position: relative;
-    margin: 0;
+    margin: 0; /* 确保与标题对齐 */
     transition: all 0.3s;
 }
 
-/* 选中状态的复选框 */
 .card-checkbox:checked {
     background-color: var(--md-sys-color-primary);
     border-color: var(--md-sys-color-primary);
 }
 
-/* 选中状态的复选框中心标记 */
 .card-checkbox:checked::after {
     content: '';
     position: absolute;
@@ -134,29 +130,129 @@
     transform: translate(-50%, -50%);
 }
 
-/* 完成状态的卡片样式 */
 .card-checkbox:checked + .card-title {
     text-decoration: line-through;
     opacity: 0.7;
 }
 
-/* 悬停状态 */
 .card-checkbox:hover {
     border-color: var(--md-sys-color-primary);
 }
 
-.card-title {
-    margin: 0;
-    flex-grow: 1;
-}
+/* .card-title 已经在上面定义过了，这里的 margin: 0; flex-grow: 1; 是重复的 */
 
 .card-time {
     white-space: nowrap;
-    margin-left: auto;
+    margin-left: auto; /* 使其在 flex 容器中靠右 */
+    font-size: 14px; /* 确保字体大小一致性，原CSS中card-date有，这里也加上 */
+    color: var(--md-sys-color-on-surface-variant); /* 保持颜色一致性 */
 }
 
 .card-date {
     font-size: 14px;
     white-space: nowrap;
-    margin-left: 8px;
+    margin-left: 8px; /* 与 card-time 的间距 */
+    color: var(--md-sys-color-on-surface-variant); /* 保持颜色一致性 */
+}
+
+/* --- 移动端优化 --- */
+/* 通常选择一个断点，例如 768px 以下视为移动设备 */
+@media (max-width: 768px) {
+    .card-base {
+        min-width: 100; /* 移除桌面端的最小宽度限制 */
+        width: 100%;  /* 让卡片宽度适应屏幕，或者可以设置如 width: auto; margin-left: 16px; margin-right: 16px; */
+        padding: 12px 16px; /* 调整内边距 */
+    }
+
+    .card-main {
+        margin-right: 0; /* 如果之前是用于和 card-header 并排的间距，现在不再需要 */
+    }
+
+    .card-header {
+        /* 如果 card-header 在移动端需要更灵活的宽度 */
+        min-width: auto;
+        max-width: 100%; /* 允许其延展 */
+        width: auto; /* 或者根据内容自适应 */
+        /* 如果 card-header 内容较少，且希望它不占满一行，可以保持或调整其flex属性 */
+    }
+
+    .card-content-row {
+        gap: 8px; /* 减小行内元素间距 */
+        /* 如果希望标题和日期时间在移动端堆叠显示 */
+        /* flex-wrap: wrap; */ /* 允许换行 */
+    }
+
+    .card-title {
+        font-size: 16px; /* 适当减小标题字号 */
+        /* 如果标题过长，white-space: normal; 可能更适合移动端阅读，配合调整行数限制 */
+        /* white-space: normal; */
+        /* -webkit-line-clamp: 2; */ /* 如果希望标题也限制行数 */
+    }
+
+    .card-content {
+        position: relative; /* 改为相对定位，使其在文档流中占据空间 */
+        left: auto;
+        top: auto;
+        transform: none;
+        width: 100%; /* 宽度占满父容器 */
+        text-align: left; /* 在移动端，内容通常左对齐更易读 */
+        margin-top: 8px;  /* 在标题行下方添加一些间距 */
+        margin-bottom: 12px; /* 与标签行的间距 */
+        color: var(--md-sys-color-on-surface-variant); /* 确保颜色设置 */
+        line-height: 1.5;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        display: -webkit-box;
+        -webkit-line-clamp: 3; /* 在移动端可以考虑显示更多行，比如3行 */
+        -webkit-box-orient: vertical;
+    }
+
+    .card-tags {
+        margin-top: 0; /* 因为 .card-content 有了 margin-bottom */
+        gap: 6px; /* 减小标签间距 */
+    }
+
+    .card-tag {
+        font-size: 11px; /* 减小标签字号 */
+        padding: 2px 8px; /* 调整标签内边距 */
+    }
+
+    .card-time,
+    .card-date {
+        font-size: 13px; /* 适当调整日期时间字体大小 */
+        /* 如果 .card-content-row 设置了 flex-wrap: wrap; 并且希望时间日期在新的一行 */
+        /* margin-left: 0; */
+        /* width: 100%; */ /* 如果需要它们各占一行 */
+        /* text-align: left; */
+    }
+}
+
+/* 如果需要更小屏幕的进一步优化，可以再加一个断点 */
+@media (max-width: 480px) {
+    .card-base {
+        padding: 10px 12px;
+        border-radius: 12px; /* 更小的圆角 */
+    }
+
+    .card-title {
+        font-size: 15px;
+    }
+
+    .card-content {
+        -webkit-line-clamp: 4; /* 在非常小的屏幕上可以显示更多内容行 */
+    }
+
+    .card-checkbox {
+        width: 16px;
+        height: 16px;
+    }
+    .card-checkbox:checked::after {
+        width: 8px;
+        height: 8px;
+    }
+
+    .card-time,
+    .card-date {
+        font-size: 12px;
+    }
 }

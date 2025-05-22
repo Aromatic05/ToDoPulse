@@ -1,11 +1,18 @@
 <template>
   <div class="calendar-container">
-    <div class="calendar-sidebar">
+    <!-- 新增移动端返回按钮 -->
+    <div v-if="isMobile" class="mobile-back-button">
+      <button @click="goBack">
+        <span class="back-icon">&#8592;</span> 返回列表
+      </button>
+    </div>
+    
+    <div class="calendar-sidebar" >
       <div class="calendar-sidebar-section">
       </div>
       <div class="calendar-sidebar-section">
         <h2>所有事件 ({{ currentEvents.length }})</h2>
-        <ul class="event-list">
+        <ul  class="event-list">
           <li v-for="event in currentEvents" :key="event.id">
             <span class="event-time">{{ event.startStr }}</span>
             <span class="event-title">{{ event.title }}</span>
@@ -27,7 +34,7 @@
 </template>
 
 <script lang="ts">
-import { defineComponent, ref, onMounted } from 'vue';
+import { defineComponent, ref, onMounted, onUnmounted } from 'vue';
 import FullCalendar from '@fullcalendar/vue3';
 import dayGridPlugin from '@fullcalendar/daygrid';
 import timeGridPlugin from '@fullcalendar/timegrid';
@@ -75,9 +82,30 @@ export default defineComponent({
     }
     const currentEvents = ref<EventApi[]>([]);
 
+    // 添加移动设备检测
+    const isMobile = ref(false);
+    
+    // 检测设备是否为移动设备
+    const checkMobile = () => {
+      isMobile.value = window.innerWidth < 768;
+    };
+    
+    // 返回函数
+    const goBack = () => {
+      window.dispatchEvent(new CustomEvent('navigation', {
+        detail: { route: 'lists' }  // 默认返回到时间线页面
+        }));
+    };
+
     // 在组件挂载时加载所有事件
     onMounted(() => {
       console.log("日历组件挂载中...");
+      // 初始检测设备类型
+      checkMobile();
+      
+      // 监听窗口大小变化
+      window.addEventListener('resize', checkMobile);
+      
       // 等待日历组件初始化完成
       setTimeout(() => {
         if (fullCalendar.value) {
@@ -96,6 +124,11 @@ export default defineComponent({
           console.warn("日历组件未能正确初始化");
         }
       }, 100); // 给予组件一点时间完全初始化
+    });
+
+    onUnmounted(() => {
+      // 移除事件监听器
+      window.removeEventListener('resize', checkMobile);
     });
 
     // 加载日历事件
@@ -237,12 +270,20 @@ export default defineComponent({
       calendarOptions,
       currentEvents,
       fullCalendar,
+      isMobile,
+      goBack
     };
   }
 });
 </script>
 
 <style scoped>
+@media (max-width: 767px) {
+  .calendar-sidebar-section:nth-child(2) {
+    display: none;
+  }
+}
+
 .calendar-container {
   display: flex;
   /* 移除固定高度，允许内容自然流动 */
@@ -377,5 +418,37 @@ export default defineComponent({
 :deep(.event-completed) {
   opacity: 0.7;
   text-decoration: line-through;
+}
+
+/* 移动端返回按钮样式 */
+.mobile-back-button {
+  position: fixed;
+  top: 16px;
+  left: 16px;
+  z-index: 100;
+}
+
+.mobile-back-button button {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 8px 16px;
+  background-color: var(--md-sys-color-primary);
+  color: var(--md-sys-color-on-primary);
+  border: none;
+  border-radius: 4px;
+  font-size: 14px;
+  font-weight: 500;
+  cursor: pointer;
+  box-shadow: var(--md-sys-elevation-1);
+}
+
+.back-icon {
+  font-size: 18px;
+}
+
+.mobile-back-button button:hover {
+  background-color: var(--md-sys-color-primary-container);
+  color: var(--md-sys-color-on-primary-container);
 }
 </style>

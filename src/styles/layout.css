@@ -196,9 +196,70 @@
 }
 
 /* 在小屏幕设备上确保按钮可见 */
+/* 移动端优化样式 */
 @media (max-width: 768px) {
+    /* 优化工具按钮 */
     .v-layout .app_main .header .tool_btns {
-        min-width: 120px; /* 减小最小宽度 */
+        min-width: 100px; /* 进一步减小最小宽度 */
+    }
+
+    /* 在移动端隐藏侧边栏，改用抽屉式导航 */
+    .v-layout .layout_navigation {
+        position: fixed !important;
+        transform: translateX(-100%);
+        transition: transform 0.3s ease;
+        z-index: 1000;
+    }
+
+    .v-layout .layout_navigation.show {
+        transform: translateX(0);
+    }
+
+    /* 移动端主内容区域占满宽度 */
+    .v-layout .app_main {
+        margin-left: 0 !important;
+        width: 100% !important;
+        padding: 0 8px;
+    }
+
+    /* 调整顶部栏在移动端的样式 */
+    .v-layout .app_main .header {
+        width: calc(100% - 16px) !important;
+        left: 8px !important;
+        padding: 0 8px;
+    }
+
+    /* 优化触摸目标尺寸 */
+    .v-layout .app_main .header .tool_btns .v-btn {
+        min-width: 44px;
+        min-height: 44px;
+        margin: 4px;
+    }
+
+    /* 调整内容区域在移动端的边距 */
+    .v-layout .app_main .view-content {
+        padding: 8px;
+        margin-top: 78px;
+    }
+
+    /* 优化列表项触摸区域 */
+    .v-layout .layout_navigation .v-list-item {
+        min-height: 48px;
+        padding: 12px 16px;
+    }
+}
+
+/* 添加移动端手势支持 */
+@media (max-width: 768px) {
+    .v-layout {
+        touch-action: pan-y;
+        -webkit-overflow-scrolling: touch;
+    }
+
+    /* 优化滚动体验 */
+    .v-layout .app_main {
+        overflow-y: auto;
+        -webkit-overflow-scrolling: touch;
     }
 }
 
@@ -331,4 +392,66 @@
     background: var(--md-sys-color-surface-container-low) !important;
     -webkit-backdrop-filter: blur(10px); /* Safari support */
     backdrop-filter: blur(10px);
+}
+
+/* 移动端底部导航栏样式 */
+.mobile-bottom-nav {
+    position: fixed;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    z-index: 100;
+    height: 64px;
+    background-color: var(--md-sys-color-surface-container) !important;
+    box-shadow: 0 -2px 10px rgba(var(--md-sys-color-shadow), 0.1);
+    border-top: 1px solid var(--md-sys-color-outline-variant);
+    display: none; /* 默认隐藏 */
+}
+
+/* 移动端设置面板样式调整 */
+.mobile .settings-container {
+    padding-left: 16px !important;
+    padding-bottom: 72px !important; /* 为底部导航腾出空间 */
+}
+
+/* 移动端内容区域调整，为底部导航腾出空间 */
+@media (max-width: 768px) {
+    .v-layout .app_main .view-content {
+        padding-bottom: 72px !important;
+    }
+    
+    /* 显示底部导航 */
+    .mobile .mobile-bottom-nav {
+        display: flex !important;
+    }
+    
+    /* 优化底部导航按钮触摸体验 */
+    .mobile-bottom-nav .v-btn {
+        min-height: 48px;
+        min-width: 48px;
+        border-radius: 0;
+    }
+    
+    /* 底部导航激活状态 */
+    .mobile-bottom-nav .v-btn--active {
+        background-color: var(--md-sys-color-primary-container);
+        color: var(--md-sys-color-on-primary-container);
+    }
+}
+
+html::-webkit-scrollbar,
+body::-webkit-scrollbar,
+.app_main::-webkit-scrollbar, /* 如果 app_main 是主要的滚动容器 */
+.content-container::-webkit-scrollbar, /* 或者 content-container 是滚动容器 */
+.view-content::-webkit-scrollbar { /* 或者 view-content 是滚动容器 */
+    display: none; /* 隐藏滚动条 */
+}
+
+/* 针对 Firefox */
+html,
+body,
+.app_main, /* 同上 */
+.content-container,
+.view-content {
+    scrollbar-width: none; /* "auto"或 "thin"显示滚动条, "none"隐藏 */
 }

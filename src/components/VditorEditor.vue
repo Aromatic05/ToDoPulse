@@ -7,7 +7,7 @@ import { defineComponent, ref, watch, onMounted, onBeforeUnmount, nextTick} from
 import Vditor from 'vditor';
 import 'vditor/dist/index.css';
 import { invoke, convertFileSrc } from '@tauri-apps/api/core';
-import { appDataDir, join } from '@tauri-apps/api/path';
+import { dataDir, join } from '@tauri-apps/api/path';
 
 // 扩展 Vditor 类型定义
 declare module 'vditor' {
@@ -55,10 +55,10 @@ export default defineComponent({
                 return '';
             }
             try {
-                const dataDir = await appDataDir();
+                const dataDirPath = await dataDir();
                 // 使用 props.cardTitle, 如果为空则使用默认值
                 const safeCardTitle = props.cardTitle || 'default_event_files';
-                const targetDirectoryPath = await join(dataDir, safeCardTitle);
+                const targetDirectoryPath = await join(dataDirPath, 'ToDoPulse' , safeCardTitle);
                 let linkBaseUrl = convertFileSrc(targetDirectoryPath);
                 if (!linkBaseUrl.endsWith('/')) {
                     linkBaseUrl += '/';
