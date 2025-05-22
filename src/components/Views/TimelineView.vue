@@ -165,4 +165,30 @@ async function handleUpdateItem(data: FEvent, dateGroup: string) {
   text-align: center;
   padding: 16px 0;
 }
+
+/* 添加移动端的样式优化 */
+@media (max-width: 768px) {
+  .timeline-view {
+    padding: 12px 8px 0 8px !important;
+  }
+
+  /* 移动端时间线项内容区域优化 */
+  :deep(.v-timeline-item__body) {
+    width: calc(100% - 28px) !important; /* 调整移动端的宽度计算 */
+    min-width: 200px !important; /* 设置最小宽度防止缩得太小 */
+  }
+
+  /* 确保卡片在移动端有足够展示空间 */
+  :deep(.v-timeline-item__content) {
+    padding-left: 8px !important;
+    padding-right: 8px !important;
+    width: 100% !important;
+  }
+
+  /* 移动端让时间线组标题更紧凑 */
+  .timeline-group-title {
+    font-size: 16px;
+    margin: 2px 0;
+  }
+}
 </style>
