@@ -1,9 +1,9 @@
-use chrono::{self, DateTime, NaiveDate, NaiveDateTime, NaiveTime, TimeZone};
+use chrono::{self, DateTime, NaiveDate};
 
 use anyhow::{Ok, Result};
 
 use crate::entity::Event;
-
+use crate::utils::target_date_timestamp as timestamp;
 use super::Filter::{self, A, B};
 
 const ONE_DAY: u64 = 24 * 60 * 60 * 1000;
@@ -11,8 +11,10 @@ const ONE_WEEK: u64 = 7 * ONE_DAY;
 
 pub fn map_filter(filter: &str) -> Result<Filter<Event>> {
     match filter {
+        "overdue" => Ok(A(|event| overdue_filter(event))),
         "today" => Ok(A(|event| today_filter(event))),
         "tomorrow" => Ok(A(|event| tomorrow_filter(event))),
+        "this_week" => Ok(A(|event| this_week_filter(event))),
         "next_week" => Ok(A(|event| next_week_filter(event))),
         date_str => {
             let date = NaiveDate::parse_from_str(date_str, "%Y-%m-%d")
@@ -25,16 +27,7 @@ pub fn map_filter(filter: &str) -> Result<Filter<Event>> {
 
 // 辅助函数: 为给定日期偏移和时间范围创建筛选函数
 fn time_range_filter(entity: &Event, days_offset: i64, range_duration: u64) -> bool {
-    let now = chrono::Local::now();
-    let target_date = now.date_naive() + chrono::Duration::days(days_offset);
-    let time = NaiveTime::from_hms_opt(0, 0, 0).unwrap();
-    let date_time = NaiveDateTime::new(target_date, time);
-
-    // 处理时区问题
-    let lacal_dt = chrono::Local.from_local_datetime(&date_time).unwrap();
-    let utc_dt = lacal_dt.with_timezone(&chrono::Utc);
-    let timestamp = (utc_dt.timestamp() as u64) * 1000;
-
+    let timestamp = timestamp(days_offset);
     entity.task_time.unwrap_or(0) >= timestamp
         && entity.task_time.unwrap_or(0) < timestamp + range_duration
 }
@@ -47,8 +40,18 @@ fn tomorrow_filter(entity: &Event) -> bool {
     time_range_filter(entity, 1, ONE_DAY)
 }
 
+fn this_week_filter(entity: &Event) -> bool {
+    // 为了排除今天和明天的事件
+    time_range_filter(entity, 2, ONE_WEEK -2*ONE_DAY)
+}
+
 fn next_week_filter(entity: &Event) -> bool {
     time_range_filter(entity, 7, ONE_WEEK)
+}
+
+fn overdue_filter(entity: &Event) -> bool {
+    let timestamp = timestamp(0);
+    entity.task_time.unwrap_or(0) < timestamp && !entity.finished
 }
 
 fn time_filter(day: NaiveDate, event: &Event) -> bool {

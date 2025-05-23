@@ -15,8 +15,10 @@ export interface TimelineGroup {
 export const useTimelineStore = defineStore('timeline', () => {
     // 常量
     const timeMap = {
+        OVERDUE: 'overdue',
         TODAY: 'today',
         TOMORROW: 'tomorrow',
+        THIS_WEEK: 'this_week',
         NEXT_WEEK: 'next_week',
     } as const
 
@@ -24,7 +26,14 @@ export const useTimelineStore = defineStore('timeline', () => {
 
     // 状态
     const timelineGroups = reactive<TimelineGroup[]>([
-        {
+      {
+            id: timeMap.OVERDUE,
+            title: "逾期",
+            iconName: "mdi-calendar-alert",
+            color: "error",
+            dateGroup: timeMap.OVERDUE
+      },
+      {
             id: timeMap.TODAY,
             title: "今天",
             iconName: "mdi-calendar-today",
@@ -38,6 +47,13 @@ export const useTimelineStore = defineStore('timeline', () => {
             color: "secondary",
             dateGroup: timeMap.TOMORROW
         },
+        {
+            id: timeMap.THIS_WEEK,
+            title: "本周",
+            iconName: "mdi-calendar-week",
+            color: "secondary",
+            dateGroup: timeMap.THIS_WEEK
+        },  
         {
             id: timeMap.NEXT_WEEK,
             title: "下周",

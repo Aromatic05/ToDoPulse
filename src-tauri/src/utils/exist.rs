@@ -1,17 +1,13 @@
-// 标准库导入
 use std::ops::DerefMut;
 
-// 外部库导入
 use tauri::State;
 
-// 项目内部导入
 use crate::entity::{
     Entity,
     List,
     Repository,
-    Storage,
-    StorageState, // 存储和实体接口
-    Tag,          // 数据类型
+    StorageState, 
+    Tag,          
 };
 
 async fn exists<T>(state: &State<'_, StorageState>, id: &str) -> bool
@@ -34,14 +30,4 @@ pub async fn tag_exists(state: &State<'_, StorageState>, name: &str) -> bool {
 
 pub async fn list_exists(state: &State<'_, StorageState>, uuid: &str) -> bool {
     exists::<List>(state, uuid).await
-}
-
-#[allow(dead_code)]
-pub async fn with_storage<F, T>(state: &State<'_, StorageState>, f: F) -> Result<T, String>
-where
-    F: FnOnce(&mut Storage) -> Result<T, String>,
-{
-    let mut guard = state.0.lock().await;
-    let storage = guard.deref_mut();
-    f(storage)
 }

@@ -9,7 +9,7 @@ static APP_PATHS: OnceLock<AppPaths> = OnceLock::new();
 
 pub struct AppPaths {
     data_dir: PathBuf,
-    config_dir: PathBuf,
+    config_dir: PathBuf, 
     log_dir: PathBuf,
     export_dir: PathBuf,
 }
