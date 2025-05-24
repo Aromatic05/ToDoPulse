@@ -131,7 +131,7 @@ export default defineComponent({
                                     const arrayBuffer = await file.arrayBuffer();
                                     const uint8Array = new Uint8Array(arrayBuffer);
                                     let base64 = '';
-                                    const chunkSize = 524288;
+                                    const chunkSize = 52428; // Vditor 对 base64 字符串长度有限制，分块处理
                                     for (let i = 0; i < uint8Array.length; i += chunkSize) {
                                         const chunk = uint8Array.slice(i, i + chunkSize);
                                         base64 += String.fromCharCode.apply(null, Array.from(chunk));
