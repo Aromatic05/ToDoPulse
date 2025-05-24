@@ -34,7 +34,7 @@
         <!-- 该组的所有项目 -->
         <v-timeline-item v-for="item in groupItems[group.dateGroup] || []" :key="item.id" :dot-color="item.color"
           :icon="item.icon" size="small" density="compact">
-          <EventCard :data="timelineStore.formatCardData(item, group.dateGroup)"
+          <EventCard :data="item"
             @update="(data: FEvent) => handleUpdateItem(data, group.dateGroup)" />
         </v-timeline-item>
       </template>

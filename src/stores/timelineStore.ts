@@ -15,25 +15,18 @@ export interface TimelineGroup {
 export const useTimelineStore = defineStore('timeline', () => {
     // 常量
     const timeMap = {
-        OVERDUE: 'overdue',
         TODAY: 'today',
         TOMORROW: 'tomorrow',
         THIS_WEEK: 'this_week',
         NEXT_WEEK: 'next_week',
+        OVERDUE: 'overdue',
     } as const
 
     const showedTimelineGroups = reactive<TimelineGroup[]>([]);
 
     // 状态
     const timelineGroups = reactive<TimelineGroup[]>([
-      {
-            id: timeMap.OVERDUE,
-            title: "逾期",
-            iconName: "mdi-calendar-alert",
-            color: "error",
-            dateGroup: timeMap.OVERDUE
-      },
-      {
+        {
             id: timeMap.TODAY,
             title: "今天",
             iconName: "mdi-calendar-today",
@@ -53,13 +46,20 @@ export const useTimelineStore = defineStore('timeline', () => {
             iconName: "mdi-calendar-week",
             color: "secondary",
             dateGroup: timeMap.THIS_WEEK
-        },  
+        },
         {
             id: timeMap.NEXT_WEEK,
             title: "下周",
             iconName: "mdi-calendar-week",
             color: "info",
             dateGroup: timeMap.NEXT_WEEK
+        },
+        {
+            id: timeMap.OVERDUE,
+            title: "逾期",
+            iconName: "mdi-calendar-alert",
+            color: "error",
+            dateGroup: timeMap.OVERDUE
         }
     ])
 
@@ -150,24 +150,6 @@ export const useTimelineStore = defineStore('timeline', () => {
         }
     }
 
-    /**
-     * 格式化卡片数据，确保tags包含dateGroup
-     * @param item 事件对象
-     * @param dateGroup 日期分组
-     * @returns 格式化后的事件对象
-     */
-    function formatCardData(item: FEvent, dateGroup: string): FEvent {
-        // 确保tags包含dateGroup
-        const tag = [...(item.tag || [])]
-        if (!tag.includes(dateGroup)) {
-            tag.push(dateGroup)
-        }
-
-        return {
-            ...item,
-            tag
-        }
-    }
 
     /**
      * 获取颜色变量对应的CSS变量值
@@ -222,7 +204,6 @@ export const useTimelineStore = defineStore('timeline', () => {
         // 操作
         fetchEvents,
         updateEvent,
-        formatCardData,
         getColorVariable,
         sortItemsByPriority
     }
