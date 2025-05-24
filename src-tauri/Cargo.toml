@@ -50,3 +50,4 @@ notify-rust = "4.11.7"
 async-trait = "0.1.88"
 openssl = { version = "*", features = ["vendored"] }
 tauri-plugin-fs = "2"
+parking_lot = "0.12.3"

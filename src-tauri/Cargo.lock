@@ -21,6 +21,7 @@ dependencies = [
  "notify-rust",
  "once_cell",
  "openssl",
+ "parking_lot",
  "rand 0.9.1",
  "redb",
  "reqwest",

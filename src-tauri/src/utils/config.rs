@@ -1,9 +1,9 @@
 use anyhow::Result;
 use once_cell::sync::Lazy;
+use parking_lot::Mutex;
 use serde::{Deserialize, Serialize};
 use std::fs;
 use std::path::{Path, PathBuf};
-use std::sync::Mutex;
 use toml;
 use ts_rs::TS;
 
@@ -128,6 +128,34 @@ impl ConfigField {
     }
 }
 
+fn with_config<F, R>(f: F) -> Result<R>
+where
+    F: FnOnce(&Config) -> R,
+{
+    let config_lock = CONFIG.lock();
+    match &*config_lock {
+        Some(config) => Ok(f(config)),
+        None => {
+            log::error!("Config not found");
+            Err(anyhow::anyhow!("Config not found").into())
+        }
+    }
+}
+
+fn with_config_mut<F, R>(f: F) -> Result<R>
+where
+    F: FnOnce(&mut Config) -> R,
+{
+    let mut config_lock = CONFIG.lock();
+    match &mut *config_lock {
+        Some(config) => Ok(f(config)),
+        None => {
+            log::error!("Config not found");
+            Err(anyhow::anyhow!("Config not found").into())
+        }
+    }
+}
+
 pub fn parse() -> Result<()> {
     parse_with_path::<PathBuf>(None)
 }
@@ -144,28 +172,21 @@ pub fn parse() -> Result<()> {
 /// * `Result<(), ErrorKind>` - Success or an error if the configuration couldn't be updated
 #[tauri::command]
 pub fn update_config(field: ConfigField) -> Result<(), ErrorKind> {
-    let mut config_lock = CONFIG.lock().unwrap();
-    if let Some(config) = &mut *config_lock {
+    with_config_mut(|config| {
         field.apply(config);
         write_config()?;
         log::info!("Config updated");
         Ok(())
-    } else {
-        log::error!("Config not found");
-        Err(anyhow::anyhow!("Config not found").into())
-    }
+    })?
 }
 
 pub fn write_config() -> Result<()> {
     let config_path = AppPaths::config_dir().join(CONFIG_FILE);
-    let config_lock = CONFIG.lock().unwrap();
-    if let Some(config) = &*config_lock {
-        fs::write(&config_path, toml::to_string(config)?)?;
+    with_config(|config| {
+        let config_str = toml::to_string(config)?;
+        fs::write(&config_path, config_str)?;
         Ok(())
-    } else {
-        log::error!("Config not found");
-        Err(anyhow::anyhow!("no config to write"))
-    }
+    })?
 }
 
 pub fn parse_with_path<P: AsRef<Path>>(custom_path: Option<P>) -> Result<()> {
@@ -188,38 +209,21 @@ pub fn parse_with_path<P: AsRef<Path>>(custom_path: Option<P>) -> Result<()> {
     let config_str = fs::read_to_string(&config_path)?;
     let config: Config = toml::from_str(&config_str)?;
 
-    let mut config_lock = CONFIG.lock().unwrap();
+    let mut config_lock = CONFIG.lock();
     *config_lock = Some(config);
     Ok(())
 }
 
 pub fn llm_config() -> Result<Model> {
-    let config_lock = CONFIG.lock().unwrap();
-    if let Some(config) = &*config_lock {
-        return Ok(config.model.clone());
-    }
-    log::error!("LLM config not found");
-    Err(anyhow::anyhow!("LLM config not found").into())
+    with_config(|config| config.model.clone())
 }
 
 pub fn info() -> Result<Info> {
-    let config_lock = CONFIG.lock().unwrap();
-    if let Some(config) = &*config_lock {
-        return Ok(config.info.clone());
-    }
-    log::error!("Info config not found");
-    Err(anyhow::anyhow!("Info config not found").into())
+    with_config(|config| config.info.clone())
 }
 
-/// 获取WebDAV配置
 pub fn get_webdav_config() -> Result<WebDav> {
-    let config_lock = CONFIG.lock().unwrap();
-    if let Some(config) = &*config_lock {
-        // 返回WebDav结构体的克隆值
-        return Ok(config.webdav.clone());
-    }
-    log::error!("WebDAV configuration not found");
-    Err(anyhow::anyhow!("WebDAV configuration not found").into())
+    with_config(|config| config.webdav.clone())
 }
 
 #[cfg(test)]
