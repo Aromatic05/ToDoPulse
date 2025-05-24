@@ -1,6 +1,7 @@
 import { defineStore } from 'pinia'
 import { ref, computed } from 'vue'
 import type { FEvent } from 'src-tauri/bindings/FEvent'
+import { useTimelineStore } from './timelineStore'
 import type { Priority } from 'src-tauri/bindings/Priority'
 import { useListStore } from './listStore'
 import EventService from '../services/EventService'
@@ -128,6 +129,11 @@ export const useEventStore = defineStore('events', () => {
             // 重新加载第一页数据
             await fetchEventsByListId(listId)
 
+            // 通知timelineStore刷新数据
+            const timelineStore = useTimelineStore()
+            timelineStore.clearData()
+            await timelineStore.fetchEvents()
+
             return [...(events.value.get(listId) || [])]
         } catch (err) {
             console.error('添加事件失败:', err)
@@ -157,6 +163,11 @@ export const useEventStore = defineStore('events', () => {
                 listEvents[index] = fEvent
                 events.value.set(fEvent.listid, [...listEvents])
             }
+
+            // 通知timelineStore刷新数据
+            const timelineStore = useTimelineStore()
+            timelineStore.clearData()
+            await timelineStore.fetchEvents()
 
             return [...(events.value.get(fEvent.listid) || [])]
         } catch (err) {
@@ -189,6 +200,11 @@ export const useEventStore = defineStore('events', () => {
             if (selectedEventId.value === eventId) {
                 clearSelectedEvent()
             }
+
+            // 通知timelineStore刷新数据
+            const timelineStore = useTimelineStore()
+            timelineStore.clearData()
+            await timelineStore.fetchEvents()
 
             return [...(events.value.get(listId) || [])]
         } catch (err) {

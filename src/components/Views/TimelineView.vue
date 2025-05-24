@@ -43,22 +43,26 @@
 </template>
 
 <script setup lang="ts">
-import { computed, onMounted } from 'vue'
+import { computed, onMounted, ref, watch } from 'vue'
 import EventCard from '@/components/Cards/EventCard.vue'
 import type { FEvent } from 'src-tauri/bindings/FEvent';
 import { useTimelineStore } from '@/stores'
+import { useEventStore } from '@/stores/eventStore'
 
 // 使用Pinia store管理时间线数据
 const timelineStore = useTimelineStore();
 const showedTimelineGroups = computed(() => timelineStore.showedTimelineGroups);
 // const isLoading = computed(() => timelineStore.isLoading);
-const groupItems = computed(() => {
-  const result: Record<string, FEvent[]> = {};
+const groupItems = ref<Record<string, FEvent[]>>({});
+
+// 监听数据变化并更新组项目
+watch(() => timelineStore.events, () => {
+  const newItems: Record<string, FEvent[]> = {};
   for (const group of showedTimelineGroups.value) {
-    result[group.dateGroup] = timelineStore.getGroupItems(group.dateGroup);
+    newItems[group.dateGroup] = timelineStore.getGroupItems(group.dateGroup);
   }
-  return result;
-});
+  groupItems.value = newItems;
+}, { immediate: true, deep: true });
 
 // 组件挂载时初始化数据
 onMounted(async () => {
@@ -70,7 +74,12 @@ onMounted(async () => {
 
 // 更新项目处理函数
 async function handleUpdateItem(data: FEvent, dateGroup: string) {
-  await timelineStore.updateEvent(data, dateGroup);
+  // 通过eventStore统一更新数据
+  const eventStore = useEventStore();
+  await eventStore.updateEvent(data);
+  // 强制刷新时间线数据
+  timelineStore.clearData();
+  await timelineStore.fetchEvents(true);
 }
 </script>
 

@@ -81,8 +81,9 @@ export const useTimelineStore = defineStore('timeline', () => {
     /**
      * 获取时间线上的所有事件
      */
-    async function fetchEvents() {
-        if (dataInitialized.value) return
+    async function fetchEvents(forceRefresh = false) {
+        if (dataInitialized.value && !forceRefresh) return
+        dataInitialized.value = false
 
         isLoading.value = true
         error.value = null
@@ -188,6 +189,13 @@ export const useTimelineStore = defineStore('timeline', () => {
         })
     }
 
+    // 清除缓存数据
+    function clearData() {
+        dataInitialized.value = false
+        events.value = {}
+        showedTimelineGroups.splice(0)
+    }
+
     return {
         // 状态
         timelineGroups,
@@ -205,6 +213,7 @@ export const useTimelineStore = defineStore('timeline', () => {
         fetchEvents,
         updateEvent,
         getColorVariable,
-        sortItemsByPriority
+        sortItemsByPriority,
+        clearData
     }
 })
