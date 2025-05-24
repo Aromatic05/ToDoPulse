@@ -37,7 +37,6 @@ static DEFAULT_VALUES: Lazy<Config> =
 static CONFIG: Lazy<Mutex<Option<Config>>> = Lazy::new(|| Mutex::new(None));
 
 #[derive(Deserialize, Serialize, Clone, TS)]
-#[serde(default)]
 pub struct WebDav {
     pub enabled: bool,
     pub host: String,
@@ -54,7 +53,6 @@ impl Default for WebDav {
 }
 
 #[derive(Deserialize, Serialize, Clone, TS)]
-#[serde(default)]
 pub struct Theme {
     color: String,
 }
@@ -66,7 +64,6 @@ impl Default for Theme {
 }
 
 #[derive(Deserialize, Serialize, Clone, TS)]
-#[serde(default)]
 pub struct Model {
     pub switch: bool,
     pub name: String,
@@ -80,7 +77,6 @@ impl Default for Model {
 }
 
 #[derive(Deserialize, Serialize, Clone, TS)]
-#[serde(default)]
 pub struct Info {
     pub switch: bool,
     pub time: Option<Vec<String>>,
@@ -93,7 +89,6 @@ impl Default for Info {
 }
 
 #[derive(Deserialize, Serialize)]
-#[serde(default)]
 struct Config {
     theme: Theme,
     info: Info,
