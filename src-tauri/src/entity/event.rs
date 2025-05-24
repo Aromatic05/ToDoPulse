@@ -4,6 +4,7 @@ use redb::{self, TableDefinition};
 use serde::{Deserialize, Serialize};
 use std::fs;
 use std::ops::DerefMut;
+use std::path::PathBuf;
 use tauri::State;
 use ts_rs::TS;
 use uuid::Uuid;
@@ -318,6 +319,15 @@ pub async fn delete_event(state: State<'_, StorageState>, uuid: &str) -> Result<
     let storage = guard.deref_mut();
     let event = Repository::<Event>::get_by_name(storage, uuid)?;
 
+    // 删除事件的Markdown文件
+    if let Some(event) = &event {
+        let content_path = PathBuf::from(&event.content);
+        if let Some(content_dir) = content_path.parent() {
+            if fs::remove_dir_all(content_dir).is_err() {
+                log::error!("Failed to delete directory: {}", content_dir.display());
+            }
+        }
+    }
     // 删除事件
     Repository::<Event>::delete(storage, uuid)?;
 

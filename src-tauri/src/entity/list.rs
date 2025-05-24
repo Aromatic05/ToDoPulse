@@ -10,7 +10,7 @@ use crate::entity::{Event, FEvent, Repository, StorageState};
 use crate::error::ErrorKind;
 use crate::utils::{list_exists, EVENT_LIST_CACHE, LIST_CACHE};
 
-use super::Entity;
+use super::{Entity,event::delete_event};
 
 type Table = TableDefinition<'static, &'static [u8], &'static [u8]>;
 
@@ -91,6 +91,7 @@ pub async fn new_list(
 /// Deletes a list from the database
 ///
 /// Removes the list with the specified ID from the database and invalidates all related caches.
+/// Also deletes all events associated with the list.
 ///
 /// # Parameters
 /// * `state` - Application state containing the database connection
@@ -100,9 +101,38 @@ pub async fn new_list(
 /// * `Result<(), ErrorKind>` - Success or an error if the list couldn't be deleted
 #[tauri::command]
 pub async fn delete_list(state: State<'_, StorageState>, listid: &str) -> Result<(), ErrorKind> {
-    let mut guard = state.0.lock().await;
-    let storage = guard.deref_mut();
-    Repository::<List>::delete(storage, listid)?;
+    // 获取锁并收集所有相关事件的UUID
+    let event_uuids = {
+        let mut guard = state.0.lock().await;
+        let storage = guard.deref_mut();
+        
+        // 收集所有该列表的事件的UUID
+        let events = Repository::<Event>::filter(storage, |event| {
+            event.metadata.list.as_ref().map_or(false, |list| list == listid)
+        })?;
+        
+        // 只提取UUID
+        events.iter().map(|event| event.metadata.uuid.clone()).collect::<Vec<_>>()
+    };
+    
+    // 使用futures::future::join_all进行并行删除
+    let deletion_results = futures::future::join_all(
+        event_uuids.iter().map(|uuid| delete_event(state.clone(), uuid))
+    ).await;
+    
+    // 记录任何删除失败的事件
+    for (i, result) in deletion_results.iter().enumerate() {
+        if let Err(e) = result {
+            log::error!("Failed to delete event {}: {}", event_uuids[i], e);
+        }
+    }
+    
+    // 删除列表本身
+    {
+        let mut guard = state.0.lock().await;
+        let storage = guard.deref_mut();
+        Repository::<List>::delete(storage, listid)?;
+    }
 
     // 使相关缓存失效
     LIST_CACHE.clear();
