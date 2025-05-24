@@ -4,7 +4,7 @@
             <AddTagModal v-model="showAddTagModal" @created="handleTagCreated" />
             <div class="modal-container">
                 <div class="modal-header">
-                    </div>
+                </div>
                 <div class="modal-body">
                     <div class="modal-layout">
                         <div class="form-section">
@@ -58,24 +58,22 @@
                             </div>
 
                             <div class="form-group">
-                                <p class="text-subtitle-1 mb-2">图标选择</p>
-                                <v-chip-group v-model="selectedIconIndex" column>
-                                    <v-chip v-for="(icon, index) in availableIcons" :key="index" filter :value="index"
-                                        :selected="formData.icon === icon">
+                                <label class="icon-label">图标选择</label>
+                                <div class="icon-selection-container">
+                                    <div v-for="(icon, index) in availableIcons" :key="index" class="icon-option"
+                                        :class="{ 'icon-selected': formData.icon === icon }"
+                                        @click="selectedIconIndex = index">
                                         <v-icon :icon="icon"></v-icon>
-                                    </v-chip>
-                                </v-chip-group>
+                                    </div>
+                                </div>
                             </div>
                         </div>
 
                         <div class="editor-section">
                             <label for="content">内容</label>
-                            <VditorEditor v-if="formData.id"
-                                          :event-id="formData.id"
-                                          :card-title="formData.title"
-                                          v-model="editorContent"
-                                          editor-id="card-content-editor"
-                                          @initialized="onEditorInitialized" />
+                            <VditorEditor v-if="formData.id" :event-id="formData.id" :card-title="formData.title"
+                                v-model="editorContent" editor-id="card-content-editor"
+                                @initialized="onEditorInitialized" />
                             <div v-else>
                                 <p>请先保存卡片以启用内容编辑器和文件上传功能。</p>
                             </div>
@@ -217,7 +215,7 @@ export default defineComponent({
 
             // 仅当 cardData.id 存在时才加载内容
             if (props.cardData.id) {
-                 await loadContent(); // 加载编辑器内容
+                await loadContent(); // 加载编辑器内容
             } else {
                 editorContent.value = ''; // 新卡片，内容为空
             }
@@ -296,14 +294,19 @@ export default defineComponent({
             return true;
         });
 
-        const availableIcons = ['mdi-home', 'mdi-account', 'mdi-briefcase', 'mdi-shopping', 'mdi-star'];
+        const availableIcons = [
+            'mdi-home', 'mdi-account', 'mdi-briefcase',
+            'mdi-shopping', 'mdi-star', 'mdi-bell',
+            'mdi-calendar', 'mdi-note', 'mdi-check'
+        ];
+
         const selectedIconIndex = computed({
             get: () => availableIcons.findIndex(icon => icon === formData.value.icon),
             set: (index: number) => {
                 if (index >= 0 && index < availableIcons.length) {
                     formData.value.icon = availableIcons[index];
                 } else {
-                    formData.value.icon = ''; // 如果索引无效，则清空图标或设为默认
+                    formData.value.icon = '';
                 }
             }
         });
@@ -312,7 +315,7 @@ export default defineComponent({
             loadTags(); // 初始加载一次标签列表
             // handleOpen 将在 modelValue 变为 true 时被调用
         });
-        
+
         // getDynamicLinkBase 已移至 VditorEditor
 
         return {

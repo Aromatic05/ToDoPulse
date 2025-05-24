@@ -75,8 +75,8 @@ const newEvent = ref('')
 // 添加类型注解
 const headers: DataTableHeader[] = [
     { title: '状态', key: 'status', sortable: false, align: 'center', width: '80px' },
-    { title: '任务', key: 'title', sortable: true, align: 'start' },
-    { title: '优先级', key: 'priority', sortable: true, align: 'center', width: '120px' },
+    { title: '任务', key: 'title', sortable: true, align: 'start',  width: '300px' },
+    { title: '标签', key: 'priority', sortable: true, align: 'start', width: '100px' },
     { title: '截止日期', key: 'date', sortable: true, align: 'center', width: '150px' },
     { title: '操作', key: 'actions', sortable: false, align: 'center', width: '100px' }
 ]

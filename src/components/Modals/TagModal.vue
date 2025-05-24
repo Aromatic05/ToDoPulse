@@ -5,7 +5,7 @@
                 <div class="modal-header">
                     <div class="text-h5 d-flex align-center">
                         <v-chip :color="props.tag.color" class="me-3" variant="tonal">{{ props.tag.name }}</v-chip>
-                        <span>标签下的所有任务</span>
+                        <span class="tag-title-text">标签下的所有任务</span>
                         <v-spacer></v-spacer>
                         <span class="text-caption">({{ tagEvents.length }} 项)</span>
                     </div>
@@ -199,6 +199,12 @@ async function removeTagFromEvent(event: FEvent) {
 <style scoped>
 /* 导入共享模态框样式 */
 @import '@/styles/Modals/contentmodal.css';
+
+/* 标题文本样式 - 适应主题 */
+.tag-title-text {
+    color: var(--md-sys-color-on-surface);
+    font-weight: 500;
+}
 
 /* 覆盖z-index以确保在CardContentModal下层 */
 .tag-modal-mask {

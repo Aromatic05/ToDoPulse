@@ -1,7 +1,7 @@
 <template>
     <div class="card-base" @click.stop="handleCardClick">
         <div class="card-content-row">
-            <input type="checkbox" :checked="localData.finished" @click.stop="handleComplete()" class="card-checkbox"/>
+            <input type="checkbox" :checked="localData.finished" @click.stop="handleComplete(localData)" class="card-checkbox"/>
             <h3 class="card-title" :class="{ 'completed-task': localData.finished }">{{ localData.title }}</h3>
             <!-- 直接在模板中缓存时间结果，避免在渲染过程中重复调用方法 -->
             <span v-if="ddlTime" class="card-time"
@@ -106,15 +106,13 @@ export default defineComponent({
             this.$emit('update', updatedData);
         },
         // 添加简单的防抖机制避免快速点击造成的问题
-        handleComplete() {
+        handleComplete(updatedData: FEvent) {
             if (this._clickTimeout) return;
             
             this._clickTimeout = setTimeout(() => {
                 this.localData.finished = !this.localData.finished;
-                this.$emit('toggleStatus', {
-                    id: this.localData.id,
-                    finished: this.localData.finished
-                });
+                this.localData = { ...updatedData };
+                this.$emit('update', updatedData);
                 this._clickTimeout = null;
             }, 100);
         },

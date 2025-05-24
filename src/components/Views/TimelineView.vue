@@ -35,7 +35,7 @@
         <v-timeline-item v-for="item in groupItems[group.dateGroup] || []" :key="item.id" :dot-color="item.color"
           :icon="item.icon" size="small" density="compact">
           <EventCard :data="item"
-            @update="(data: FEvent) => handleUpdateItem(data, group.dateGroup)" />
+            @update="(data: FEvent) => handleUpdateItem(data)" />
         </v-timeline-item>
       </template>
     </v-timeline>
@@ -73,13 +73,10 @@ onMounted(async () => {
 });
 
 // 更新项目处理函数
-async function handleUpdateItem(data: FEvent, dateGroup: string) {
+async function handleUpdateItem(data: FEvent) {
   // 通过eventStore统一更新数据
   const eventStore = useEventStore();
   await eventStore.updateEvent(data);
-  // 强制刷新时间线数据
-  timelineStore.clearData();
-  await timelineStore.fetchEvents(true);
 }
 </script>
 
