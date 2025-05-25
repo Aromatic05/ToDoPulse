@@ -28,7 +28,8 @@
 </template>
 
 <script setup lang="ts">
-import { ref, computed } from 'vue';
+import { ref, computed, onMounted, onUnmounted } from 'vue';
+import { listen } from '@tauri-apps/api/event';
 import Breadcrumbs from '@/components/Breadcrumbs.vue';
 import ThemePicker from '@/components/ThemePicker.vue';
 
@@ -67,6 +68,17 @@ function toggleSettings() {
     isSettingsActive.value = !isSettingsActive.value;
     emit('toggle-settings');
 }
+
+// 监听来自托盘菜单的设置切换事件
+onMounted(async () => {
+  const unlisten = await listen('toggle-settings', () => {
+    toggleSettings();
+  });
+  
+  onUnmounted(() => {
+    unlisten();
+  });
+});
 
 // 添加暗色模式切换函数
 // function toggleDarkMode() {

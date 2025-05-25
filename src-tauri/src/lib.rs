@@ -8,14 +8,25 @@ mod utils; // 通用工具函数
 use entity::{event, list, tag};
 use function::{export, sync, upload};
 use tauri_plugin_dialog;
-use utils::config;
+use utils::{config, init_tray};
 
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() -> std::io::Result<()> {
     tauri::Builder::default()
+        .on_window_event(|window, event| {
+            if let tauri::WindowEvent::CloseRequested { api, .. } = event {
+                window.hide().unwrap();
+                api.prevent_close();
+            }
+        })
         .plugin(tauri_plugin_fs::init())
         .plugin(tauri_plugin_dialog::init())
         .setup(|app| {
+            // 初始化系统托盘
+            if let Err(e) = init_tray(&app.handle()) {
+                log::error!("Error initializing tray: {}", e);
+            }
+            
             tauri::async_runtime::block_on(async {
                 let res = init::initialize_app(app).await;
                 if let Err(e) = res {
