@@ -4,28 +4,6 @@
             <div class="settings-content">
                 <v-row>
                     <v-col cols="12" md="4">
-                        <v-card class="pa-4">
-                            <h3 class="text-h6 mb-5">界面设置</h3>
-
-                            <v-switch v-model="darkMode" label="深色模式" color="primary" hide-details
-                                class="mb-4"></v-switch>
-
-                            <v-switch v-model="compactMode" label="紧凑模式" color="primary" hide-details
-                                class="mb-4"></v-switch>
-                        </v-card>
-                    </v-col>
-
-                    <v-col cols="12" md="4">
-                        <v-card class="pa-4">
-                            <h3 class="text-h6 mb-5">个性化</h3>
-
-                            <v-select v-model="selectedTheme" :items="themes" label="主题色" variant="outlined"
-                                density="compact" class="mb-4"></v-select>
-
-                            <v-select v-model="selectedLanguage" :items="languages" label="语言" variant="outlined"
-                                density="compact" class="mb-4"></v-select>
-                        </v-card>
-                    </v-col>
 
                     <v-col cols="12" md="4">
                         <v-card class="pa-4">
