@@ -1,7 +1,7 @@
 use tauri::{
     menu::{Menu, MenuItem},
-    tray::{TrayIconBuilder, TrayIconEvent, MouseButton, MouseButtonState},
-    AppHandle, Manager, Emitter
+    tray::{TrayIconBuilder},
+    AppHandle, Emitter, Manager,
 };
 
 /// 初始化系统托盘
@@ -31,31 +31,12 @@ pub fn init_tray(app: &AppHandle) -> Result<(), Box<dyn std::error::Error>> {
                         let _ = window.hide();
                     } else {
                         let _ = window.show();
-                        let _ = window.set_focus();
+                        let _ = window.unminimize();
                     }
                 }
             }
             "quit" => {
                 app.exit(0);
-            }
-            _ => {}
-        })
-        .on_tray_icon_event(|tray, event| match event {
-            TrayIconEvent::Click {
-                button: MouseButton::Left,
-                button_state: MouseButtonState::Up,
-                ..
-            } => {
-                let app = tray.app_handle();
-                if let Some(window) = app.get_webview_window("main") {
-                    let visible = window.is_visible().unwrap_or(false);
-                    if visible {
-                        let _ = window.hide();
-                    } else {
-                        let _ = window.show();
-                        let _ = window.set_focus();
-                    }
-                }
             }
             _ => {}
         })
