@@ -1,6 +1,7 @@
 import { invoke } from '@tauri-apps/api/core';
 import type { FList } from 'src-tauri/bindings/FList';
 import { useListStore } from '@/stores/listStore';
+import type { ConfigField } from '../../src-tauri/bindings/ConfigField';
 
 export const SettingService = {
   /**
@@ -38,11 +39,12 @@ export const SettingService = {
    * 保存应用设置
    * @param settings 设置对象
    */
-  async saveSettings(settings: Record<string, unknown>): Promise<void> {
-    // 实际项目中可能涉及到调用Tauri的API保存设置
-    // 这里暂时只打印一下
-    console.log('保存设置', settings);
-    return Promise.resolve();
+  async saveSettings(settings: ConfigField): Promise<void> {
+    try {
+      await invoke<void>('update_config', { field:settings });
+    } catch (error) {
+      console.error('保存设置失败', error);
+    }
   },
 
   /**

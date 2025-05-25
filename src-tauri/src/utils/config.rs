@@ -28,7 +28,6 @@ host = "https://example.com"
 username = "user"
 password = "password"
 remote_dir = "/ToDoPulse"
-sync_interval = 30
 "#;
 
 // 解析DEFAULT_CONFIG以复用默认值
@@ -44,7 +43,6 @@ pub struct WebDav {
     pub username: String,
     pub password: String,
     pub remote_dir: String,
-    pub sync_interval: u64,
 }
 
 #[derive(Deserialize, Serialize, Clone, TS, F)]
@@ -227,7 +225,6 @@ mod tests {
         username = "username"
         password = "passwd"
         remote_dir = "/ToDoPulse"
-        sync_interval = 30
         "#;
 
         fs::create_dir_all(&config_dir).unwrap();
