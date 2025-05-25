@@ -4,8 +4,6 @@
             <div class="settings-content">
                 <v-row>
                     <v-col cols="12" md="4">
-
-                    <v-col cols="12" md="4">
                         <v-card class="pa-4">
                             <h3 class="text-h6 mb-5">通知设置</h3>
 
