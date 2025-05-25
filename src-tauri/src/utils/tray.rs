@@ -1,3 +1,4 @@
+#[cfg(desktop)]
 use tauri::{
     menu::{Menu, MenuItem},
     tray::{TrayIconBuilder},
@@ -5,6 +6,7 @@ use tauri::{
 };
 
 /// 初始化系统托盘
+#[cfg(desktop)]
 pub fn init_tray(app: &AppHandle) -> Result<(), Box<dyn std::error::Error>> {
     // 创建托盘菜单项
     let settings_i = MenuItem::with_id(app, "settings", "Settings", true, None::<&str>)?;

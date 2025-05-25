@@ -11,4 +11,6 @@ pub use cache::*;
 pub use exist::*;
 pub use path::*;
 pub use time::target_date_timestamp;
+
+#[cfg(desktop)]
 pub use tray::init_tray;
