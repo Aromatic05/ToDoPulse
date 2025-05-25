@@ -1,4 +1,5 @@
 use anyhow::Result;
+use field_macro::ConfigField as F;
 use once_cell::sync::Lazy;
 use parking_lot::Mutex;
 use serde::{Deserialize, Serialize};
@@ -36,7 +37,7 @@ static DEFAULT_VALUES: Lazy<Config> =
 
 static CONFIG: Lazy<Mutex<Option<Config>>> = Lazy::new(|| Mutex::new(None));
 
-#[derive(Deserialize, Serialize, Clone, TS)]
+#[derive(Deserialize, Serialize, Clone, TS, F)]
 pub struct WebDav {
     pub enabled: bool,
     pub host: String,
@@ -46,46 +47,23 @@ pub struct WebDav {
     pub sync_interval: u64,
 }
 
-impl Default for WebDav {
-    fn default() -> Self {
-        DEFAULT_VALUES.webdav.clone()
-    }
-}
-
-#[derive(Deserialize, Serialize, Clone, TS)]
+#[derive(Deserialize, Serialize, Clone, TS, F)]
 pub struct Theme {
     color: String,
 }
 
-impl Default for Theme {
-    fn default() -> Self {
-        DEFAULT_VALUES.theme.clone()
-    }
-}
 
-#[derive(Deserialize, Serialize, Clone, TS)]
+#[derive(Deserialize, Serialize, Clone, TS, F)]
 pub struct Model {
     pub switch: bool,
     pub name: String,
     pub tokens: String,
 }
 
-impl Default for Model {
-    fn default() -> Self {
-        DEFAULT_VALUES.model.clone()
-    }
-}
-
-#[derive(Deserialize, Serialize, Clone, TS)]
+#[derive(Deserialize, Serialize, Clone, TS, F)]
 pub struct Info {
     pub switch: bool,
     pub time: Option<Vec<String>>,
-}
-
-impl Default for Info {
-    fn default() -> Self {
-        DEFAULT_VALUES.info.clone()
-    }
 }
 
 #[derive(Deserialize, Serialize)]
@@ -214,18 +192,6 @@ pub fn parse_with_path<P: AsRef<Path>>(custom_path: Option<P>) -> Result<()> {
     Ok(())
 }
 
-pub fn llm_config() -> Result<Model> {
-    with_config(|config| config.model.clone())
-}
-
-pub fn info() -> Result<Info> {
-    with_config(|config| config.info.clone())
-}
-
-pub fn get_webdav_config() -> Result<WebDav> {
-    with_config(|config| config.webdav.clone())
-}
-
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -269,7 +235,7 @@ mod tests {
 
         // 使用自定义路径解析配置
         parse_with_path(Some(&config_dir)).unwrap();
-        let webdav_config = get_webdav_config().unwrap();
+        let webdav_config = WebDav::load().unwrap();
 
         assert_eq!(webdav_config.enabled, true);
         assert_eq!(

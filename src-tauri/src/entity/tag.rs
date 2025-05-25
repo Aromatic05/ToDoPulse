@@ -42,7 +42,7 @@ impl Entity for Tag {
         self.id.to_string().into_bytes()
     }
     fn value(&self) -> Vec<u8> {
-        serde_json::to_vec(self).unwrap()
+        serde_json::to_vec(self).unwrap_or_default()
     }
 }
 

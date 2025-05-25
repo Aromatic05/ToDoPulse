@@ -51,3 +51,4 @@ async-trait = "0.1.88"
 openssl = { version = "*", features = ["vendored"] }
 tauri-plugin-fs = "2"
 parking_lot = "0.12.3"
+field_macro = { path = "./src/utils/field_macro", version = "0.1.0" }

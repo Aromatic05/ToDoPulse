@@ -39,7 +39,7 @@ impl Entity for List {
         self.uuid.as_bytes().to_vec()
     }
     fn value(&self) -> Vec<u8> {
-        serde_json::to_vec(self).unwrap()
+        serde_json::to_vec(self).unwrap_or_default()
     }
 }
 

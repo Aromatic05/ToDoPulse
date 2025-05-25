@@ -14,12 +14,12 @@ use crate::function::sync::state::{
 use crate::function::sync::webdav::{
     create_client, download_file, ensure_remote_dir_exists, upload_file,
 };
-use crate::utils::config::get_webdav_config;
+use crate::utils::config::WebDav;
 use crate::utils::path::AppPaths;
 
 /// 将配置应用到会话
 pub fn apply_config_to_session(session: &mut SyncSession) -> Result<()> {
-    let webdav_config = get_webdav_config()?;
+    let webdav_config = WebDav::load()?;
 
     // 检查WebDAV是否启用
     if !webdav_config.enabled {
@@ -39,7 +39,7 @@ pub fn create_sync_session() -> Result<SyncSession> {
 
     // 从配置中获取远程目录
     let remote_dir = {
-        let webdav_config = get_webdav_config()?;
+        let webdav_config = WebDav::load()?;
         if webdav_config.enabled {
             webdav_config.remote_dir.clone()
         } else {
@@ -69,7 +69,7 @@ pub async fn collect_states(
     session.status = SyncSessionStatus::CollectingState;
 
     // 获取WebDAV客户端配置
-    let webdav_config = get_webdav_config()?;
+    let webdav_config = WebDav::load()?;
 
     // 检查WebDAV是否启用
     if !webdav_config.enabled {
@@ -265,7 +265,7 @@ pub async fn execute_sync_operations(session: &mut SyncSession) -> Result<()> {
     info!("执行同步操作");
 
     // 获取WebDAV客户端配置
-    let webdav_config = get_webdav_config()?;
+    let webdav_config = WebDav::load()?;
 
     // 检查WebDAV是否启用
     if !webdav_config.enabled {

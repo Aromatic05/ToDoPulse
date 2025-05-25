@@ -97,7 +97,7 @@ pub fn register_sync_commands(app: &tauri::App) -> Result<()> {
 }
 
 pub async fn sync(state: State<'_, SyncState>) -> Result<(), String> {
-    let webdav_config = match config::get_webdav_config() {
+    let webdav_config = match config::WebDav::load() {
         Ok(config) => config,
         Err(e) => {
             log::error!("获取WebDAV配置失败: {}", e);

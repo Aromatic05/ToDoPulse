@@ -7,7 +7,7 @@ use std::path::PathBuf;
 use tauri::State;
 
 use crate::entity::{get_tags, StorageState};
-use crate::utils::llm_config;
+use crate::utils::config::Model;
 
 #[derive(Serialize, Deserialize)]
 struct Message {
@@ -53,7 +53,7 @@ pub async fn gen_tag(
     state: State<'_, StorageState>,
     content_path: &PathBuf,
 ) -> Result<Option<Vec<String>>> {
-    let llm_config = llm_config().unwrap_or_default();
+    let llm_config = Model::load().unwrap_or_default();
     let use_llm = llm_config.switch;
     if !use_llm {
         return Ok(None);
