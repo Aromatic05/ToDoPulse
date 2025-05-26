@@ -57,6 +57,9 @@ const listId = computed(() => {
         match = props.viewId.match(/list\/([^/]+)/);
     } else if (props.viewId.startsWith('list-item/')) {
         match = props.viewId.match(/list-item\/([^/]+)/);
+    } else if (props.viewId.startsWith('m-list-item/')) {
+        // 添加对移动端特殊路由前缀的处理
+        match = props.viewId.match(/m-list-item\/([^/]+)/);
     }
     return match ? match[1] : null;
 })

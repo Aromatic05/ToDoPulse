@@ -3,7 +3,7 @@
 </template>
 
 <script lang="ts">
-import { defineComponent, ref, watch, onMounted, onBeforeUnmount, nextTick} from 'vue';
+import { defineComponent, ref, watch, onMounted, onBeforeUnmount, nextTick } from 'vue';
 import Vditor from 'vditor';
 import 'vditor/dist/index.css';
 import { invoke, convertFileSrc } from '@tauri-apps/api/core';
@@ -15,50 +15,55 @@ declare module 'vditor' {
         destroy: () => void;
         getValue: () => string;
         setValue: (content: string) => void;
-        insertValue: (value: string, render?: boolean) => void; // 确保此方法存在
+        insertValue: (value: string, render?: boolean) => void;
     }
 }
 
 export default defineComponent({
     name: 'VditorEditor',
     props: {
-        modelValue: { // 用于 v-model 同步内容
+        modelValue: {
             type: String,
             default: ''
         },
-        eventId: { // 用于文件上传
+        eventId: {
             type: String,
             required: true
         },
-        cardTitle: { // 用于构建动态链接基础
+        cardTitle: {
             type: String,
-            default: 'default_event' // 提供一个默认值以防万一
+            default: 'default_event'
         },
-        editorId: { // 允许动态ID，以防页面上有多个编辑器实例 (虽然通常一个模态框一个)
+        editorId: {
             type: String,
             default: 'vditor-editor-instance'
         }
     },
-    emits: ['update:modelValue', 'initialized'], // 'initialized' 事件用于通知父组件编辑器已准备好
+    emits: ['update:modelValue', 'initialized'],
     setup(props, { emit }) {
         const vditorInstance = ref<Vditor | null>(null);
-        const vditorRefElement = ref<HTMLElement | null>(null); // 用于挂载 Vditor
+        const vditorRefElement = ref<HTMLElement | null>(null);
         const isInitialized = ref(false);
+
+        // 检测是否为移动设备
+        const isMobileDevice = () => {
+            return window.innerWidth <= 768;
+        };
 
         const isDarkMode = (): boolean => {
             return document.body.classList.contains('dark') || document.body.classList.toString().includes('-dark');
         };
 
         const getDynamicLinkBase = async () => {
+            // 原有代码保持不变
             if (!props.cardTitle) {
                 console.warn("cardTitle is not available for getDynamicLinkBase, using empty string.");
                 return '';
             }
             try {
                 const dataDirPath = await dataDir();
-                // 使用 props.cardTitle, 如果为空则使用默认值
                 const safeCardTitle = props.cardTitle || 'default_event_files';
-                const targetDirectoryPath = await join(dataDirPath, 'ToDoPulse' , safeCardTitle);
+                const targetDirectoryPath = await join(dataDirPath, 'ToDoPulse', safeCardTitle);
                 let linkBaseUrl = convertFileSrc(targetDirectoryPath);
                 if (!linkBaseUrl.endsWith('/')) {
                     linkBaseUrl += '/';
@@ -89,37 +94,80 @@ export default defineComponent({
                 vditorInstance.value = null;
             }
 
+            // 根据设备类型选择不同的工具栏配置
+            const isMobile = isMobileDevice();
+
+            // 移动端精简工具栏
+            const mobileToolbar = [
+                'headings', '|',
+                'bold', 'italic', '|',
+                'list', 'ordered-list', '|',
+                'undo', 'redo',
+            ];
+
+            // 桌面端完整工具栏
+            const desktopToolbar = [
+                'emoji', 'headings', 'bold', 'italic', 'strike', '|',
+                'line', 'quote', 'list', 'ordered-list', 'check', 'outdent', 'indent', '|',
+                'code', 'inline-code', '|',
+                'upload', 'link', 'table', '|',
+                'undo', 'redo', '|',
+                'edit-mode', 'both', 'preview', 'outline', '|',
+                'fullscreen', 'help'
+            ];
+
             vditorInstance.value = new Vditor(vditorRefElement.value, {
-                height: 500,
+                height: isMobile ? 300 : 500, // 移动端减小高度
                 width: '100%',
                 theme: isDarkMode() ? 'dark' : 'classic',
-                toolbarConfig: { pin: true },
+                toolbar: isMobile ? mobileToolbar : desktopToolbar, // 根据设备类型选择工具栏
+                toolbarConfig: {
+                    pin: !isMobile, // 移动端不固定工具栏
+                },
                 cache: { enable: false },
                 placeholder: '请输入内容...',
-                mode: 'wysiwyg', // 或者 'ir', 'sv'
+                mode: 'wysiwyg', // 移动端默认使用所见即所得模式
                 preview: {
                     markdown: {
                         linkBase: dynamicLinkBase,
                     }
+                },
+                // 移动端优化设置
+                comment: { enable: false },  // 移动端禁用评论功能
+                typewriterMode: false,       // 移动端禁用打字机模式
+                tab: '    ',                 // 简化缩进
+                // 移动端调整内容和行高
+                counter: {
+                    enable: !isMobile,       // 移动端禁用计数器
                 },
                 after: () => {
                     isInitialized.value = true;
                     if (props.modelValue) {
                         vditorInstance.value?.setValue(props.modelValue);
                     }
-                    emit('initialized', vditorInstance.value); // 通知父组件
+
+                    // 移动端优化：添加触摸相关的类
+                    if (isMobile) {
+                        const editorElement = vditorRefElement.value;
+                        if (editorElement) {
+                            editorElement.classList.add('mobile-editor');
+                        }
+                    }
+
+                    emit('initialized', vditorInstance.value);
                 },
                 input: (value: string) => {
                     emit('update:modelValue', value);
                 },
                 upload: {
-                    url: '/upload-handler', // 占位
+                    // 原有上传配置保持不变
+                    url: '/upload-handler',
                     max: 10 * 1024 * 1024,
                     accept: 'image/*, .pdf, .docx, .xlsx, .zip',
                     multiple: true,
                     fieldName: 'file',
-                    // success 和 handler 的逻辑与原组件相似，但注意 props.eventId 的使用
                     handler: async (files: File[]) => {
+                        // 原有处理器代码保持不变
                         if (!props.eventId) {
                             return '事件ID无效，无法上传文件';
                         }
@@ -127,11 +175,12 @@ export default defineComponent({
                         try {
                             const eventId = props.eventId;
                             const promises = files.map(async (file) => {
+                                // 原有上传处理代码...
                                 try {
                                     const arrayBuffer = await file.arrayBuffer();
                                     const uint8Array = new Uint8Array(arrayBuffer);
                                     let base64 = '';
-                                    const chunkSize = 52428; // Vditor 对 base64 字符串长度有限制，分块处理
+                                    const chunkSize = 52428;
                                     for (let i = 0; i < uint8Array.length; i += chunkSize) {
                                         const chunk = uint8Array.slice(i, i + chunkSize);
                                         base64 += String.fromCharCode.apply(null, Array.from(chunk));
@@ -150,10 +199,12 @@ export default defineComponent({
                                 }
                             });
 
+                            // 原有结果处理代码...
                             const results = await Promise.all(promises);
                             const combinedResult = { code: 0, msg: '上传成功', data: { errFiles: [] as string[], succMap: {} as Record<string, string> } };
 
                             results.forEach((result: any) => {
+                                // 原有处理逻辑...
                                 try {
                                     const parsedResult = typeof result === 'string' ? JSON.parse(result) : result;
                                     if (parsedResult.code === 0 && parsedResult.data) {
@@ -179,13 +230,14 @@ export default defineComponent({
                                     vditorInstance.value?.insertValue(markdownLink + '\n');
                                 });
                             }
-                            return JSON.stringify(combinedResult); // Vditor期望的是字符串
+                            return JSON.stringify(combinedResult);
                         } catch (error) {
                             console.error('文件上传处理器错误:', error);
                             return `上传失败: ${error}`;
                         }
                     },
-                    linkToImgFormat: (responseText) => { // 处理剪贴板图片上传 (网络图片地址)
+                    linkToImgFormat: (responseText) => {
+                        // 原有代码保持不变...
                         try {
                             const result = JSON.parse(responseText);
                             if (result.code === 0 && result.data && result.data.url) {
@@ -194,7 +246,7 @@ export default defineComponent({
                                     data: {
                                         errFiles: [],
                                         succMap: {
-                                            [result.data.originalURL]: result.data.url // 假设 originalURL 存在
+                                            [result.data.originalURL]: result.data.url
                                         }
                                     }
                                 });
@@ -204,9 +256,10 @@ export default defineComponent({
                         }
                         return responseText;
                     },
-                    linkToImgCallback: async (responseText) => { // 处理剪贴板中的图片URL
-                         try {
-                            const urlData = JSON.parse(responseText); // Vditor 内部会把 file[0].name (即URL) 包装成 { url: "..." } 再传给这个回调
+                    linkToImgCallback: async (responseText) => {
+                        // 原有代码保持不变...
+                        try {
+                            const urlData = JSON.parse(responseText);
                             const url = urlData.url;
 
                             if (!props.eventId) {
@@ -220,7 +273,7 @@ export default defineComponent({
 
                             const resultData = result as any;
                             if (resultData.code === 0 && resultData.data && resultData.data.url) {
-                                return resultData.data.url; // 返回的是 Markdown 图片链接或纯 URL，Vditor 会处理
+                                return resultData.data.url;
                             } else {
                                 console.error('保存远程图片失败:', resultData);
                                 return '';
@@ -234,17 +287,32 @@ export default defineComponent({
             });
         };
 
+        // 其余生命周期和 watch 代码保持不变
         onMounted(() => {
-            // 延迟初始化，确保父组件的 modelValue 和 eventId 已正确传递
-            // 并且 DOM 元素已准备好
-             nextTick().then(() => {
-                if (props.eventId) { // 确保关键 prop 已就绪
+            nextTick().then(() => {
+                if (props.eventId) {
                     initEditor();
                 } else {
                     console.warn("VditorEditor: eventId not available on mount, delaying init.");
                 }
             });
+
+            // 添加窗口大小变化监听，以便在设备类型改变时重新初始化编辑器
+            window.addEventListener('resize', handleResize);
         });
+
+        // 处理窗口大小变化
+        const handleResize = () => {
+            // 不频繁重新初始化，使用防抖处理
+            if (resizeTimeout.value) clearTimeout(resizeTimeout.value);
+            resizeTimeout.value = setTimeout(() => {
+                if (props.eventId) {
+                    initEditor();
+                }
+            }, 500);
+        };
+
+        const resizeTimeout = ref<any>(null);
 
         onBeforeUnmount(() => {
             if (vditorInstance.value) {
@@ -255,6 +323,10 @@ export default defineComponent({
                 }
                 vditorInstance.value = null;
             }
+
+            // 移除事件监听器
+            window.removeEventListener('resize', handleResize);
+            if (resizeTimeout.value) clearTimeout(resizeTimeout.value);
         });
 
         watch(() => props.modelValue, (newValue) => {
@@ -265,22 +337,19 @@ export default defineComponent({
 
         watch(() => props.eventId, (newId, oldId) => {
             if (newId && newId !== oldId && vditorRefElement.value) {
-                // EventId 变化，可能需要重新初始化或至少更新上传配置，这里选择重新初始化
                 console.log("VditorEditor: eventId changed, re-initializing editor.");
                 initEditor();
             } else if (newId && !vditorInstance.value && vditorRefElement.value) {
-                // 如果编辑器因 eventId 初始缺失而未初始化，现在初始化它
                 console.log("VditorEditor: eventId became available, initializing editor.");
                 initEditor();
             }
         });
 
-        // 暴露一个方法给父组件，用于获取当前编辑器的值 (如果需要)
+        // 暴露方法给父组件
         const getValue = () => {
             return vditorInstance.value?.getValue() || '';
         };
 
-        // 暴露一个方法给父组件，用于设置编辑器的值 (如果需要)
         const setValue = (content: string) => {
             vditorInstance.value?.setValue(content);
         }
@@ -289,7 +358,6 @@ export default defineComponent({
             vditorRefElement,
             getValue,
             setValue,
-            // 不需要返回 vditorInstance 本身给 template
         };
     }
 });
@@ -297,7 +365,70 @@ export default defineComponent({
 
 <style scoped>
 @import '@/styles/vditor.css';
+
 .vditor-editor-instance {
-    min-height: 400px; /* 确保编辑器有一个最小高度 */
+    min-height: 400px;
+}
+
+/* 移动设备优化样式 */
+@media (max-width: 768px) {
+    :deep(.vditor) {
+        border-radius: 8px;
+    }
+
+    :deep(.vditor-toolbar) {
+        padding: 6px 5px;
+        overflow-x: auto;
+        justify-content: flex-start;
+        flex-wrap: nowrap;
+    }
+
+    :deep(.vditor-toolbar__item) {
+        height: 28px;
+        width: 28px;
+        margin: 0 2px;
+    }
+
+    :deep(.vditor-toolbar__item svg) {
+        height: 16px;
+        width: 16px;
+    }
+
+    /* 增大触摸区域 */
+    :deep(.vditor-toolbar__item button) {
+        padding: 6px;
+    }
+
+    /* 调整编辑区域 */
+    :deep(.vditor-ir, .vditor-wysiwyg, .vditor-sv) {
+        padding: 8px 12px;
+    }
+
+    /* 减小编辑区域的默认最小高度 */
+    .vditor-editor-instance {
+        min-height: 250px;
+    }
+}
+
+/* 移动端编辑器特殊样式 */
+.mobile-editor :deep(.vditor-ir) {
+    font-size: 16px;
+    /* 移动端更大的字体 */
+    line-height: 1.5;
+}
+
+.mobile-editor :deep(.vditor-wysiwyg) {
+    font-size: 16px;
+    line-height: 1.5;
+}
+
+.mobile-editor :deep(.vditor-reset) {
+    font-size: 16px;
+}
+
+/* 增强触摸反馈 */
+.mobile-editor :deep(.vditor-toolbar__item:active) {
+    background-color: rgba(0, 0, 0, 0.1);
+    transform: scale(0.96);
 }
 </style>

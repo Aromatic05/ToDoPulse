@@ -5,20 +5,14 @@
             <div class="d-flex align-center flex-grow-1">
                 <!-- 状态复选框 - 优化触摸区域 -->
                 <div class="checkbox-container mr-2" @click.stop="handleComplete(localData)">
-                    <v-checkbox
-                        v-model="localData.finished"
-                        density="compact"
-                        hide-details
-                        class="ma-0 pa-0"
-                        color="primary"
-                        @click.stop
-                    ></v-checkbox>
+                    <v-checkbox v-model="localData.finished" density="compact" hide-details class="ma-0 pa-0"
+                        color="primary" @click.stop></v-checkbox>
                 </div>
 
                 <!-- 标题和截止日期 -->
                 <div class="task-info-container" @click="handleEdit">
                     <div class="d-flex justify-space-between align-center">
-                        <h3 class="text-subtitle-1 font-weight-medium mb-1" 
+                        <h3 class="text-subtitle-1 font-weight-medium mb-1"
                             :class="{ 'text-decoration-line-through': localData.finished }">
                             {{ localData.title }}
                         </h3>
@@ -54,7 +48,7 @@
             </v-menu>
         </div>
     </v-card>
-    
+
     <!-- 确认删除对话框 -->
     <v-dialog v-model="deleteDialog" max-width="300px">
         <v-card>
@@ -71,12 +65,7 @@
     </v-dialog>
 
     <!-- 优化模态框条件渲染 -->
-    <CardContentModal
-        v-if="showModal"
-        v-model="showModal"
-        :card-data="localData"
-        @confirm="handleConfirm"
-    />
+    <CardContentModal v-if="showModal" v-model="showModal" :card-data="localData" @confirm="handleConfirm" />
 </template>
 
 <script lang="ts">
@@ -86,7 +75,7 @@ import { convertTimestampToDate } from '@/services/DateTimeService';
 
 // 懒加载模态框组件
 const CardContentModal = defineAsyncComponent(() =>
-  import('@/components/Modals/CardContentModal.vue')
+    import('@/components/Modals/CardContentModal.vue')
 );
 
 // 时间戳缓存对象
@@ -109,18 +98,18 @@ export default defineComponent({
         // 计算属性缓存日期转换结果
         const formattedDate = computed(() => {
             if (!props.data.ddl) return null;
-            
+
             // 从缓存中获取日期
             if (dateCache.has(props.data.ddl)) {
                 return dateCache.get(props.data.ddl);
             }
-            
+
             // 计算并缓存结果
             const result = convertTimestampToDate(props.data.ddl);
             dateCache.set(props.data.ddl, result);
             return result;
         });
-        
+
         return {
             formattedDate
         };
@@ -141,7 +130,7 @@ export default defineComponent({
         // 添加防抖处理，避免快速点击导致的性能问题
         handleComplete(updatedData: FEvent) {
             if (this._clickTimeout) return;
-            
+
             this._clickTimeout = setTimeout(() => {
                 this.localData.finished = !this.localData.finished;
                 this.localData = { ...updatedData };
@@ -192,7 +181,8 @@ export default defineComponent({
 
 /* 优化复选框区域 */
 .checkbox-container {
-    min-width: 40px; /* 增大触摸区域 */
+    min-width: 40px;
+    /* 增大触摸区域 */
     height: 40px;
     display: flex;
     align-items: center;
