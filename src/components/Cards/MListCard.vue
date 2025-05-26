@@ -6,7 +6,7 @@
                 <!-- 状态复选框 - 优化触摸区域 -->
                 <div class="checkbox-container mr-2" @click.stop="handleComplete(localData)">
                     <v-checkbox v-model="localData.finished" density="compact" hide-details class="ma-0 pa-0"
-                        color="primary" @click.stop></v-checkbox>
+                        color="primary" @click.prevent></v-checkbox>
                 </div>
 
                 <!-- 标题和截止日期 -->
@@ -167,6 +167,10 @@ export default defineComponent({
 .m-list-card {
     border-radius: 12px;
     transition: all 0.2s ease;
+    border-radius: 18px;
+    background: var(--md-sys-color-surface-container);
+    border: 2px solid var(--md-sys-color-outline);
+    box-shadow: 0 2px 10px rgba(0, 0, 0, 0.08);
 }
 
 .m-list-card:active {

@@ -1,0 +1,105 @@
+/* 模态框背景遮罩 */
+.modal-mask {
+  position: fixed;
+  z-index: 9998;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background-color: rgba(0, 0, 0, 0.5);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: opacity 0.3s ease;
+}
+
+/* 模态框容器 */
+.modal-container {
+  width: 90%;
+  max-width: 500px;
+  background-color: var(--md-sys-color-surface);
+  border-radius: 8px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.33);
+  transition: all 0.3s ease;
+  padding: 20px;
+  max-height: 90vh;
+  overflow-y: auto;
+}
+
+/* 模态框标题 */
+.modal-header {
+  padding-bottom: 16px;
+  border-bottom: 1px solid var(--md-sys-color-outline-variant);
+  margin-bottom: 16px;
+}
+
+.modal-header h2 {
+  margin: 0;
+  color: var(--md-sys-color-on-surface);
+  font-size: var(--md-sys-typescale-headline-small-size);
+  font-weight: var(--md-sys-typescale-headline-small-weight);
+}
+
+/* 模态框内容区域 */
+.modal-body {
+  color: var(--md-sys-color-on-surface-variant);
+}
+
+/* 表单分区 */
+.form-section {
+  margin-bottom: 24px;
+}
+
+/* 表单项 */
+.form-group {
+  margin-bottom: 16px;
+}
+
+/* 按钮区域 */
+.modal-footer {
+  display: flex;
+  justify-content: flex-end;
+  gap: 12px;
+  margin-top: 24px;
+  padding-top: 16px;
+  border-top: 1px solid var(--md-sys-color-outline-variant);
+}
+
+.modal-footer button {
+  min-width: 100px;
+  padding: 8px 16px;
+  border-radius: 4px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: background-color 0.2s;
+}
+
+.modal-footer button:first-child {
+  background-color: transparent;
+  color: var(--md-sys-color-primary);
+  border: 1px solid var(--md-sys-color-outline);
+}
+
+.modal-footer button:last-child {
+  background-color: var(--md-sys-color-primary);
+  color: var(--md-sys-color-on-primary);
+  border: none;
+}
+
+.modal-footer button:hover {
+  opacity: 0.9;
+}
+
+.confirm-btn:disabled {
+  opacity: 0.6 !important;
+  cursor: not-allowed;
+  background-color: var(--md-sys-color-surface-variant) !important;
+}
+
+/* 响应式调整 */
+@media (max-width: 600px) {
+  .modal-container {
+    width: 95%;
+    padding: 16px;
+  }
+}

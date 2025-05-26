@@ -5,7 +5,7 @@
             <!-- 任务状态复选框 - 增大触摸区域 -->
             <div class="checkbox-container mr-2" @click.stop="handleComplete(localData)">
                 <v-checkbox v-model="localData.finished" density="compact" hide-details class="ma-0 pa-0"
-                    color="primary" @click.stop></v-checkbox>
+                    color="primary" @click.prevent></v-checkbox>
             </div>
 
             <!-- 任务内容区域 -->
@@ -144,6 +144,10 @@ export default defineComponent({
     /* 提升渲染性能 */
     will-change: transform;
     overflow: hidden;
+    border-radius: 18px;
+    background: var(--md-sys-color-surface-container);
+    border: 2px solid var(--md-sys-color-outline);
+    box-shadow: 0 2px 10px rgba(0, 0, 0, 0.08);
 }
 
 .m-event-card:active {
@@ -180,7 +184,6 @@ export default defineComponent({
     font-size: 0.75rem;
     height: 20px;
     border-radius: 10px;
-    background-color: rgba(var(--v-theme-surface-variant), 0.5);
     padding: 0 8px;
     white-space: nowrap;
 }

@@ -1,5 +1,5 @@
 <template>
-  <div class="calendar-container">    
+  <div class="calendar-container">
     <!-- 侧边栏 - 只在非移动端显示 -->
     <div v-if="!isMobile" class="calendar-sidebar">
       <div class="calendar-sidebar-section">
@@ -11,16 +11,15 @@
       <div class="calendar-sidebar-section">
         <h2>所有事件 ({{ currentEvents.length }})</h2>
         <ul class="event-list">
-          <li v-for="event in currentEvents" :key="event.id" 
-              @click="handleSidebarEventClick(event)"
-              class="event-list-item">
+          <li v-for="event in currentEvents" :key="event.id" @click="handleSidebarEventClick(event)"
+            class="event-list-item">
             <span class="event-time">{{ event.startStr }}</span>
             <span class="event-title">{{ event.title }}</span>
           </li>
         </ul>
       </div>
     </div>
-    
+
     <div class="calendar-main" :class="{ 'mobile-calendar': isMobile }">
       <FullCalendar ref="fullCalendar" class="calendar" :options="calendarOptions">
         <template v-slot:eventContent="arg">
@@ -31,14 +30,13 @@
         </template>
       </FullCalendar>
     </div>
-    
+
     <!-- 添加事件详情模态框 -->
-    <CardContentModal
-      v-if="showEventModal && selectedEvent"
-      v-model="showEventModal"
-      :card-data="selectedEvent"
-      @confirm="handleEventUpdate"
-    />
+    <CardContentModal v-if="showEventModal && selectedEvent" v-model="showEventModal" :card-data="selectedEvent"
+      @confirm="handleEventUpdate" />
+
+    <!-- 添加新建事件模态框 -->
+    <AddCardModal v-model="showAddCardModal" :initial-date="newEventDate" @confirm="handleNewEvent" />
   </div>
 </template>
 
@@ -48,16 +46,18 @@ import FullCalendar from '@fullcalendar/vue3';
 import dayGridPlugin from '@fullcalendar/daygrid';
 import timeGridPlugin from '@fullcalendar/timegrid';
 import interactionPlugin from '@fullcalendar/interaction';
-import type { EventApi, CalendarOptions, DateSelectArg, EventClickArg } from '@fullcalendar/core'; 
+import type { EventApi, CalendarOptions, DateSelectArg, EventClickArg } from '@fullcalendar/core';
 import { invoke } from '@tauri-apps/api/core';
 import type { FEvent } from 'src-tauri/bindings/FEvent';
 import { timestampToDate } from '@/services/DateTimeService';
 import CardContentModal from '@/components/Modals/CardContentModal.vue';
-import { useEventStore } from '@/stores';
+import AddCardModal from '@/components/Modals/AddCardModal.vue';
+import { useEventStore } from '@/stores/eventStore';
+import { useListStore } from '@/stores/listStore';
 
 // 将日期范围转换为日期字符串数组
-const iter_calendar=(start:Date, end:Date) => {
-  const dates:string[] = [];
+const iter_calendar = (start: Date, end: Date) => {
+  const dates: string[] = [];
   const currentDate = new Date(start);
   while (currentDate <= end) {
     const year = currentDate.getFullYear();
@@ -74,13 +74,18 @@ export default defineComponent({
   name: 'CalendarView',
   components: {
     FullCalendar,
-    CardContentModal
+    CardContentModal,
+    AddCardModal
   },
   setup() {
     // 使用eventStore
     const eventStore = useEventStore();
     const fullCalendar = ref<InstanceType<typeof FullCalendar> | null>(null);
-    
+
+    // 新增状态管理
+    const showAddCardModal = ref(false);
+    const newEventDate = ref<{ start: Date, end: Date } | null>(null);
+
     // 添加用于控制模态框的状态
     const showEventModal = ref(false);
     const selectedEvent = ref<FEvent | null>(null);
@@ -99,12 +104,12 @@ export default defineComponent({
 
     // 添加移动设备检测
     const isMobile = ref(false);
-    
+
     // 检测设备是否为移动设备
     const checkMobile = () => {
       isMobile.value = window.innerWidth < 768;
     };
-    
+
     // 返回函数
     const goBack = () => {
       window.dispatchEvent(new CustomEvent('navigation', {
@@ -135,7 +140,7 @@ export default defineComponent({
           day: '日'
         }
       };
-      
+
       // 根据设备类型调整配置
       if (isMobile.value) {
         // 移动端简化配置
@@ -163,7 +168,7 @@ export default defineComponent({
         config.initialView = 'dayGridMonth';
         config.aspectRatio = 2.2;
       }
-      
+
       return config;
     });
 
@@ -172,21 +177,21 @@ export default defineComponent({
       console.log("日历组件挂载中...");
       // 初始检测设备类型
       checkMobile();
-      
+
       // 监听窗口大小变化
       window.addEventListener('resize', checkMobile);
-      
+
       // 等待日历组件初始化完成
       setTimeout(() => {
         if (fullCalendar.value) {
           console.log("日历初始化完成，设置事件监听");
-          
+
           // 监听日期范围变化事件
           fullCalendar.value.getApi().on('datesSet', async (arg) => {
             console.log("日期范围变化:", arg.start, arg.end);
             await loadCalendarEvents();
           });
-          
+
           // 初始加载一次
           loadCalendarEvents();
         } else {
@@ -200,6 +205,20 @@ export default defineComponent({
       window.removeEventListener('resize', checkMobile);
     });
 
+    // 根据优先级获取颜色
+    const getPriorityColor = (priority: string): string => {
+      switch(priority) {
+        case 'High':
+          return "#e53935"; // 红色
+        case 'Medium':
+          return "#fb8c00"; // 橙色
+        case 'Low':
+          return "#43a047"; // 绿色
+        default:
+          return "#1e88e5"; // 默认蓝色
+      }
+    };
+
     // 加载日历事件
     const loadCalendarEvents = async () => {
       const range = getCurrentRange();
@@ -210,27 +229,27 @@ export default defineComponent({
 
       const dates = iter_calendar(range.start, range.end);
       console.log(`正在获取 ${dates.length} 天的事件数据...`);
-      
+
       const events: FEvent[] = [];
       for (const date of dates) {
         try {
-          const response:FEvent[] = await invoke('filter_events', { filter:date });
+          const response: FEvent[] = await invoke('filter_events', { filter: date });
           events.push(...response);
         } catch (error) {
           console.error("Error fetching events:", error);
         }
       }
-      
+
       if (fullCalendar.value) {
         const calendarApi = fullCalendar.value.getApi();
         // 清除现有事件以防止重复
         calendarApi.removeAllEvents();
-        
+
         for (const event of events) {
           // 使用转换函数将时间戳字符串转换为日期对象
           const startDate: Date | undefined = timestampToDate(event.create);
           const endDate: Date | undefined = timestampToDate(event.ddl);
-          
+
           // 只有当至少有一个日期有效时才添加事件
           if (startDate || endDate) {
             calendarApi.addEvent({
@@ -238,9 +257,9 @@ export default defineComponent({
               title: event.title,
               start: startDate,
               end: endDate,
-              allDay: true, 
-              backgroundColor: event.color !== "default" ? event.color : undefined,
-              borderColor: event.color !== "default" ? event.color : undefined,
+              allDay: true,
+              backgroundColor: event.color !== "default" ? event.color : getPriorityColor(event.priority),
+              borderColor: event.color !== "default" ? event.color : getPriorityColor(event.priority),
               textColor: '#fff',
               classNames: event.finished ? ['event-completed'] : [],
               extendedProps: {
@@ -258,30 +277,19 @@ export default defineComponent({
     };
 
     const handleDateSelect = (selectInfo: DateSelectArg) => {
-      const title = prompt('请输入事件标题');
-      const calendarApi = selectInfo.view.calendar;
-
-      calendarApi.unselect();
-
-      if (title) {
-        const newEvent = {
-          id: Date.now().toString(),
-          title,
-          start: selectInfo.startStr,
-          end: selectInfo.endStr,
-          allDay: selectInfo.allDay
-        };
-
-        // 添加事件到日历
-        calendarApi.addEvent(newEvent);
-      }
+      newEventDate.value = {
+        start: selectInfo.start,
+        end: selectInfo.end
+      };
+      showAddCardModal.value = true;
+      selectInfo.view.calendar.unselect();
     };
 
     // 处理事件点击 - 替换为打开模态框
     const handleEventClick = (clickInfo: EventClickArg) => {
       // 获取点击的事件的原始数据
       const originalEvent = clickInfo.event.extendedProps.originalEvent as FEvent;
-      
+
       if (originalEvent) {
         // 设置选中的事件并显示模态框
         selectedEvent.value = { ...originalEvent };
@@ -290,11 +298,11 @@ export default defineComponent({
         console.error("无法获取事件详情");
       }
     };
-    
+
     // 添加从侧边栏点击事件的处理函数
     const handleSidebarEventClick = (event: EventApi) => {
       const originalEvent = event.extendedProps.originalEvent as FEvent;
-      
+
       if (originalEvent) {
         selectedEvent.value = { ...originalEvent };
         showEventModal.value = true;
@@ -306,10 +314,10 @@ export default defineComponent({
       try {
         // 使用eventStore更新事件
         await eventStore.updateEvent(updatedEvent);
-        
+
         // 重新加载日历事件以反映变更
         await loadCalendarEvents();
-        
+
         // 关闭模态框
         showEventModal.value = false;
       } catch (error) {
@@ -322,6 +330,33 @@ export default defineComponent({
       currentEvents.value = events;
     };
 
+    // 处理新增事件
+    const handleNewEvent = async (newEvent: FEvent) => {
+      try {
+        if (newEventDate.value) {
+          // 设置截止日期为选定日期的结束时间
+          const endDate = new Date(newEventDate.value.end);
+          endDate.setHours(23, 59, 59, 999);
+          newEvent.ddl = endDate.getTime().toString();
+          newEvent.create = Date.now().toString();
+        }
+        
+        await eventStore.addEvent(
+          newEvent.listid,
+          newEvent.title,
+          newEvent.priority,
+          newEvent.ddl,
+        );
+        await loadCalendarEvents();
+        showAddCardModal.value = false;
+      } catch (error) {
+        console.error("创建事件失败:", error);
+      }
+    };
+
+    // 获取列表数据
+    const listStore = useListStore();
+
     return {
       calendarOptions: dynamicCalendarConfig,
       currentEvents,
@@ -330,8 +365,12 @@ export default defineComponent({
       goBack,
       showEventModal,
       selectedEvent,
+      showAddCardModal,
+      newEventDate,
       handleEventUpdate,
-      handleSidebarEventClick
+      handleSidebarEventClick,
+      handleNewEvent,
+      lists: listStore.lists
     };
   }
 });
@@ -411,7 +450,8 @@ export default defineComponent({
 
 /* 移动端日历容器额外样式 */
 .mobile-calendar {
-  padding-top: 60px; /* 为顶部返回按钮留出空间 */
+  padding-top: 60px;
+  /* 为顶部返回按钮留出空间 */
 }
 
 .calendar {
@@ -459,21 +499,21 @@ export default defineComponent({
     flex-wrap: wrap;
     gap: 8px;
   }
-  
+
   :deep(.fc .fc-toolbar-title) {
     font-size: 1.2em;
   }
-  
+
   :deep(.fc .fc-button) {
     padding: 0.25em 0.5em;
     font-size: 0.9em;
   }
-  
+
   /* 简化日期标题 */
   :deep(.fc .fc-daygrid-day-top) {
     justify-content: center;
   }
-  
+
   :deep(.fc-daygrid-day-number) {
     font-size: 0.9em;
     padding: 2px;
