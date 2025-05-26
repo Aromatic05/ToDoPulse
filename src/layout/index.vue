@@ -40,6 +40,8 @@ import TagsView from '@/components/Views/TagsView.vue'
 import ListView from '@/components/Views/ListView.vue'
 import ListsView from '@/components/Views/ListsView.vue'
 import DefaultView from '@/components/Views/DefaultView.vue'
+// 导入移动端列表视图组件
+import MListView from '@/components/Views/MListView.vue'
 
 const rail = ref(false)
 const showSettings = ref(false)
@@ -70,7 +72,12 @@ const currentViewComponent = computed(() => {
         default:
             // 处理不同格式的列表路由
             if (currentView.value.startsWith('list/') || currentView.value.startsWith('list-item/')) {
-                return ListView
+                // 根据设备类型选择列表视图组件
+                return isMobile.value ? MListView : ListView
+            }
+            // 专门处理移动端列表视图路由前缀
+            if (currentView.value.startsWith('m-list-item/')) {
+                return MListView
             }
             return DefaultView
     }

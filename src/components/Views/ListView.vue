@@ -1,6 +1,12 @@
 <template>
     <div class="list-view">
-        <h1 class="text-h4 mb-6">{{ listTitle }}</h1>
+        <div class="d-flex align-center justify-space-between mb-6">
+            <h1 class="text-h4">{{ listTitle }}</h1>
+
+            <!-- 显示/隐藏已完成任务的开关 -->
+            <v-switch v-model="showCompleted" color="primary" hide-details density="compact"
+                :label="showCompleted ? '显示已完成任务' : '隐藏已完成任务'"></v-switch>
+        </div>
 
         <v-row>
             <v-col cols="12">
@@ -9,7 +15,7 @@
             </v-col>
         </v-row>
 
-        <v-data-table :headers="headers" :items="Events" :items-per-page="10"
+        <v-data-table :headers="headers" :items="filteredEvents" :items-per-page="10"
             class="elevation-1 rounded material-table">
             <template v-slot:item="{ item }">
                 <tr>
@@ -70,12 +76,21 @@ const eventStore = useEventStore();
 // 直接从store获取数据
 const Events = computed(() => eventStore.getEventsByListId(listId.value || ''));
 
+// 添加过滤后的事件计算属性
+const filteredEvents = computed(() => {
+    if (showCompleted.value) {
+        return Events.value;
+    } else {
+        return Events.value.filter(event => !event.finished);
+    }
+});
+
 const newEvent = ref('')
 
 // 添加类型注解
 const headers: DataTableHeader[] = [
     { title: '状态', key: 'status', sortable: false, align: 'center', width: '80px' },
-    { title: '任务', key: 'title', sortable: true, align: 'start',  width: '300px' },
+    { title: '任务', key: 'title', sortable: true, align: 'start', width: '300px' },
     { title: '标签', key: 'priority', sortable: true, align: 'start', width: '100px' },
     { title: '截止日期', key: 'date', sortable: true, align: 'center', width: '150px' },
     { title: '操作', key: 'actions', sortable: false, align: 'center', width: '100px' }
@@ -188,6 +203,10 @@ async function handleEventUpdate(updatedData: FEvent) {
         }
     }
 }
+
+// 新增响应式变量控制已完成任务的显示/隐藏
+const showCompleted = ref(true);
+
 </script>
 
 <style scoped>
