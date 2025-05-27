@@ -61,7 +61,6 @@ import {
   onUnmounted,
   nextTick,
   watch,
-  Teleport,
 } from "vue";
 import { listen } from "@tauri-apps/api/event";
 import Breadcrumbs from "@/components/Breadcrumbs.vue";

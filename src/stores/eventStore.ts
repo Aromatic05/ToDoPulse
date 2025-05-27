@@ -62,7 +62,7 @@ export const useEventStore = defineStore('events', () => {
         }
     })
 
-    const getFilteredEvents = computed(() => filteredEvents.value)
+    // const getFilteredEvents = computed(() => filteredEvents.value)
 
     // 操作
     /**
