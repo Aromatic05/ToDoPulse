@@ -37,54 +37,31 @@
                     <v-list-item id="nav-lists-header" v-bind="props" prepend-icon="mdi-format-list-bulleted"
                         title="Lists" rounded="lg" color="var(--md-sys-color-primary)" />
                 </template>
-                <template v-if="lists.length > 0">  
+                <template v-if="lists.length > 0">
                     <div v-for="(list, index) in lists" :key="list.id">
-                        <v-list-item
-                            :id="`nav-list-item-${list.id}`"
-                            :prepend-icon="list.icon"
-                            :title="list.title"
-                            class="mx-1"
-                            rounded="lg"
-                            color="var(--md-sys-color-primary)"
+                        <v-list-item :id="`nav-list-item-${list.id}`" :prepend-icon="list.icon" :title="list.title"
+                            class="mx-1" rounded="lg" color="var(--md-sys-color-primary)"
                             @click.stop="handleClick(`list-item/${list.id}`)"
-                            @contextmenu.prevent="showContextMenu(list, index, $event.currentTarget)"
-                            link
-                            :ripple="true"
-                            :href="`#list-item-${list.id}`">
+                            @contextmenu.prevent="showContextMenu(list, index, $event.currentTarget)" link
+                            :ripple="true" :href="`#list-item-${list.id}`">
                         </v-list-item>
                     </div>
-                    
+
                     <!-- 使用新组件 -->
-                    <ListContextMenu
-                        v-model:show="contextMenu.show"
-                        :activator-element="contextMenu.activatorElement"
-                        :target-list="contextMenu.targetList"
-                        :target-index="contextMenu.targetIndex"
-                        @rename="handleRename"
-                        @delete="handleDelete"
-                    />
+                    <ListContextMenu v-model:show="contextMenu.show" :activator-element="contextMenu.activatorElement"
+                        :target-list="contextMenu.targetList" :target-index="contextMenu.targetIndex"
+                        @rename="handleRename" @delete="handleDelete" />
                 </template>
                 <v-list-item v-else id="nav-lists-empty" prepend-icon="mdi-information-outline" title="没有可用的列表"
                     class="mx-1" rounded="lg" disabled></v-list-item>
-                
+
                 <!-- 添加列表按钮 -->
-                <v-list-item 
-                    id="nav-add-list" 
-                    prepend-icon="mdi-plus-circle-outline" 
-                    title="添加列表"
-                    class="mx-1 mt-2" 
-                    rounded="lg" 
-                    color="var(--md-sys-color-primary)"
-                    @click="showAddListModal"
-                    link
-                    :ripple="true">
+                <v-list-item id="nav-add-list" prepend-icon="mdi-plus-circle-outline" title="添加列表" class="mx-1 mt-2"
+                    rounded="lg" color="var(--md-sys-color-primary)" @click="showAddListModal" link :ripple="true">
                 </v-list-item>
-                
+
                 <!-- 添加列表弹窗 -->
-                <AddListModal 
-                    v-model:show="addListModalVisible"
-                    @create="handleAddList"
-                />
+                <AddListModal v-model:show="addListModalVisible" @create="handleAddList" />
             </v-list-group>
         </v-list>
     </v-navigation-drawer>
@@ -92,7 +69,7 @@
 
 <script setup lang="ts">
 import { ref, computed, reactive, nextTick, onMounted } from 'vue';
-import ListContextMenu from '@/components/ListContextMenu.vue';
+import ListContextMenu from '@/components/Menus/ListContextMenu.vue';
 import AddListModal from '@/components/Modals/AddListModal.vue';
 import { useListStore } from '@/stores';
 import type { FList } from 'src-tauri/bindings/FList';
@@ -161,7 +138,7 @@ async function showContextMenu(list: FList, index: number, element: HTMLElement)
     }
     contextMenu.targetList = list;
     contextMenu.targetIndex = index;
-    contextMenu.activatorElement =  element;
+    contextMenu.activatorElement = element;
     contextMenu.show = true;
 }
 

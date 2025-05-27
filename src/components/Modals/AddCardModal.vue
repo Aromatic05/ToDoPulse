@@ -9,49 +9,26 @@
                     <div class="modal-layout">
                         <div class="form-section">
                             <div class="form-group">
-                                <v-text-field 
-                                    clearable 
-                                    label="标题" 
-                                    v-model="formData.title"
-                                    variant="outlined" 
-                                    density="compact"
-                                    required
-                                ></v-text-field>
+                                <v-text-field clearable label="标题" v-model="formData.title" variant="outlined"
+                                    density="compact" required></v-text-field>
                             </div>
 
                             <div class="form-group">
-                                <v-select
-                                    v-model="selectedList"
-                                    :items="lists"
-                                    item-title="title"
-                                    item-value="id"
-                                    label="所属列表"
-                                    variant="outlined"
-                                    density="compact"
-                                    required
-                                    :menu-props="{ maxHeight: 400 }"
-                                ></v-select>
+                                <v-select v-model="selectedList" :items="lists" item-title="title" item-value="id"
+                                    label="所属列表" variant="outlined" density="compact" required
+                                    :menu-props="{ maxHeight: 400 }"></v-select>
                             </div>
 
                             <div class="form-group">
-                                <v-select 
-                                    v-model="formData.priority" 
-                                    :items="['Low', 'Medium', 'High', 'Undefined']"
-                                    label="优先级" 
-                                    variant="outlined"
-                                ></v-select>
+                                <v-select v-model="formData.priority" :items="['Low', 'Medium', 'High', 'Undefined']"
+                                    label="优先级" variant="outlined"></v-select>
                             </div>
                         </div>
                     </div>
                 </div>
                 <div class="modal-footer">
                     <button @click="handleClose">取消</button>
-                    <button 
-                        type="button" 
-                        @click="handleConfirm" 
-                        class="confirm-btn"
-                        :disabled="!selectedList"
-                    >
+                    <button type="button" @click="handleConfirm" class="confirm-btn" :disabled="!selectedList">
                         创建
                     </button>
                 </div>
@@ -80,7 +57,7 @@ export default defineComponent({
     emits: ['update:modelValue', 'confirm'],
     setup(props, { emit }) {
         const listStore = useListStore();
-        
+
         const formData = ref<FEvent>({
             id: '',
             title: '',

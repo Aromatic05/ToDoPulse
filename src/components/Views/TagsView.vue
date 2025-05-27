@@ -8,21 +8,23 @@
                     <v-card-title class="d-flex align-center">
                         所有标签
                         <v-spacer></v-spacer>
-                        <v-btn v-if="!isLoading" icon="mdi-refresh" size="small" @click="fetchTags" variant="text"></v-btn>
+                        <v-btn v-if="!isLoading" icon="mdi-refresh" size="small" @click="fetchTags"
+                            variant="text"></v-btn>
                         <v-progress-circular v-else size="24" indeterminate color="primary"></v-progress-circular>
                     </v-card-title>
-                    
+
                     <v-card-text>
                         <v-alert v-if="error" type="error" class="mb-4">{{ error }}</v-alert>
-                        
+
                         <div v-if="tags.length === 0 && !isLoading" class="text-center pa-4">
                             <p>暂无标签</p>
                         </div>
-                        
+
                         <div v-else class="d-flex flex-wrap">
-                            <v-chip v-for="tag in tags" :key="tag.id" :color="mapTagColor(tag.color)" @click="openTagModal(tag)"
-                                @contextmenu.prevent="showContextMenu(convertTagForUI(tag), $event.currentTarget)" class="ma-1"
-                                variant="tonal">
+                            <v-chip v-for="tag in tags" :key="tag.id" :color="mapTagColor(tag.color)"
+                                @click="openTagModal(tag)"
+                                @contextmenu.prevent="showContextMenu(convertTagForUI(tag), $event.currentTarget)"
+                                class="ma-1" variant="tonal">
                                 {{ tag.name }}
                                 <span class="ms-2 text-caption">({{ getTagEventCount(tag.name) }})</span>
                             </v-chip>
@@ -80,7 +82,7 @@
 import { ref, nextTick, reactive, computed, onMounted } from 'vue'
 import { useTagStore } from '@/stores/index'
 import TagModal from '@/components/Modals/TagModal.vue';
-import TagContextMenu from '@/components/TagContextMenu.vue';
+import TagContextMenu from '@/components/Menus/TagContextMenu.vue';
 import { TagColor } from 'src-tauri/bindings/TagColor';
 import { Tag } from '@/services/TagService';
 
@@ -163,7 +165,7 @@ async function addTag() {
 async function openTagModal(tag: Tag) {
     // 先加载标签内容
     await tagStore.getTagContent(tag.name);
-    
+
     // 设置选中的标签
     selectedTag.value = convertTagForUI(tag);
     showTagModal.value = true;
@@ -217,15 +219,15 @@ function handleDelete(name: string) {
 // 注意：后端没有直接提供重命名API，需要删除旧标签并创建新标签
 async function renameTag(oldName: string, newName: string) {
     if (oldName === newName) return;
-    
+
     try {
         // 获取原标签的颜色
         const oldTag = tagStore.getTagByName(oldName);
         if (!oldTag) return;
-        
+
         // 创建新标签
         await tagStore.addTag(newName, oldTag.color);
-        
+
         // 删除旧标签
         await tagStore.deleteTag(oldName);
     } catch (err) {
@@ -246,10 +248,10 @@ async function deleteTag(name: string) {
 async function handleTagRemoved(tagName: string) {
     // 清除缓存并刷新数据
     tagStore.clearCache();
-    
+
     // 重新获取所有标签
     await fetchTags();
-    
+
     // 重新加载当前选中标签的内容（如果需要）
     if (selectedTag.value && selectedTag.value.name === tagName) {
         await tagStore.getTagContent(tagName);

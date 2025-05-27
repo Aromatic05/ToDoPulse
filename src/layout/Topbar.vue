@@ -2,11 +2,8 @@
   <v-card class="header">
     <!-- 标题区域 -->
     <div class="header_title ml-4">
-      <!-- 只在 ListView 中显示 Breadcrumbs -->
-      <Breadcrumbs
-        v-if="currentView && currentView.startsWith('list/')"
-        :currentPageTitle="viewTitle"
-      />
+      <!-- 列表相关视图显示 Breadcrumbs -->
+      <Breadcrumbs v-if="showBreadcrumbs" :currentPageTitle="viewTitle" />
 
       <!-- 在其他视图中显示英文标题 -->
       <h2 v-else class="text-h6">{{ viewTitle }}</h2>
@@ -14,56 +11,27 @@
 
     <v-spacer></v-spacer>
 
-    <div
-      ref="searchRef"
-      style="width: 320px"
-      class="search_ip mr-2 search-container"
-    >
-      <v-text-field
-        v-model="searchQuery"
-        rounded
-        variant="outlined"
-        density="compact"
-        label="Search"
-        prepend-inner-icon="mdi-magnify"
-        hide-details
-        clearable
-        bg-color="var(--md-sys-color-surface-container)"
-        color="var(--md-sys-color-primary)"
-        @update:model-value="handleSearch"
-        @click:clear="clearSearch"
-        @focus="showResults = true"
-        @blur="handleBlur"
-      ></v-text-field>
+    <div ref="searchRef" style="width: 320px" class="search_ip mr-2 search-container">
+      <v-text-field v-model="searchQuery" rounded variant="outlined" density="compact" label="Search"
+        prepend-inner-icon="mdi-magnify" hide-details clearable bg-color="var(--md-sys-color-surface-container)"
+        color="var(--md-sys-color-primary)" @update:model-value="handleSearch" @click:clear="clearSearch"
+        @focus="showResults = true" @blur="handleBlur"></v-text-field>
     </div>
     <!-- 搜索结果列表 -->
     <Teleport to="body">
-      <div
-        v-if="showResults && filteredEvents.length > 0"
-        ref="resultsRef"
-        class="search-results google-style"
-      >
+      <div v-if="showResults && filteredEvents.length > 0" ref="resultsRef" class="search-results google-style">
         <div class="google-search-results">
-          <div
-            v-for="event in filteredEvents"
-            :key="event.id"
-            class="search-result-item"
-            @click="handleEventClick(event)"
-            @mouseenter="highlightedIndex = filteredEvents.indexOf(event)"
-            :class="{
+          <div v-for="event in filteredEvents" :key="event.id" class="search-result-item"
+            @click="handleEventClick(event)" @mouseenter="highlightedIndex = filteredEvents.indexOf(event)" :class="{
               highlighted: highlightedIndex === filteredEvents.indexOf(event),
-            }"
-          >
+            }">
             <div class="search-item-icon">
               <v-icon :color="event.color" size="small">{{
                 event.icon || "mdi-calendar-check"
-              }}</v-icon>
+                }}</v-icon>
             </div>
             <div class="search-item-content">
-              <div
-                class="search-item-title"
-                v-html="highlightMatchText(event.title, searchQuery)"
-              ></div>
+              <div class="search-item-title" v-html="highlightMatchText(event.title, searchQuery)"></div>
             </div>
           </div>
         </div>
@@ -73,19 +41,15 @@
     <div class="tool_btns">
       <ThemePicker />
 
-      <v-btn
-        density="comfortable"
-        variant="text"
-        icon="mdi-cog"
-        @click="toggleSettings"
-        :color="
-          isSettingsActive
-            ? 'var(--md-sys-color-primary)'
-            : 'var(--md-sys-color-on-surface-variant)'
-        "
-      >
+      <v-btn density="comfortable" variant="text" icon="mdi-cog" @click="toggleSettings" :color="isSettingsActive
+          ? 'var(--md-sys-color-primary)'
+          : 'var(--md-sys-color-on-surface-variant)'
+        ">
       </v-btn>
     </div>
+
+    <!-- 添加卡片详情弹窗 -->
+    <CardContentModal v-model="showCardModal" :card-data="selectedEvent" @confirm="handleEventUpdate" />
   </v-card>
 </template>
 
@@ -102,6 +66,7 @@ import {
 import { listen } from "@tauri-apps/api/event";
 import Breadcrumbs from "@/components/Breadcrumbs.vue";
 import ThemePicker from "@/components/ThemePicker.vue";
+import CardContentModal from "@/components/Modals/CardContentModal.vue";
 import { useEventStore } from "@/stores/eventStore";
 import { debounce } from "../utils/helpers";
 import type { FEvent } from "src-tauri/bindings/FEvent";
@@ -137,6 +102,13 @@ const viewTitle = computed(() => {
   return viewTitles[props.currentView as ViewName] || viewTitles.default;
 });
 
+// 判断是否显示面包屑
+const showBreadcrumbs = computed(() => {
+  return props.currentView.startsWith('list/') || 
+         props.currentView.startsWith('list-') || 
+         props.currentView.startsWith('list-item/');
+});
+
 function toggleSettings() {
   isSettingsActive.value = !isSettingsActive.value;
   emit("toggle-settings");
@@ -170,13 +142,33 @@ function clearSearch() {
   showResults.value = false;
 }
 
+// 添加卡片详情弹窗相关状态
+const showCardModal = ref(false);
+const selectedEvent = ref<FEvent>({
+  id: "",
+  title: "",
+  ddl: "",
+  listid: "",
+  tag: [],
+  create: "",
+  finished: false,
+  priority: "Low",
+  icon: "",
+  color: ""
+});
+
 // 处理搜索结果项点击
 function handleEventClick(event: FEvent) {
-  // 导航到事件详情页或执行其他操作
-  console.log("Clicked on event:", event);
-  // 这里可以添加导航逻辑，例如：
-  // router.push(`/event/${event.id}`);
+  // 设置选中的事件，并显示卡片详情弹窗
+  selectedEvent.value = event;
+  showCardModal.value = true;
   showResults.value = false;
+}
+
+// 处理事件更新
+function handleEventUpdate(updatedEvent: FEvent) {
+  // 如果需要，可以在这里更新事件状态或刷新数据
+  eventStore.updateEvent(updatedEvent);
 }
 
 // 处理搜索框失焦
@@ -202,7 +194,7 @@ const resultsRef = ref<HTMLElement | null>(null);
 function updateResultsPosition() {
   if (searchRef.value && resultsRef.value) {
     const rect = searchRef.value.getBoundingClientRect();
-    resultsRef.value.style.position = "fixed"; 
+    resultsRef.value.style.position = "fixed";
     resultsRef.value.style.top = `${rect.bottom}px`;
     resultsRef.value.style.left = `${rect.left}px`;
     resultsRef.value.style.width = `${rect.width}px`;
@@ -237,8 +229,10 @@ onMounted(async () => {
 
 <style>
 .search-results {
-  position: fixed; /* 改为固定定位 */
-  width: 320px; /* 与搜索框宽度一致 */
+  position: fixed;
+  /* 改为固定定位 */
+  width: 320px;
+  /* 与搜索框宽度一致 */
   max-height: 300px;
   overflow-y: auto;
   z-index: 9999;

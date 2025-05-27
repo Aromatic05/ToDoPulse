@@ -19,6 +19,14 @@ import { ref, computed, onMounted, onUnmounted } from 'vue';
 import { useListStore } from '@/stores';
 import type { FList } from 'src-tauri/bindings/FList';
 
+// 添加对currentPageTitle属性的接收
+const props = defineProps({
+  currentPageTitle: {
+    type: String,
+    default: ''
+  }
+});
+
 // 初始化listStore
 const listStore = useListStore();
 
@@ -102,13 +110,19 @@ onUnmounted(() => {
     window.removeEventListener('navigation', updateFromEvent as EventListener);
 });
 
-// 面包屑路径计算属性
+// 面包屑路径计算属性 - 使用传入的标题
 const breadcrumbPath = computed(() => {
     if (currentList.value) {
+        // 如果有列表，就用列表的结构
         return [
             { title: 'Lists', disabled: false },
             { title: currentList.value.title, disabled: true }
         ];
+    }
+
+    // 如果有传入标题，就使用它
+    if (props.currentPageTitle) {
+        return [{ title: props.currentPageTitle, disabled: true }];
     }
 
     // 默认路径
