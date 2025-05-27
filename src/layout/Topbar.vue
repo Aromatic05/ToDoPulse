@@ -61,14 +61,18 @@ import {
   onUnmounted,
   nextTick,
   watch,
+  defineAsyncComponent,
 } from "vue";
 import { listen } from "@tauri-apps/api/event";
 import Breadcrumbs from "@/components/Breadcrumbs.vue";
 import ThemePicker from "@/components/ThemePicker.vue";
-import CardContentModal from "@/components/Modals/CardContentModal.vue";
 import { useEventStore } from "@/stores/eventStore";
 import { debounce } from "../utils/helpers";
 import type { FEvent } from "src-tauri/bindings/FEvent";
+
+const CardContentModal = defineAsyncComponent(() =>
+  import("@/components/Modals/CardContentModal.vue")
+);
 
 // 定义视图名称的类型
 type ViewName = "timeline" | "calendar" | "tags" | "settings" | "default";

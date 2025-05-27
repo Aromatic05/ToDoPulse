@@ -96,7 +96,7 @@ import { useEventStore, useTagStore } from '@/stores';
 import { DatePicker } from 'v-calendar';
 import 'v-calendar/dist/style.css';
 import type { Tag } from '@/services/TagService';
-import AddTagModal from './AddTagModal.vue';
+import AddTagModal from '@/components/Modals/AddTagModal.vue';
 import VditorEditor from '@/components/VditorEditor.vue';
 
 // 不再需要 IVditor 接口定义，因为它在 VditorEditor.vue 中

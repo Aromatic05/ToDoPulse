@@ -275,5 +275,66 @@ export const SettingService = {
       console.error(`导出${finished ? '已完成' : '未完成'}事件失败`, error);
       throw error;
     }
+  },
+
+  /**
+   * 获取通知设置
+   * @returns 通知设置
+   */
+  async getNotificationSettings(): Promise<{ enabled: boolean; time: string }> {
+    try {
+      return await invoke<{ enabled: boolean; time: string }>('get_notification_settings');
+    } catch (error) {
+      console.error('获取通知设置失败', error);
+      // 返回默认值
+      return { enabled: true, time: '09:00' };
+    }
+  },
+
+  /**
+   * 保存通知设置
+   * @param settings 通知设置
+   */
+  async saveNotificationSettings(settings: { enabled: boolean; time: string }): Promise<void> {
+    try {
+      await invoke<void>('save_notification_settings', {
+        enabled: settings.enabled,
+        time: settings.time
+      });
+    } catch (error) {
+      console.error('保存通知设置失败', error);
+      throw error;
+    }
+  },
+
+  /**
+   * 获取AIGC设置
+   * @returns AIGC设置
+   */
+  async getAigcSettings(): Promise<{ enabled: boolean; token: string; model: string }> {
+    try {
+      return await invoke<{ enabled: boolean; token: string; model: string }>('get_aigc_settings');
+    } catch (error) {
+      console.error('获取AIGC设置失败', error);
+      // 返回默认值
+      return { enabled: false, token: '', model: '' };
+    }
+  },
+
+  /**
+   * 保存AIGC设置
+   * @param settings AIGC设置
+   */
+  async saveAigcSettings(settings: { enabled: boolean; token: string; model: string }): Promise<void> {
+    try {
+      await invoke<void>('save_aigc_settings', {
+        enabled: settings.enabled,
+        token: settings.token,
+        model: settings.model
+      });
+    } catch (error) {
+      console.error('保存AIGC设置失败', error);
+      throw error;
+    }
   }
 }
