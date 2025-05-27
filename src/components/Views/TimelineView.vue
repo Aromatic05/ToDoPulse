@@ -1,6 +1,11 @@
 <template>
   <div class="timeline-view">
-    <v-timeline side="end" align="start" class="timeline-force-left" line-color=var(--md-sys-color-outline)>
+    <v-timeline
+      side="end"
+      align="start"
+      class="timeline-force-left"
+      line-color="var(--md-sys-color-outline)"
+    >
       <!-- 当没有时间线组时显示的内容 -->
       <template v-if="showedTimelineGroups.length === 0">
         <v-timeline-item dot-color="success" size="large" fill-dot>
@@ -10,9 +15,7 @@
             </v-avatar>
           </template>
           <div class="timeline-empty-container">
-            <div class="timeline-empty-title">
-              恭喜你完成了所有任务!
-            </div>
+            <div class="timeline-empty-title">恭喜你完成了所有任务!</div>
             <div class="timeline-empty-content">
               <p>计划已全部完成，休息一下，享受成就感吧!</p>
             </div>
@@ -32,11 +35,20 @@
         </v-timeline-item>
 
         <!-- 该组的所有项目 - 根据设备类型动态选择卡片组件 -->
-        <v-timeline-item v-for="item in groupItems[group.dateGroup] || []" :key="item.id" :dot-color="item.color"
-          :icon="item.icon" size="small" density="compact">
+        <v-timeline-item
+          v-for="item in groupItems[group.dateGroup] || []"
+          :key="item.id"
+          :dot-color="item.color"
+          :icon="item.icon"
+          size="small"
+          density="compact"
+        >
           <!-- 移动端使用MEventCard，桌面端使用EventCard -->
-          <component :is="isMobile ? MEventCard : EventCard" :data="item"
-            @update="(data: FEvent) => handleUpdateItem(data)" />
+          <component
+            :is="isMobile ? MEventCard : EventCard"
+            :data="item"
+            @update="(data: FEvent) => handleUpdateItem(data)"
+          />
         </v-timeline-item>
       </template>
     </v-timeline>
@@ -44,12 +56,12 @@
 </template>
 
 <script setup lang="ts">
-import { computed, onMounted, onUnmounted, ref, watch } from 'vue'
-import EventCard from '@/components/Cards/EventCard.vue'
-import MEventCard from '@/components/Cards/MEventCard.vue'  // 导入移动端卡片组件
-import type { FEvent } from 'src-tauri/bindings/FEvent';
-import { useTimelineStore } from '@/stores'
-import { useEventStore } from '@/stores/eventStore'
+import { computed, onMounted, onUnmounted, ref, watch } from "vue";
+import EventCard from "@/components/Cards/EventCard.vue";
+import MEventCard from "@/components/Cards/MEventCard.vue"; // 导入移动端卡片组件
+import type { FEvent } from "src-tauri/bindings/FEvent";
+import { useTimelineStore } from "@/stores";
+import { useEventStore } from "@/stores/eventStore";
 
 // 使用Pinia store管理时间线数据
 const timelineStore = useTimelineStore();
@@ -65,13 +77,17 @@ const checkDeviceType = () => {
 };
 
 // 监听数据变化并更新组项目
-watch(() => timelineStore.events, () => {
-  const newItems: Record<string, FEvent[]> = {};
-  for (const group of showedTimelineGroups.value) {
-    newItems[group.dateGroup] = timelineStore.getGroupItems(group.dateGroup);
-  }
-  groupItems.value = newItems;
-}, { immediate: true, deep: true });
+watch(
+  () => timelineStore.events,
+  () => {
+    const newItems: Record<string, FEvent[]> = {};
+    for (const group of showedTimelineGroups.value) {
+      newItems[group.dateGroup] = timelineStore.getGroupItems(group.dateGroup);
+    }
+    groupItems.value = newItems;
+  },
+  { immediate: true, deep: true }
+);
 
 // 组件挂载时初始化数据和设备类型检测
 onMounted(async () => {
@@ -84,12 +100,12 @@ onMounted(async () => {
   checkDeviceType();
 
   // 添加窗口大小变化监听器，用于动态更新设备类型
-  window.addEventListener('resize', checkDeviceType);
+  window.addEventListener("resize", checkDeviceType);
 });
 
 // 组件卸载时清理事件监听器
 onUnmounted(() => {
-  window.removeEventListener('resize', checkDeviceType);
+  window.removeEventListener("resize", checkDeviceType);
 });
 
 // 更新项目处理函数

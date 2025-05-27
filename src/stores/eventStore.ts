@@ -9,6 +9,7 @@ import EventService from '../services/EventService'
 export const useEventStore = defineStore('events', () => {
     // 状态
     const events = ref<Map<string, FEvent[]>>(new Map()) // 以列表ID为键存储事件列表
+    const filteredEvents = ref<FEvent[]>([]) // 存储搜索结果
     const isLoading = ref(false)
     const error = ref<string | null>(null)
     const selectedEventId = ref<string | null>(null)
@@ -60,6 +61,8 @@ export const useEventStore = defineStore('events', () => {
             return info || { currentPage: 0, hasMore: true }
         }
     })
+
+    const getFilteredEvents = computed(() => filteredEvents.value)
 
     // 操作
     /**
@@ -285,9 +288,46 @@ export const useEventStore = defineStore('events', () => {
         eventService.clearAllCache()
     }
 
+    /**
+     * 根据搜索关键字过滤事件
+     * @param filter 搜索关键字
+     * @param wordMatch 是否进行精确匹配，默认为false
+     * @returns 过滤后的事件数组
+     */
+    async function searchEvents(filter: string, wordMatch = false) {
+        if (!filter || typeof filter !== 'string' || !filter.trim()) {
+            filteredEvents.value = []
+            console.log('无效的搜索关键字:', filter)
+            return []
+        }
+
+        isLoading.value = true
+        error.value = null
+
+        try {
+            const result = await eventService.filterEvents(filter, wordMatch)
+            filteredEvents.value = result
+            return result
+        } catch (err) {
+            console.error('搜索事件失败:', err)
+            error.value = `搜索事件失败: ${err}`
+            return []
+        } finally {
+            isLoading.value = false
+        }
+    }
+
+    /**
+     * 清除搜索结果
+     */
+    function clearSearchResults() {
+        filteredEvents.value = []
+    }
+
     return {
         // 状态
         events,
+        filteredEvents,
         isLoading,
         error,
         selectedEventId,
@@ -307,6 +347,8 @@ export const useEventStore = defineStore('events', () => {
         getEventContent,
         saveEventContent,
         clearSelectedEvent,
-        clearCache
+        clearCache,
+        searchEvents,
+        clearSearchResults
     }
 })

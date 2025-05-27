@@ -95,7 +95,7 @@ import { ref, computed, reactive, nextTick, onMounted } from 'vue';
 import ListContextMenu from '@/components/ListContextMenu.vue';
 import AddListModal from '@/components/Modals/AddListModal.vue';
 import { useListStore } from '@/stores';
-import { FList } from 'src-tauri/bindings/FList';
+import type { FList } from 'src-tauri/bindings/FList';
 
 // 初始化listStore
 const listStore = useListStore();

@@ -206,6 +206,36 @@ export class EventService {
   }
 
   /**
+   * 根据搜索关键字过滤事件
+   * @param filter 搜索关键字
+   * @param wordMatch 是否进行精确匹配
+   * @returns 匹配的事件数组
+   */
+  async filterEvents(filter: string, wordMatch = false): Promise<FEvent[]> {
+    try {
+      // Ensure filter is a valid string
+      if (!filter || typeof filter !== 'string') {
+        console.warn('Invalid filter parameter:', filter);
+        return [];
+      }
+      
+      const events = await invoke<FEvent[]>('filter_events', { 
+        filter,
+        wordMatch
+      })
+
+      if (!Array.isArray(events)) {
+        throw new Error('Invalid response format')
+      }
+
+      return events
+    } catch (error) {
+      console.error('Failed to filter events:', error)
+      throw error
+    }
+  }
+
+  /**
    * 使列表缓存失效
    * @param listId 列表ID
    * @private

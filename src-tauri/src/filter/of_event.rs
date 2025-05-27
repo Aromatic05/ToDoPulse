@@ -2,14 +2,21 @@ use chrono::{self, DateTime, NaiveDate};
 
 use anyhow::{Ok, Result};
 
+use super::Filter::{self, A, B};
 use crate::entity::Event;
 use crate::utils::target_date_timestamp as timestamp;
-use super::Filter::{self, A, B};
 
 const ONE_DAY: u64 = 24 * 60 * 60 * 1000;
 const ONE_WEEK: u64 = 7 * ONE_DAY;
 
-pub fn map_filter(filter: &str) -> Result<Filter<Event>> {
+pub fn map_filter(filter: &str, word_match: Option<bool>) -> Result<Filter<Event>> {
+    if let Some(_) = word_match {
+        let filter = filter.to_string();
+        return Ok(B(Box::new(move |event| {
+            // 这里的word_match是一个字符串
+            word_match_filter(&event, &filter)
+        })));
+    }
     match filter {
         "overdue" => Ok(A(|event| overdue_filter(event))),
         "today" => Ok(A(|event| today_filter(event))),
@@ -23,6 +30,12 @@ pub fn map_filter(filter: &str) -> Result<Filter<Event>> {
             Ok(B(Box::new(move |event| time_filter(date, &event))))
         }
     }
+}
+
+fn word_match_filter(entity: &Event, word: &str) -> bool {
+    let title: &str = entity.title.as_ref();
+    let content: &str = entity.content.as_ref();
+    title.contains(word) || content.contains(word)
 }
 
 // 辅助函数: 为给定日期偏移和时间范围创建筛选函数
@@ -42,7 +55,7 @@ fn tomorrow_filter(entity: &Event) -> bool {
 
 fn this_week_filter(entity: &Event) -> bool {
     // 为了排除今天和明天的事件
-    time_range_filter(entity, 2, ONE_WEEK -2*ONE_DAY)
+    time_range_filter(entity, 2, ONE_WEEK - 2 * ONE_DAY)
 }
 
 fn next_week_filter(entity: &Event) -> bool {

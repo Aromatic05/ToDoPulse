@@ -357,10 +357,11 @@ pub async fn delete_event(state: State<'_, StorageState>, uuid: &str) -> Result<
 pub async fn filter_events(
     state: State<'_, StorageState>,
     filter: &str,
+    word_match: Option<bool>,
 ) -> Result<Vec<FEvent>, ErrorKind> {
     let mut guard = state.0.lock().await;
     let storage = guard.deref_mut();
-    let filter_enum = match map_filter(filter) {
+    let filter_enum = match map_filter(filter, word_match) {
         Ok(filter_enum) => filter_enum,
         Err(e) => {
             log::error!("Error parsing filter: {}", e);
