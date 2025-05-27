@@ -50,7 +50,6 @@ pub struct Theme {
     color: String,
 }
 
-
 #[derive(Deserialize, Serialize, Clone, TS, F)]
 pub struct Model {
     pub switch: bool,
@@ -64,12 +63,13 @@ pub struct Info {
     pub time: Option<Vec<String>>,
 }
 
-#[derive(Deserialize, Serialize)]
-struct Config {
-    theme: Theme,
-    info: Info,
-    model: Model,
-    webdav: WebDav,
+#[derive(Deserialize, Serialize, Clone, TS)]
+#[ts(export)]
+pub struct Config {
+    pub theme: Theme,
+    pub info: Info,
+    pub model: Model,
+    pub webdav: WebDav,
 }
 
 // Config也实现Default，使用各字段的Default实现
@@ -154,6 +154,12 @@ pub fn update_config(field: ConfigField) -> Result<(), ErrorKind> {
         log::info!("Config updated");
         Ok(())
     })?
+}
+
+#[tauri::command]
+pub fn get_config() -> Result<Config, ErrorKind> {
+    let config = with_config(|config| config.clone())?;
+    Ok(config)
 }
 
 pub fn write_config() -> Result<()> {

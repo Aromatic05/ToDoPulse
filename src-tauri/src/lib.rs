@@ -69,6 +69,7 @@ pub fn run() -> std::io::Result<()> {
             sync::sync_now,
             sync::get_sync_status,
             config::update_config,
+            config::get_config,
             upload::upload_file,
             upload::save_remote_image,
         ])
