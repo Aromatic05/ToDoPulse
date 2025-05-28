@@ -118,20 +118,6 @@ where
     }
 }
 
-fn with_config_mut<F, R>(f: F) -> Result<R>
-where
-    F: FnOnce(&mut Config) -> R,
-{
-    let mut config_lock = CONFIG.lock();
-    match &mut *config_lock {
-        Some(config) => Ok(f(config)),
-        None => {
-            log::error!("Config not found");
-            Err(anyhow::anyhow!("Config not found").into())
-        }
-    }
-}
-
 pub fn parse() -> Result<()> {
     parse_with_path::<PathBuf>(None)
 }
@@ -148,27 +134,48 @@ pub fn parse() -> Result<()> {
 /// * `Result<(), ErrorKind>` - Success or an error if the configuration couldn't be updated
 #[tauri::command]
 pub fn update_config(field: ConfigField) -> Result<(), ErrorKind> {
-    with_config_mut(|config| {
-        field.apply(config);
-        write_config()?;
-        log::info!("Config updated");
-        Ok(())
-    })?
+    // 先获取配置的可变引用
+    let mut config_to_update = {
+        let config_lock = CONFIG.lock();
+        match &*config_lock {
+            Some(config) => config.clone(),
+            None => {
+                log::error!("Config not found");
+                return Err(anyhow::anyhow!("Config not found").into());
+            }
+        }
+    };
+
+    // 应用更改
+    field.apply(&mut config_to_update);
+
+    // 将更新后的配置写入文件
+    let config_path = AppPaths::config_dir().join(CONFIG_FILE);
+    match toml::to_string(&config_to_update) {
+        Ok(config_str) => match fs::write(&config_path, config_str) {
+            Ok(_) => {
+                // 成功写入文件后更新内存中的配置
+                let mut config_lock = CONFIG.lock();
+                *config_lock = Some(config_to_update);
+                log::info!("Config updated and written to disk");
+                Ok(())
+            }
+            Err(e) => {
+                log::error!("Failed to write config file: {}", e);
+                Err(anyhow::anyhow!("Failed to write config file").into())
+            }
+        },
+        Err(e) => {
+            log::error!("Failed to serialize config: {}", e);
+            Err(anyhow::anyhow!("Failed to serialize config").into())
+        }
+    }
 }
 
 #[tauri::command]
 pub fn get_config() -> Result<Config, ErrorKind> {
     let config = with_config(|config| config.clone())?;
     Ok(config)
-}
-
-pub fn write_config() -> Result<()> {
-    let config_path = AppPaths::config_dir().join(CONFIG_FILE);
-    with_config(|config| {
-        let config_str = toml::to_string(config)?;
-        fs::write(&config_path, config_str)?;
-        Ok(())
-    })?
 }
 
 pub fn parse_with_path<P: AsRef<Path>>(custom_path: Option<P>) -> Result<()> {

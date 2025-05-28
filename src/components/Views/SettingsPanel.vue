@@ -47,7 +47,7 @@
 </template>
 
 <script setup lang="ts">
-import { ref, onMounted, reactive, watch } from "vue";
+import { ref, onMounted, reactive, watch, onUnmounted } from "vue";
 import { SettingService } from "@/services/SettingService";
 // biome-ignore lint/style/useImportType: bug
 import Notify from "@/components/Settings/Notify.vue";
@@ -67,28 +67,40 @@ const webdavCardRef = ref<InstanceType<typeof WebDav> | null>(null);
 
 // 控制面板展开状态 - 默认全部收起
 const expandedPanels = ref<number[]>([]);
-const previousPanels = ref<number[]>([]);
 
+// 简化的watch监听器 - 移除折叠时的保存逻辑
 watch(
   expandedPanels,
   (newVal, oldVal) => {
-    const collapsedPanels = oldVal?.filter((panel) => !newVal.includes(panel));
-    if (!collapsedPanels) return;
-    
-    for (const panel of collapsedPanels) {
-      if (panel === 0 && notifyRef.value) {
-        notifyRef.value.updateSettings();
-      } else if (panel === 1 && aigcRef.value) {
-        aigcRef.value.updateSettings();
-      } else if (panel === 3 && webdavCardRef.value) {
-        webdavCardRef.value.updateSettings();
-      }
+    console.log("面板状态变化:", newVal, oldVal);
+    // 初始化检查
+    if (!oldVal) {
+      console.log("初始化，跳过当前变化");
+      return;
     }
-
-    previousPanels.value = newVal;
+    
+    // 防止重复处理
+    if (JSON.stringify(newVal) === JSON.stringify(oldVal)) {
+      console.log("面板状态未实际变化，跳过处理");
+      return;
+    }
+    
+    // 只记录状态变化，不触发保存操作
+    const collapsedPanels = oldVal.filter((panel) => !newVal.includes(panel));
+    if (collapsedPanels.length > 0) {
+      console.log("检测到折叠的面板:", collapsedPanels);
+    }
+    
+    // 处理展开的面板
+    const expandedPanelsNew = newVal.filter((panel) => !oldVal.includes(panel));
+    if (expandedPanelsNew.length > 0) {
+      console.log("检测到展开的面板:", expandedPanelsNew);
+    }
   },
-  { immediate: true, deep: true }
+  { deep: false }
 );
+
+// 与队列相关的代码已移除，因为我们改为子组件内自动保存
 
 // 导出设置
 const exportSettings = reactive({
@@ -107,14 +119,26 @@ const WebDavSettings = reactive({
   result: null as { success: boolean; message: string } | null,
 });
 
-// 初始化
 onMounted(async () => {
-  // 加载可导出的事件列表
   try {
-    Lists.value = await SettingService.getExportableLists();
+    // 添加超时控制
+    const loadPromise = SettingService.getExportableLists();
+    const timeoutPromise = new Promise((_, reject) => {
+      setTimeout(() => reject(new Error('加载超时')), 10000);
+    });
+    
+    Lists.value = await Promise.race([loadPromise, timeoutPromise]) as any[];
   } catch (error) {
-    console.error("初始化失败", error);
+    console.error("初始化失败:", error);
+    // 设置默认值或显示错误提示
+    Lists.value = [];
   }
+});
+
+onUnmounted(() => {
+  // 清理相关资源
+  console.log('设置面板已卸载');
+  // 注意：子组件会在它们各自的 onUnmounted 钩子中清理自己
 });
 
 // display actions

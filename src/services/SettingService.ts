@@ -59,7 +59,9 @@ export const SettingService = {
 	 */
 	async saveSettings(settings: ConfigField): Promise<void> {
 		try {
+      console.log("保存设置", settings);
 			await invoke<void>("update_config", { field: settings });
+      console.log("设置保存成功");
 		} catch (error) {
 			console.error("保存设置失败", error);
 		}
