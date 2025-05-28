@@ -100,77 +100,105 @@
 </template>
 
 <script setup lang="ts">
-import { ref } from 'vue';
+import { ref, onMounted } from "vue";
+import type { WebDav } from "src-tauri/bindings/WebDav";
+import { SettingService } from "@/services/SettingService";
 
 // 状态
-const host = ref('');
-const username = ref('');
-const password = ref('');
-const localDir = ref('');
-const remoteDir = ref('/');
+const host = ref("");
+const username = ref("");
+const password = ref("");
+const localDir = ref("");
+const remoteDir = ref("/");
 const isTesting = ref(false);
 const isSyncing = ref(false);
 const connectionTested = ref(false);
 const result = ref<{ success: boolean; message: string } | null>(null);
 
 // 事件
-const emit = defineEmits([
-  'test-connection',
-  'sync',
-  'update:webdavResult'
-]);
+const emit = defineEmits(["test-connection", "sync", "update:webdavResult"]);
 
 // 方法
 const testConnection = () => {
   if (!host.value || !username.value || !password.value) {
     result.value = {
       success: false,
-      message: '请填写完整的 WebDAV 服务器信息'
+      message: "请填写完整的 WebDAV 服务器信息",
     };
-    emit('update:webdavResult', result.value);
+    emit("update:webdavResult", result.value);
     return;
   }
 
   isTesting.value = true;
-  emit('test-connection', {
+  emit("test-connection", {
     host: host.value,
     username: username.value,
-    password: password.value
+    password: password.value,
   });
 };
+
+onMounted(async () => {
+  try {
+    // 从设置服务获取 WebDAV 设置
+    const settings = SettingService.getWebDavSettings();
+    if (settings) {
+      host.value = settings.host || "";
+      username.value = settings.username || "";
+      password.value = settings.password || "";
+      remoteDir.value = settings.remote_dir || "/";
+    }
+  } catch (error) {
+    console.error("加载 WebDAV 设置失败", error);
+  }
+});
 
 const sync = () => {
   if (!connectionTested.value) {
     result.value = {
       success: false,
-      message: '请先测试连接'
+      message: "请先测试连接",
     };
-    emit('update:webdavResult', result.value);
+    emit("update:webdavResult", result.value);
     return;
   }
 
   if (!localDir.value || !remoteDir.value) {
     result.value = {
       success: false,
-      message: '请填写本地和远程目录'
+      message: "请填写本地和远程目录",
     };
-    emit('update:webdavResult', result.value);
+    emit("update:webdavResult", result.value);
     return;
   }
 
   isSyncing.value = true;
-  emit('sync', {
+  emit("sync", {
     host: host.value,
     username: username.value,
     password: password.value,
     localDir: localDir.value,
-    remoteDir: remoteDir.value
+    remoteDir: remoteDir.value,
   });
 };
 
 const clearResult = () => {
   result.value = null;
-  emit('update:webdavResult', null);
+  emit("update:webdavResult", null);
+};
+
+const updateSettings = async () => {
+  const webDavSetting: WebDav = {
+    enabled: true,
+    host: host.value,
+    username: username.value,
+    password: password.value,
+    remote_dir: remoteDir.value,
+  };
+  try {
+    await SettingService.saveSettings({ WebDav: webDavSetting });
+  } catch (error) {
+    console.error("保存 WebDAV 设置失败", error);
+  }
 };
 
 // 提供方法给父组件调用
@@ -186,6 +214,7 @@ defineExpose({
   },
   setResult: (value: { success: boolean; message: string } | null) => {
     result.value = value;
-  }
+  },
+  updateSettings,
 });
 </script>

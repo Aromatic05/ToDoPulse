@@ -5,6 +5,7 @@ import type { ConfigField } from "../../src-tauri/bindings/ConfigField";
 import type { Config } from "../../src-tauri/bindings/Config";
 import type { Model } from "src-tauri/bindings/Model";
 import type { Info } from "src-tauri/bindings/Info";
+import type { WebDav } from "src-tauri/bindings/WebDav";
 
 let config: Config = {} as Config;
 
@@ -347,25 +348,6 @@ export const SettingService = {
 	},
 
 	/**
-	 * 保存通知设置
-	 * @param settings 通知设置
-	 */
-	async saveNotificationSettings(settings: {
-		enabled: boolean;
-		time: string;
-	}): Promise<void> {
-		try {
-			await invoke<void>("save_notification_settings", {
-				enabled: settings.enabled,
-				time: settings.time,
-			});
-		} catch (error) {
-			console.error("保存通知设置失败", error);
-			throw error;
-		}
-	},
-
-	/**
 	 * 获取AIGC设置
 	 * @returns AIGC设置
 	 */
@@ -377,25 +359,16 @@ export const SettingService = {
 			return null;
 		}
 	},
-
-	/**
-	 * 保存AIGC设置
-	 * @param settings AIGC设置
-	 */
-	async saveAigcSettings(settings: {
-		enabled: boolean;
-		token: string;
-		model: string;
-	}): Promise<void> {
-		try {
-			await invoke<void>("save_aigc_settings", {
-				enabled: settings.enabled,
-				token: settings.token,
-				model: settings.model,
-			});
-		} catch (error) {
-			console.error("保存AIGC设置失败", error);
-			throw error;
-		}
-	},
+  /**
+   * 获取WebDAV设置
+   * @returns WebDAV设置
+   */
+  getWebDavSettings(): WebDav | null {
+    try {
+      return config.webdav || null;
+    } catch (error) {
+      console.error("获取WebDAV设置失败", error);
+      return null;
+    }
+  }
 };

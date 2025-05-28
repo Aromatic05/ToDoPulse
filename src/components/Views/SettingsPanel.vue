@@ -6,15 +6,15 @@
           <v-row justify="center">
             <v-col cols="12" lg="8" md="10">
               <v-card class="pa-4">
-                <v-expansion-panels 
-                  v-model="expandedPanels" 
-                  multiple 
+                <v-expansion-panels
+                  v-model="expandedPanels"
+                  multiple
                   variant="accordion"
                   class="settings-panels"
                   expand-icon="mdi-chevron-down"
                 >
-                  <Notify />
-                  <Aigc />
+                  <Notify ref="notifyRef" />
+                  <Aigc ref="aigcRef" />
                   <Export
                     ref="exportCardRef"
                     :settings="exportSettings"
@@ -47,24 +47,48 @@
 </template>
 
 <script setup lang="ts">
-import { ref, onMounted, reactive } from "vue";
+import { ref, onMounted, reactive, watch } from "vue";
 import { SettingService } from "@/services/SettingService";
+// biome-ignore lint/style/useImportType: bug
 import Notify from "@/components/Settings/Notify.vue";
 // biome-ignore lint/style/useImportType: bug
 import Export from "@/components/Settings/Export.vue";
 // biome-ignore lint/style/useImportType: bug
 import WebDav from "@/components/Settings/WebDav.vue";
 import ExportChat from "@/components/Settings/ExportChat.vue";
+// biome-ignore lint/style/useImportType: bug
 import Aigc from "../Settings/Aigc.vue";
 
 // 组件引用
+const notifyRef = ref<InstanceType<typeof Notify> | null>(null);
+const aigcRef = ref<InstanceType<typeof Aigc> | null>(null);
 const exportCardRef = ref<InstanceType<typeof Export> | null>(null);
 const webdavCardRef = ref<InstanceType<typeof WebDav> | null>(null);
 
 // 控制面板展开状态 - 默认全部收起
 const expandedPanels = ref<number[]>([]);
+const previousPanels = ref<number[]>([]);
 
-// 设置状态已移至各自组件内部
+watch(
+  expandedPanels,
+  (newVal, oldVal) => {
+    const collapsedPanels = oldVal?.filter((panel) => !newVal.includes(panel));
+    if (!collapsedPanels) return;
+    
+    for (const panel of collapsedPanels) {
+      if (panel === 0 && notifyRef.value) {
+        notifyRef.value.updateSettings();
+      } else if (panel === 1 && aigcRef.value) {
+        aigcRef.value.updateSettings();
+      } else if (panel === 3 && webdavCardRef.value) {
+        webdavCardRef.value.updateSettings();
+      }
+    }
+
+    previousPanels.value = newVal;
+  },
+  { immediate: true, deep: true }
+);
 
 // 导出设置
 const exportSettings = reactive({
@@ -97,16 +121,6 @@ onMounted(async () => {
 
 const handleExportSettingsUpdate = (update: Partial<typeof exportSettings>) => {
   Object.assign(exportSettings, update);
-  saveSettings();
-};
-
-// 保存设置
-const saveSettings = async () => {
-  try {
-    alert("设置已保存");
-  } catch (error) {
-    console.error("保存设置失败", error);
-  }
 };
 
 //functional actions

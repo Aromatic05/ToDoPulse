@@ -4,10 +4,10 @@
       <h3 class="text-h6 font-weight-medium">模型设置</h3>
     </v-expansion-panel-title>
     <v-expansion-panel-text>
-      <v-switch 
-        v-model="localAigcEnabled" 
-        label="智能生成标签" 
-        color="primary" 
+      <v-switch
+        v-model="localAigcEnabled"
+        label="智能生成标签"
+        color="primary"
         hide-details
         class="mb-4"
         @update:model-value="updateSettings"
@@ -41,6 +41,7 @@
 <script setup lang="ts">
 import { ref, onMounted } from 'vue';
 import { SettingService } from '@/services/SettingService';
+import type { Model } from 'src-tauri/bindings/Model';
 
 // 本地状态
 const localAigcEnabled = ref(false);
@@ -51,11 +52,11 @@ const localModel = ref('');
 onMounted(async () => {
   try {
     // 从设置服务获取AI模型设置
-    const settings = await SettingService.getAigcSettings();
+    const settings = SettingService.getAigcSettings();
     if (settings) {
-      localAigcEnabled.value = settings.enabled ?? false;
-      localToken.value = settings.token ?? '';
-      localModel.value = settings.model ?? '';
+      localAigcEnabled.value = settings.switch ?? false;
+      localToken.value = settings.tokens ?? '';
+      localModel.value = settings.name ?? '';
     }
   } catch (error) {
     console.error('加载AI模型设置失败', error);
@@ -65,14 +66,18 @@ onMounted(async () => {
 // 更新设置
 const updateSettings = async () => {
   try {
-    // 保存设置到设置服务
-    await SettingService.saveAigcSettings({
-      enabled: localAigcEnabled.value,
-      token: localToken.value,
-      model: localModel.value
-    });
+    const modelSetting: Model = {
+      switch: localAigcEnabled.value,
+      tokens: localToken.value,
+      name: localModel.value,
+    };
+    await SettingService.saveSettings({Model: modelSetting});
   } catch (error) {
     console.error('保存AI模型设置失败', error);
   }
 };
+
+defineExpose({
+  updateSettings,
+})
 </script>
