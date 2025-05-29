@@ -70,7 +70,39 @@
                         </div>
 
                         <div class="editor-section">
-                            <label for="content">内容</label>
+                            <div class="editor-header">
+                                <div class="header-left">
+                                    <label for="content">内容</label>
+                                    <div class="ai-actions" v-if="localAigcEnabled">
+                                        <v-tooltip text="AI智能总结">
+                                            <template v-slot:activator="{ props }">
+                                                <v-btn
+                                                    v-bind="props"
+                                                    icon="mdi-lightning-bolt"
+                                                    variant="text"
+                                                    color="primary"
+                                                    :loading="isAiLoading"
+                                                    @click="handleAiSummary"
+                                                    :disabled="!formData.id || !editorContent"
+                                                ></v-btn>
+                                            </template>
+                                        </v-tooltip>
+                                        <v-tooltip text="内容改进建议">
+                                            <template v-slot:activator="{ props }">
+                                                <v-btn
+                                                    v-bind="props"
+                                                    icon="mdi-lightbulb"
+                                                    variant="text"
+                                                    color="warning"
+                                                    :loading="isAiLoading"
+                                                    @click="handleAiImprovement"
+                                                    :disabled="!formData.id || !editorContent"
+                                                ></v-btn>
+                                            </template>
+                                        </v-tooltip>
+                                    </div>
+                                </div>
+                            </div>
                             <VditorEditor v-if="formData.id" :event-id="formData.id" :card-title="formData.title"
                                 v-model="editorContent" editor-id="card-content-editor"
                                 @initialized="onEditorInitialized" />
@@ -96,6 +128,8 @@ import { useEventStore, useTagStore } from '@/stores';
 import { DatePicker } from 'v-calendar';
 import 'v-calendar/dist/style.css';
 import type { Tag } from '@/services/TagService';
+import { SettingService } from '@/services/SettingService';
+import AigcService from '@/services/AigcService';
 import AddTagModal from '@/components/Modals/AddTagModal.vue';
 import VditorEditor from '@/components/VditorEditor.vue';
 
@@ -122,6 +156,57 @@ export default defineComponent({
     setup(props, { emit }) {
         const eventStore = useEventStore();
         const tagStore = useTagStore();
+        const isAiLoading = ref(false);
+        const localAigcEnabled = ref(false);
+
+        // 获取AI设置
+        onMounted(() => {
+            try {
+                const settings = SettingService.getAigcSettings();
+                if (settings) {
+                    localAigcEnabled.value = settings.switch ?? false;
+                }
+            } catch (error) {
+                console.error('加载AI设置失败:', error);
+            }
+        });
+
+        // AI内容总结
+        // AI内容总结
+        const handleAiSummary = async () => {
+            if (!formData.value.id || !editorContent.value) return;
+            
+            isAiLoading.value = true;
+            try {
+                const summary = await AigcService.generateSummary(editorContent.value);
+                if (summary) {
+                    // 在内容前面插入AI总结
+                    editorContent.value = `> AI总结：${summary}\n\n${editorContent.value}`;
+                }
+            } catch (error) {
+                console.error('AI总结生成失败:', error);
+            } finally {
+                isAiLoading.value = false;
+            }
+        };
+
+        // AI内容改进建议
+        const handleAiImprovement = async () => {
+            if (!formData.value.id || !editorContent.value) return;
+            
+            isAiLoading.value = true;
+            try {
+                const improvement = await AigcService.generateImprovement(editorContent.value);
+                if (improvement) {
+                    // 在内容后面添加AI改进建议
+                    editorContent.value = `${editorContent.value}\n\n---\n\n### AI改进建议：\n\n${improvement}`;
+                }
+            } catch (error) {
+                console.error('AI改进建议生成失败:', error);
+            } finally {
+                isAiLoading.value = false;
+            }
+        };
 
         const editorContent = ref<string>(''); // 用于存储编辑器内容
         // const isLoading = computed(() => eventStore.isLoading); // isLoading 似乎未在模板中使用，如果确实不用可以移除
@@ -320,9 +405,13 @@ export default defineComponent({
 
         return {
             formData,
-            editorContent, // 用于 v-model 绑定到 VditorEditor
+            editorContent,
             selectedTags,
             allTags,
+            isAiLoading,
+            localAigcEnabled,
+            handleAiSummary,
+            handleAiImprovement,
             handleConfirm,
             handleClose,
             openAddTagModal,
@@ -344,6 +433,28 @@ export default defineComponent({
 
 <style scoped>
 @import '@/styles/Modals/contentmodal.css';
+
+.editor-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 1rem;
+}
+
+.header-left {
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+}
+
+.ai-actions {
+    display: flex;
+    gap: 0.5rem;
+}
+
+.ai-actions .v-btn {
+    margin: 0;
+}
 </style>
 
 <style>
