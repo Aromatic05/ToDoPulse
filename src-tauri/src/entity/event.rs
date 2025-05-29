@@ -14,6 +14,7 @@ use crate::error::ErrorKind;
 use crate::filter::{map_filter, Filter};
 use crate::function::gen_tag;
 use crate::utils::{AppPaths, EVENT_CONTENT_CACHE, EVENT_LIST_CACHE};
+use tauri::{AppHandle};
 
 type Table = TableDefinition<'static, &'static [u8], &'static [u8]>;
 
@@ -147,6 +148,7 @@ impl Entity for Event {
 /// * `Result<Event, ErrorKind>` - 成功时返回创建的事件对象，失败时返回错误
 #[tauri::command]
 pub async fn add_event(
+    app: AppHandle,
     state: State<'_, StorageState>,
     title: &str,
     listid: Option<&str>,
@@ -175,7 +177,7 @@ pub async fn add_event(
         color: "default".to_string(),
         icon: "default".to_string(),
     };
-    new_event.metadata.tag = gen_tag(state.clone(), &content_path).await?;
+    new_event.metadata.tag = gen_tag(app, state.clone(), title).await?;
     let mut guard = state.0.lock().await;
     let storage = guard.deref_mut();
     Repository::<Event>::add(storage, &new_event)?;

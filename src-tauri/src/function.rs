@@ -1,4 +1,4 @@
-mod aigc;
+pub mod aigc;
 pub mod export;
 pub mod notify;
 pub mod sync;
