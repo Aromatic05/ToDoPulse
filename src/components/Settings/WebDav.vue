@@ -54,7 +54,6 @@ import { debounce } from "@/utils/debounce";
 const host = ref("");
 const username = ref("");
 const password = ref("");
-const localDir = ref("/");
 const remoteDir = ref("/");
 const isTesting = ref(false);
 const isSyncing = ref(false);

@@ -73,31 +73,19 @@
                             <div class="editor-header">
                                 <div class="header-left">
                                     <label for="content">内容</label>
-                                    <div class="ai-actions" v-if="localAigcEnabled">
+                                    <div class="ai-actions">
                                         <v-tooltip text="AI智能总结">
                                             <template v-slot:activator="{ props }">
-                                                <v-btn
-                                                    v-bind="props"
-                                                    icon="mdi-lightning-bolt"
-                                                    variant="text"
-                                                    color="primary"
-                                                    :loading="isAiLoading"
-                                                    @click="handleAiSummary"
-                                                    :disabled="!formData.id || !editorContent"
-                                                ></v-btn>
+                                                <v-btn v-bind="props" icon="mdi-lightning-bolt" variant="text"
+                                                    color="primary" :loading="isAiLoading" @click="handleAiSummary"
+                                                    :disabled="!formData.id || !editorContent"></v-btn>
                                             </template>
                                         </v-tooltip>
                                         <v-tooltip text="内容改进建议">
                                             <template v-slot:activator="{ props }">
-                                                <v-btn
-                                                    v-bind="props"
-                                                    icon="mdi-lightbulb"
-                                                    variant="text"
-                                                    color="warning"
-                                                    :loading="isAiLoading"
-                                                    @click="handleAiImprovement"
-                                                    :disabled="!formData.id || !editorContent"
-                                                ></v-btn>
+                                                <v-btn v-bind="props" icon="mdi-lightbulb" variant="text"
+                                                    color="warning" :loading="isAiLoading" @click="handleAiImprovement"
+                                                    :disabled="!formData.id || !editorContent"></v-btn>
                                             </template>
                                         </v-tooltip>
                                     </div>
@@ -175,7 +163,7 @@ export default defineComponent({
         // AI内容总结
         const handleAiSummary = async () => {
             if (!formData.value.id || !editorContent.value) return;
-            
+
             isAiLoading.value = true;
             try {
                 const summary = await AigcService.generateSummary(editorContent.value);
@@ -193,7 +181,7 @@ export default defineComponent({
         // AI内容改进建议
         const handleAiImprovement = async () => {
             if (!formData.value.id || !editorContent.value) return;
-            
+
             isAiLoading.value = true;
             try {
                 const improvement = await AigcService.generateImprovement(editorContent.value);
