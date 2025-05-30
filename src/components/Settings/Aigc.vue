@@ -4,39 +4,15 @@
       <h3 class="text-h6 font-weight-medium">模型设置</h3>
     </v-expansion-panel-title>
     <v-expansion-panel-text>
-      <v-switch
-        v-model="localAigcEnabled"
-        label="智能生成标签"
-        color="primary"
-        hide-details
-        class="mb-4"
-      ></v-switch>
+      <v-switch v-model="localAigcEnabled" label="智能生成标签" color="primary" hide-details class="mb-4"></v-switch>
       <v-expand-transition>
         <div v-if="localAigcEnabled">
-          <v-text-field
-            v-model="localToken"
-            label="API Token"
-            variant="outlined"
-            density="compact"
-            class="mt-2"
-            hide-details
-          ></v-text-field>
-          <v-text-field
-            v-model="localApiUrl"
-            label="API URL"
-            variant="outlined"
-            density="compact"
-            class="mt-2"
-            hide-details
-          ></v-text-field>
-          <v-text-field
-            v-model="localModel"
-            label="模型名称 (如 gpt-3.5-turbo)"
-            variant="outlined"
-            density="compact"
-            class="mt-2"
-            hide-details
-          ></v-text-field>
+          <v-text-field v-model="localToken" label="API Token" variant="outlined" density="compact" class="mt-2"
+            hide-details></v-text-field>
+          <v-text-field v-model="localApiUrl" label="API URL" variant="outlined" density="compact" class="mt-2"
+            hide-details></v-text-field>
+          <v-text-field v-model="localModel" label="模型名称 (如 gpt-3.5-turbo)" variant="outlined" density="compact"
+            class="mt-2" hide-details></v-text-field>
         </div>
       </v-expand-transition>
     </v-expansion-panel-text>
@@ -82,7 +58,7 @@ onMounted(() => {
 // 更新设置 - 不防抖的版本，用于外部调用
 const updateSettings = async () => {
   if (isSaving.value) return; // 防止重复保存
-  
+
   isSaving.value = true;
   try {
     const modelSetting: Model = {
@@ -91,7 +67,7 @@ const updateSettings = async () => {
       name: localModel.value,
       api: localApiUrl.value,
     };
-    await SettingService.saveSettings({Model: modelSetting});
+    await SettingService.saveSettings({ Model: modelSetting });
     console.log('AI模型设置保存成功');
   } catch (error) {
     console.error('保存AI模型设置失败', error);
@@ -113,19 +89,19 @@ watch(
     if (isInitializing.value || isSaving.value) {
       return;
     }
-    
+
     // 计算距上次修改的时间
     const now = Date.now();
     const timeSinceLastModification = now - lastModified.value;
-    
+
     // 更新最后修改时间
     lastModified.value = now;
-    
+
     console.log('AI模型设置已变更，准备自动保存');
-    
+
     // 时间间隔太短可能是批量操作，使用更长的延迟
     const delay = timeSinceLastModification < 300 ? 1500 : 800;
-    
+
     // 使用延迟保存以避免与UI渲染冲突
     setTimeout(() => {
       // 再次检查，确保没有新的修改正在进行中

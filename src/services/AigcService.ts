@@ -10,10 +10,10 @@ class AigcService {
             try {
                 const [content, availableTags] = event.payload;
                 console.log('收到标签生成请求:', { content, availableTags });
-                
+
                 const tags = await AigcService.generateTags(content, availableTags);
                 console.log('生成的标签:', tags);
-                
+
                 if (tags) {
                     // 调用 Rust 命令返回生成的标签
                     await invoke('receive_generated_tags', { tags });
@@ -23,9 +23,9 @@ class AigcService {
             }
         });
     }
-    private static getOpenAIClient(apiKey: string): OpenAI {
+    private static getOpenAIClient(apiKey: string, baseurl: string): OpenAI {
         return new OpenAI({
-            baseURL: 'https://api.deepseek.com',
+            baseURL: baseurl,
             apiKey: apiKey,
             dangerouslyAllowBrowser: true  // 允许在浏览器环境中使用
         });
@@ -48,13 +48,14 @@ class AigcService {
 
             // 获取API配置
             const apiToken = settings.tokens;
+            const baseurl = settings.api;
 
             if (!apiToken) {
                 console.error('未配置API Token');
                 return null;
             }
 
-            const openai = this.getOpenAIClient(apiToken);
+            const openai = this.getOpenAIClient(apiToken, baseurl);
 
             // 构造摘要提示词
             const completion = await openai.chat.completions.create({
@@ -95,13 +96,14 @@ class AigcService {
 
             // 获取API配置
             const apiToken = settings.tokens;
+            const baseurl = settings.api;
 
             if (!apiToken) {
                 console.error('未配置API Token');
                 return null;
             }
 
-            const openai = this.getOpenAIClient(apiToken);
+            const openai = this.getOpenAIClient(apiToken, baseurl);
 
             // 构造内容改进提示词
             const completion = await openai.chat.completions.create({
@@ -149,13 +151,14 @@ class AigcService {
 
             // 获取API配置
             const apiToken = settings.tokens;
+            const baseurl = settings.api;
 
             if (!apiToken) {
                 console.error('未配置API Token');
                 return null;
             }
 
-            const openai = this.getOpenAIClient(apiToken);
+            const openai = this.getOpenAIClient(apiToken, baseurl);
 
             // 构造标签生成提示词
             const completion = await openai.chat.completions.create({
@@ -167,7 +170,14 @@ class AigcService {
                     {
                         role: "user",
                         content: `
-            为以下内容选择合适的标签。标签可以不止一个，但只能从给出的标签列表中选择。
+            为以下内容选择合适的标签。请遵循以下规则：
+
+            1. 首先尝试从给出的标签列表中选择最相关的标签
+            2. 如果现有标签不足以准确描述内容的关键主题，可以创建新标签
+            3. 新标签应简洁（1-3个汉字，或者一个英文单词），具体且描述性强
+            4. 总共选择1-3个标签，优先使用现有标签
+            5. 标签应反映内容的核心主题、领域或性质，而非次要细节
+
             
             可选标签列表:
             ${availableTags.join(',')}

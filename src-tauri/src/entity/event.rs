@@ -177,7 +177,27 @@ pub async fn add_event(
         color: "default".to_string(),
         icon: "default".to_string(),
     };
-    new_event.metadata.tag = gen_tag(app, state.clone(), title).await?;
+
+    // Get tags from gen_tag
+    let tags = gen_tag(app.clone(), state.clone(), title).await?;
+
+    // Check if each tag exists and add non-existent tags
+    if let Some(tags_vec) = &tags {
+        for tag_name in tags_vec {
+            // Check if tag exists and add it if not
+            if !crate::utils::tag_exists(&state, tag_name).await {
+                // Add the tag with Primary color by default
+                crate::entity::tag::add_tag(
+                    state.clone(), 
+                    tag_name.clone(), 
+                    crate::entity::tag::TagColor::Primary
+                ).await?;
+            }
+        }
+    }
+
+    // Assign tags to new_event
+    new_event.metadata.tag = tags;
     let mut guard = state.0.lock().await;
     let storage = guard.deref_mut();
     Repository::<Event>::add(storage, &new_event)?;
