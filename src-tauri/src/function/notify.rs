@@ -62,18 +62,3 @@ pub async fn setup() {
     TaskManager::start(Box::new(task)).await;
     log::info!("Notification task started successfully");
 }
-
-#[tauri::command]
-pub fn test_notification() -> Result<(), String> {
-    match notify_desktop("测试通知", "如果你看到这条消息，说明通知系统工作正常!") {
-        Ok(_) => {
-            log::info!("Test notification sent successfully");
-            Ok(())
-        },
-        Err(e) => {
-            let error_msg = format!("Failed to send test notification: {}", e);
-            log::error!("{}", error_msg);
-            Err(error_msg)
-        }
-    }
-}

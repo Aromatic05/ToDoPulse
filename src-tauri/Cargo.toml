@@ -19,7 +19,6 @@ tauri-build = { version = "2", features = [] }
 
 [dependencies]
 tauri = { version = "2", features = [ "protocol-asset", "test", "tray-icon" ] }
-tauri-plugin-opener = "2"
 serde = { workspace = true }
 serde_json = { workspace = true }
 async-std = { version = "1.13.1", features = ["attributes"] }
@@ -39,8 +38,6 @@ toml = { version = "0.8.20", features = ["parse"] }
 rand = "0.9.1"
 ts-rs = { workspace = true }
 once_cell = "1.21.3"
-tauri-runtime = "2.6.0"
-ics = "0.5"
 tauri-plugin-dialog = "2"
 futures = "0.3.31"
 env_logger = "0.11.8"

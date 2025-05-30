@@ -17,7 +17,6 @@ dependencies = [
  "field_macro",
  "futures",
  "httpdate",
- "ics",
  "log",
  "mockall",
  "notify-rust",
@@ -34,9 +33,7 @@ dependencies = [
  "tauri-build",
  "tauri-plugin-dialog",
  "tauri-plugin-fs",
- "tauri-plugin-opener",
  "tauri-plugin-updater",
- "tauri-runtime",
  "tempfile",
  "tokio",
  "toml",
@@ -1986,12 +1983,6 @@ dependencies = [
 ]
 
 [[package]]
-name = "ics"
-version = "0.5.8"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "3ebec52f461ade2d19e7b594ecbcd0723ba0ab0eefa8aae2281b78ff461a91fa"
-
-[[package]]
 name = "icu_collections"
 version = "2.0.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -2140,25 +2131,6 @@ name = "ipnet"
 version = "2.11.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "469fb0b9cefa57e3ef31275ee7cacb78f2fdca44e4765491884a2b119d4eb130"
-
-[[package]]
-name = "is-docker"
-version = "0.2.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "928bae27f42bc99b60d9ac7334e3a21d10ad8f1835a4e12ec3ec0464765ed1b3"
-dependencies = [
- "once_cell",
-]
-
-[[package]]
-name = "is-wsl"
-version = "0.4.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "173609498df190136aa7dea1a91db051746d339e18476eed5ca40521f02d7aa5"
-dependencies = [
- "is-docker",
- "once_cell",
-]
 
 [[package]]
 name = "is_terminal_polyfill"
@@ -2919,18 +2891,6 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "a4895175b425cb1f87721b59f0f286c2092bd4af812243672510e1ac53e2e0ad"
 
 [[package]]
-name = "open"
-version = "5.3.2"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "e2483562e62ea94312f3576a7aca397306df7990b8d89033e18766744377ef95"
-dependencies = [
- "dunce",
- "is-wsl",
- "libc",
- "pathdiff",
-]
-
-[[package]]
 name = "openssl"
 version = "0.10.72"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -3067,12 +3027,6 @@ dependencies = [
  "smallvec",
  "windows-targets 0.52.6",
 ]
-
-[[package]]
-name = "pathdiff"
-version = "0.2.3"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "df94ce210e5bc13cb6651479fa48d14f601d9858cfe0467f43ae157023b938d3"
 
 [[package]]
 name = "percent-encoding"
@@ -4637,28 +4591,6 @@ dependencies = [
  "thiserror 2.0.12",
  "toml",
  "url",
-]
-
-[[package]]
-name = "tauri-plugin-opener"
-version = "2.2.7"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "66644b71a31ec1a8a52c4a16575edd28cf763c87cf4a7da24c884122b5c77097"
-dependencies = [
- "dunce",
- "glob",
- "objc2-app-kit",
- "objc2-foundation 0.3.1",
- "open",
- "schemars",
- "serde",
- "serde_json",
- "tauri",
- "tauri-plugin",
- "thiserror 2.0.12",
- "url",
- "windows",
- "zbus",
 ]
 
 [[package]]

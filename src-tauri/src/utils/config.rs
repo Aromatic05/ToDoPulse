@@ -273,6 +273,7 @@ mod tests {
         switch = true
         name = "test-model"
         tokens = "1024"
+        api = "https://api.test.com/v1/chat/completions"
         [webdav]
         enabled = true
         host = "https://webdav-1690957.pd1.123pan.cn/webdav/webdav"

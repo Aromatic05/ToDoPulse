@@ -1,6 +1,6 @@
 [workspace.package]
 authors = ["ToDoPulse Team"]
-edition = "2021"
+edition = "2024"
 
 [workspace]
 members = [
@@ -9,7 +9,7 @@ members = [
 ]
 resolver = "3"
 
-[profiles.release]
+[profile.release]
 lto = true
 
 # 公共依赖定义

@@ -324,11 +324,11 @@ impl SyncSession {
         self.operations.push(operation);
     }
 
-    /// 完成会话
-    pub fn complete(&mut self) {
-        self.status = SyncSessionStatus::Completed;
-        self.end_time = Some(Utc::now());
-    }
+    // /// 完成会话
+    // pub fn complete(&mut self) {
+    //     self.status = SyncSessionStatus::Completed;
+    //     self.end_time = Some(Utc::now());
+    // }
 
     /// 会话失败
     #[allow(dead_code)]
