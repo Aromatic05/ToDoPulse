@@ -342,10 +342,10 @@ export const SettingService = {
 	 */
 	getNotificationSettings(): Info {
 		try {
-			return config.info || { switch: false, time: ["09:00"] };
+			return config.info || { switch: false, time: ["0 9 * * *"] };
 		} catch (error) {
 			console.error("获取通知设置失败", error);
-			return { switch: false, time: ["09:00"] };
+			return { switch: false, time: ["0 9 * * *"] };
 		}
 	},
 
