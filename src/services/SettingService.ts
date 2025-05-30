@@ -59,9 +59,9 @@ export const SettingService = {
 	 */
 	async saveSettings(settings: ConfigField): Promise<void> {
 		try {
-      console.log("保存设置", settings);
+			console.log("保存设置", settings);
 			await invoke<void>("update_config", { field: settings });
-      console.log("设置保存成功");
+			console.log("设置保存成功");
 		} catch (error) {
 			console.error("保存设置失败", error);
 		}
@@ -257,20 +257,9 @@ export const SettingService = {
 	 * @returns 同步是否成功
 	 */
 	async syncDirectoryWithWebDAV(
-		host: string,
-		username: string,
-		password: string,
-		localDir: string,
-		remoteDir: string,
 	): Promise<boolean> {
 		try {
-			await invoke<void>("sync_directory", {
-				host,
-				username,
-				password,
-				localDir,
-				remoteDir,
-			});
+			await invoke<void>("sync_now");
 			return true;
 		} catch (error) {
 			console.error("WebDAV同步失败", error);
@@ -361,16 +350,16 @@ export const SettingService = {
 			return null;
 		}
 	},
-  /**
-   * 获取WebDAV设置
-   * @returns WebDAV设置
-   */
-  getWebDavSettings(): WebDav | null {
-    try {
-      return config.webdav || null;
-    } catch (error) {
-      console.error("获取WebDAV设置失败", error);
-      return null;
-    }
-  }
+	/**
+	 * 获取WebDAV设置
+	 * @returns WebDAV设置
+	 */
+	getWebDavSettings(): WebDav | null {
+		try {
+			return config.webdav || null;
+		} catch (error) {
+			console.error("获取WebDAV设置失败", error);
+			return null;
+		}
+	}
 };

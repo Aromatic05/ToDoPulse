@@ -22,7 +22,7 @@ time = ["0 12 * * *", "0 13 * * *"]
 switch = false
 name = "deepseek-v3"
 tokens = "4096"
-api = "https://api.deepseek.com/v1/chat/completions"
+api = "https://api.deepseek.com/"
 [webdav]
 enabled = false
 host = "https://example.com"
