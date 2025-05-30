@@ -76,14 +76,14 @@ pub async fn ensure_remote_dir_exists(client: &Client, dir: &str) -> Result<()> 
 pub async fn upload_file(client: &Client, local_path: &Path, remote_path: &str) -> Result<()> {
     debug!("上传文件: {} -> {}", local_path.display(), remote_path);
 
-    // 规范化路径
-    let remote_path = normalize_path(remote_path);
+    // 移除额外的路径标准化 - 传入的路径已经是正确的
+    // let remote_path = normalize_path(remote_path);
 
-    // 读取本地文件内容
+    // 读取本地文件
     let content = fs::read(local_path).await?;
 
     // 上传到远程
-    client.put(&remote_path, content).await?;
+    client.put(remote_path, content).await?;
 
     debug!("文件上传成功");
     Ok(())
@@ -93,8 +93,8 @@ pub async fn upload_file(client: &Client, local_path: &Path, remote_path: &str) 
 pub async fn download_file(client: &Client, remote_path: &str, local_path: &Path) -> Result<()> {
     debug!("下载文件: {} -> {}", remote_path, local_path.display());
 
-    // 规范化路径
-    let remote_path = normalize_path(remote_path);
+    // 移除额外的路径标准化 - 传入的路径已经是正确的
+    // let remote_path = normalize_path(remote_path);
 
     // 创建父目录（如果不存在）
     if let Some(parent) = local_path.parent() {
@@ -102,7 +102,7 @@ pub async fn download_file(client: &Client, remote_path: &str, local_path: &Path
     }
 
     // 获取远程文件
-    let response = client.get(&remote_path).await?;
+    let response = client.get(remote_path).await?;
     let content = response.bytes().await?;
 
     // 写入本地文件
@@ -219,32 +219,44 @@ pub(crate) fn normalize_path(path: &str) -> String {
         result.pop();
     }
 
-    // 处理连续的斜杠
-    while result.contains("//") {
-        result = result.replace("//", "/");
-    }
-
-    // 处理 "." 和 ".." 路径元素
+    // 处理连续的斜杠和路径组件
     let mut components = Vec::new();
-    for component in result.split('/').filter(|s| !s.is_empty()) {
-        match component {
-            "." => {} // 忽略当前目录符号
+    for part in result.split('/').filter(|s| !s.is_empty()) {
+        match part {
+            "." => continue, // 忽略当前目录符号
             ".." => {
                 // 回到上一级目录
                 if !components.is_empty() {
                     components.pop();
                 }
             }
-            _ => components.push(component),
+            component => {
+                // 允许重复的目录名
+                components.push(component);
+            }
         }
     }
 
     // 重新构建路径
-    let normalized = if components.is_empty() {
+    if components.is_empty() {
         "/".to_string()
     } else {
         format!("/{}", components.join("/"))
-    };
+    }
+}
 
-    normalized
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn test_normalize_path() {
+        assert_eq!(normalize_path("/"), "/");
+        assert_eq!(normalize_path("//"), "/");
+        assert_eq!(normalize_path("/webdav"), "/webdav");
+        assert_eq!(normalize_path("/webdav/webdav"), "/webdav/webdav");
+        assert_eq!(normalize_path("/webdav/webdav/ToDoPulse/webdav"), "/webdav/webdav/ToDoPulse/webdav");
+        assert_eq!(normalize_path("webdav/./webdav/../ToDoPulse"), "/ToDoPulse");
+        assert_eq!(normalize_path("/webdav//ToDoPulse///test"), "/webdav/ToDoPulse/test");
+    }
 }

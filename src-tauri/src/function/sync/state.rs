@@ -134,8 +134,6 @@ pub async fn collect_local_state(
             };
 
             while let Some(entry) = entries.next_entry().await? {
-                // 此处 'entry' 的类型是 tokio::fs::DirEntry
-
                 let abs_path_from_entry = entry.path();
                 let entry_abs_path = if abs_path_from_entry.is_absolute() {
                     abs_path_from_entry.clone()
@@ -152,7 +150,7 @@ pub async fn collect_local_state(
                             abs_path_from_entry.display(),
                             e
                         );
-                        continue; // 跳过无法规范化的条目
+                        continue;
                     }
                 };
 
@@ -161,9 +159,17 @@ pub async fn collect_local_state(
                     continue;
                 }
 
-                let rel_path_str = match canonical_entry_abs_path.strip_prefix(canonical_root_path)
-                {
-                    Ok(r) => format!("/{}", r.to_string_lossy().replace('\\', "/")),
+                // 修改这里：生成正确的相对路径格式
+                let rel_path_str = match canonical_entry_abs_path.strip_prefix(canonical_root_path) {
+                    Ok(r) => {
+                        let relative_path = r.to_string_lossy().replace('\\', "/");
+                        // 添加 ToDoPulse 前缀，确保与远程路径格式一致
+                        if relative_path.is_empty() {
+                            "ToDoPulse".to_string() // 根目录情况
+                        } else {
+                            format!("ToDoPulse/{}", relative_path)
+                        }
+                    }
                     Err(_) => {
                         error!(
                             "无法创建相对路径 for {} from root {}",
@@ -181,7 +187,6 @@ pub async fn collect_local_state(
                 );
 
                 let metadata = match entry.metadata().await {
-                    // 可以直接用 entry.metadata() 避免再次 stat
                     Ok(meta) => meta,
                     Err(e) => {
                         warn!(

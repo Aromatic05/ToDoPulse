@@ -43,7 +43,7 @@ onMounted(() => {
       localAigcEnabled.value = settings.switch ?? false;
       localToken.value = settings.tokens ?? '';
       localModel.value = settings.name ?? '';
-      localApiUrl.value = settings.api ?? 'https://api.openai.com/v1/chat/completions'; // 确保API URL有默认值
+      localApiUrl.value = settings.api ?? 'https://api.openai.com/'; // 确保API URL有默认值
     }
   } catch (error) {
     console.error('加载AI模型设置失败', error);
@@ -83,7 +83,7 @@ const debouncedSave = debounce(async () => {
 
 // 监听设置变化，自动保存
 watch(
-  [localAigcEnabled, localToken, localModel],
+  [localAigcEnabled, localToken, localModel, localApiUrl],
   () => {
     // 初始化或保存中时不自动保存
     if (isInitializing.value || isSaving.value) {

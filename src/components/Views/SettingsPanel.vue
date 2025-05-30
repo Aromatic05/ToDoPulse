@@ -348,13 +348,7 @@ const handleTestWebDAVConnection = async (data: {
 };
 
 // WebDAV 同步
-const handleSyncWithWebDAV = async (data: {
-    host: string;
-    username: string;
-    password: string;
-    localDir: string;
-    remoteDir: string;
-}) => {
+const handleSyncWithWebDAV = async () => {
     try {
         const result = await SettingService.syncDirectoryWithWebDAV();
 

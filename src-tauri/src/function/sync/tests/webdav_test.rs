@@ -14,8 +14,8 @@ use anyhow::Result;
 async fn read_webdav_config() -> Option<(String, String, String)> {
     // 获取用户主目录
     let host = "https://webdav-1690957.pd1.123pan.cn/webdav/webdav";
-    let username = "user";
-    let password = "pass";
+    let username = "19852708075";
+    let password = "1ux6el41000d9v0ryy3ciwkvgbj3jmr3";
 
     // 确保所有必要的配置都存在
     Some((host.to_string(), username.to_string(), password.to_string()))
