@@ -226,8 +226,7 @@ const selectedCronIndex = ref(0);
 // 时分选择器状态
 const selectedHour = ref(9);
 const selectedMinute = ref(0);
-const minuteOptions = [0, 5, 10, 15, 20, 25, 30, 35, 40, 45, 50, 55];
-
+const minuteOptions = Array.from({ length: 60 }, (_, i) => i);
 // 星期几的选项
 const weekdays = [
   { text: "周一", value: 1 },

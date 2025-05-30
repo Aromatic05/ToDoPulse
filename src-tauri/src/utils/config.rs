@@ -22,6 +22,7 @@ time = ["0 12 * * *", "0 13 * * *"]
 switch = false
 name = "deepseek-v3"
 tokens = "4096"
+api = "https://api.deepseek.com/v1/chat/completions"
 [webdav]
 enabled = false
 host = "https://example.com"
@@ -55,6 +56,7 @@ pub struct Model {
     pub switch: bool,
     pub name: String,
     pub tokens: String,
+    pub api: String,
 }
 
 #[derive(Deserialize, Serialize, Clone, TS, F)]
@@ -196,11 +198,50 @@ pub fn parse_with_path<P: AsRef<Path>>(custom_path: Option<P>) -> Result<()> {
         fs::write(&config_path, DEFAULT_CONFIG)?;
     }
     let config_str = fs::read_to_string(&config_path)?;
-    let config: Config = toml::from_str(&config_str)?;
+
+    // 尝试解析配置
+    let config: Config = match toml::from_str(&config_str) {
+        Ok(config) => config,
+        Err(e) => {
+            log::error!("Failed to parse config file: {}", e);
+
+            // 如果解析失败，尝试修复损坏的配置，使用默认值
+            log::info!("Using default config values due to parse error");
+            DEFAULT_VALUES.clone()
+        }
+    };
+
+    // 检查并填充缺失的字段
+    let merged_config = merge_with_defaults(config);
+
+    // 将修复后的配置重新写入文件
+    if merged_config.1 {
+        log::info!("Config had missing fields, writing fixed configuration to disk");
+        let config_str = toml::to_string(&merged_config.0)?;
+        fs::write(&config_path, config_str)?;
+    }
 
     let mut config_lock = CONFIG.lock();
-    *config_lock = Some(config);
+    *config_lock = Some(merged_config.0);
     Ok(())
+}
+
+/// 将用户配置与默认配置合并，填充缺失的字段
+///
+/// 返回 (merged_config, was_modified)
+/// - merged_config: 合并后的配置
+/// - was_modified: 配置是否被修改（是否有字段被默认值填充）
+fn merge_with_defaults(mut user_config: Config) -> (Config, bool) {
+    let default_config = DEFAULT_VALUES.clone();
+    let mut was_modified = false;
+
+    // 使用派生宏生成的方法填充各个组件的默认值
+    user_config.theme.fill_defaults_from(&default_config.theme, &mut was_modified);
+    user_config.info.fill_defaults_from(&default_config.info, &mut was_modified);
+    user_config.model.fill_defaults_from(&default_config.model, &mut was_modified);
+    user_config.webdav.fill_defaults_from(&default_config.webdav, &mut was_modified);
+
+    (user_config, was_modified)
 }
 
 #[cfg(test)]

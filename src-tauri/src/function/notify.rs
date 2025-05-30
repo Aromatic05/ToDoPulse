@@ -37,13 +37,20 @@ pub async fn setup() {
     
     // 如果开关关闭或没有时间配置，直接返回
     if !info_config.switch || info_config.time.is_none() {
+        log::info!("Notification disabled or no time specified");
         return;
     }
     
     let time = info_config.time.unwrap();
     
+    // 使用更有意义的标题和内容
+    let title = "ToDoPulse 提醒";
+    let content = "该处理你的待办事项了!";
+    
+    log::info!("Setting up notification task at times: {:?}", time);
+    
     // 尝试创建任务，失败就返回
-    let task = match create_notify_desktop_task("", "content", time.iter().map(|s| s.as_str()).collect()) {
+    let task = match create_notify_desktop_task(title, content, time.iter().map(|s| s.as_str()).collect()) {
         Ok(task) => task,
         Err(e) => {
             log::error!("Failed to create notification task: {}", e);
@@ -53,4 +60,20 @@ pub async fn setup() {
     
     // 启动成功创建的任务
     TaskManager::start(Box::new(task)).await;
+    log::info!("Notification task started successfully");
+}
+
+#[tauri::command]
+pub fn test_notification() -> Result<(), String> {
+    match notify_desktop("测试通知", "如果你看到这条消息，说明通知系统工作正常!") {
+        Ok(_) => {
+            log::info!("Test notification sent successfully");
+            Ok(())
+        },
+        Err(e) => {
+            let error_msg = format!("Failed to send test notification: {}", e);
+            log::error!("{}", error_msg);
+            Err(error_msg)
+        }
+    }
 }

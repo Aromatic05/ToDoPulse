@@ -22,6 +22,14 @@
             hide-details
           ></v-text-field>
           <v-text-field
+            v-model="localApiUrl"
+            label="API URL"
+            variant="outlined"
+            density="compact"
+            class="mt-2"
+            hide-details
+          ></v-text-field>
+          <v-text-field
             v-model="localModel"
             label="模型名称 (如 gpt-3.5-turbo)"
             variant="outlined"
@@ -45,6 +53,7 @@ import { debounce } from '@/utils/debounce';
 const localAigcEnabled = ref(false);
 const localToken = ref('');
 const localModel = ref('');
+const localApiUrl = ref('https://api.openai.com/v1/chat/completions'); // 默认API URL
 const isSaving = ref(false);
 const isInitializing = ref(true);  // 初始化标志，用于防止初始化时触发自动保存
 const lastModified = ref(Date.now()); // 上次修改时间
@@ -58,6 +67,7 @@ onMounted(() => {
       localAigcEnabled.value = settings.switch ?? false;
       localToken.value = settings.tokens ?? '';
       localModel.value = settings.name ?? '';
+      localApiUrl.value = settings.api ?? 'https://api.openai.com/v1/chat/completions'; // 确保API URL有默认值
     }
   } catch (error) {
     console.error('加载AI模型设置失败', error);
@@ -79,6 +89,7 @@ const updateSettings = async () => {
       switch: localAigcEnabled.value,
       tokens: localToken.value,
       name: localModel.value,
+      api: localApiUrl.value,
     };
     await SettingService.saveSettings({Model: modelSetting});
     console.log('AI模型设置保存成功');

@@ -3,8 +3,6 @@ use std::path::{Path, PathBuf};
 use std::sync::OnceLock;
 use tauri::Manager;
 
-const APP_NAME: &str = "ToDoPulse";
-
 static APP_PATHS: OnceLock<AppPaths> = OnceLock::new();
 
 pub struct AppPaths {
@@ -23,15 +21,15 @@ impl AppPaths {
 
         log::info!("Initializing application paths");
         // 使用 OnceLock 来确保路径只被初始化一次
-        let data_dir = app.path().data_dir()?.join(APP_NAME);
-        let config_dir = app.path().config_dir()?.join(APP_NAME);
-        let log_dir = app.path().app_log_dir()?.join(APP_NAME);
+        let data_dir = app.path().data_dir()?;
+        let config_dir = app.path().config_dir()?;
+        let log_dir = app.path().app_log_dir()?;
 
         // 使用回退策略来获取文档目录
         let export_dir = match app.path().document_dir() {
-            Ok(path) => path.join(APP_NAME),
+            Ok(path) => path,
             Err(_) => {
-                let fallback_path = app.path().home_dir()?.join(APP_NAME);
+                let fallback_path = app.path().home_dir()?;
                 eprintln!(
                     "Failed to get document directory, using home directory as fallback: {:?}",
                     fallback_path
