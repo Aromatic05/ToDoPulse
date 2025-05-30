@@ -53,7 +53,7 @@
 
                             <div class="mb-4">
                                 <label class="text-subtitle-2 mb-2 d-block">标签预览</label>
-                                <v-chip :color="newTag.color" class="ma-1" variant="tonal">
+                                <v-chip :color="mapTagColor(newTag.color)" class="ma-1" variant="tonal">
                                     {{ newTag.name || '标签预览' }}
                                 </v-chip>
                             </div>
