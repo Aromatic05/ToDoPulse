@@ -6,14 +6,7 @@ use tokio::sync::Mutex;
 
 use crate::utils::config::{self};
 
-// 导入同步子模块
-pub mod diff;
-pub mod model;
-pub mod state;
-pub mod sync_operations;
-#[cfg(test)]
-pub mod tests;
-pub mod webdav;
+use webdav::sync_operations;
 
 // 同步状态
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -192,18 +185,7 @@ pub async fn get_sync_status(
     Ok(state.get_status().await)
 }
 
-/// Tests the connection to a WebDAV server
-///
-/// Attempts to connect to the specified WebDAV server with the provided credentials.
-/// This is used to validate WebDAV settings before enabling sync functionality.
-///
-/// # Parameters
-/// * `host` - WebDAV server URL (e.g., "https://nextcloud.example.com/remote.php/dav/files/username/")
-/// * `username` - WebDAV username for authentication
-/// * `password` - WebDAV password for authentication
-///
-/// # Returns
-/// * `Result<bool, String>` - true if connection successful, or error message
+
 #[tauri::command]
 pub async fn test_webdav_connection(
     host: String,

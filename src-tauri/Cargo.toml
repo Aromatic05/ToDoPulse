@@ -3,7 +3,7 @@ name = "ToDoPulse"
 version = "0.1.0"
 description = "A simple todo list app"
 authors = ["you"]
-edition = "2021"
+edition = "2024"
 
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
@@ -47,7 +47,8 @@ async-trait = "0.1.88"
 openssl = { version = "*", features = ["vendored"], optional = true }
 tauri-plugin-fs = "2"
 parking_lot = "0.12.3"
-field_macro = { path = "./src/utils/field_macro", version = "0.1.0" } # 不需要修改路径引用
+field_macro = { path = "../field_macro" }
+webdav = { path = "../webdav" }
 urlencoding = "2.1"
 
 [dev-dependencies]

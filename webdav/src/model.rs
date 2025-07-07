@@ -1,6 +1,7 @@
 use chrono::{DateTime, Utc};
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
+use std::fmt;
 use std::path::PathBuf;
 
 /// 文件/目录类型
@@ -14,11 +15,11 @@ pub enum EntryType {
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct EntryState {
     /// 相对路径（以/开头）
-    pub path: String,
+    pub path: PathBuf,
     /// 条目类型（文件或目录）
     pub entry_type: EntryType,
     /// 修改时间
-    pub modified: Option<DateTime<Utc>>,
+    pub modified: DateTime<Utc>,
     /// 文件大小（仅对文件有效）
     pub size: Option<u64>,
     /// 文件内容哈希值（可选，仅对文件有效）
@@ -27,18 +28,17 @@ pub struct EntryState {
 
 impl EntryState {
     /// 创建新的文件状态
-    pub fn new_file(path: String, modified: Option<DateTime<Utc>>, size: Option<u64>) -> Self {
+    pub fn new_file(path: PathBuf, modified: DateTime<Utc>, size: u64) -> Self {
         Self {
             path,
             entry_type: EntryType::File,
             modified,
-            size,
+            size: Some(size),
             content_hash: None,
         }
     }
-
     /// 创建新的目录状态
-    pub fn new_directory(path: String, modified: Option<DateTime<Utc>>) -> Self {
+    pub fn new_directory(path: PathBuf, modified: DateTime<Utc>) -> Self {
         Self {
             path,
             entry_type: EntryType::Directory,
@@ -47,7 +47,6 @@ impl EntryState {
             content_hash: None,
         }
     }
-
     /// 设置内容哈希值
     pub fn with_hash(mut self, hash: String) -> Self {
         self.content_hash = Some(hash);
@@ -69,7 +68,7 @@ impl EntryState {
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct FileSystemState {
     /// 条目集合，键为相对路径
-    pub entries: HashMap<String, EntryState>,
+    pub entries: HashMap<PathBuf, EntryState>,
     /// 状态收集时间
     pub collection_time: DateTime<Utc>,
 }
@@ -121,7 +120,7 @@ pub enum DiffType {
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct DiffEntry {
     /// 条目路径
-    pub path: String,
+    pub path: PathBuf,
     /// 差异类型
     pub diff_type: DiffType,
     /// 条目类型
@@ -141,6 +140,30 @@ impl DiffEntry {
     /// 检查是否为目录
     pub fn is_directory(&self) -> bool {
         self.entry_type == EntryType::Directory
+    }
+}
+
+impl fmt::Display for DiffEntry {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        let local_status = if self.local_state.is_some() {
+            "exsit"
+        } else {
+            "not exsit"
+        };
+        let remote_status = if self.remote_state.is_some() {
+            "exsit"
+        } else {
+            "not exsit"
+        };
+        write!(
+            f,
+            "DiffEntry(path: {}, type: {:?}, diff_type: {:?}, local: {}, remote: {})",
+            self.path.display(),
+            self.entry_type,
+            self.diff_type,
+            local_status,
+            remote_status
+        )
     }
 }
 
@@ -238,7 +261,7 @@ pub struct SyncOperation {
     /// 操作类型
     pub operation_type: SyncOperationType,
     /// 相对路径
-    pub path: String,
+    pub path: PathBuf,
     /// 条目类型
     pub entry_type: EntryType,
     /// 操作状态
@@ -276,7 +299,7 @@ pub struct SyncSession {
     /// 本地目录
     pub local_dir: PathBuf,
     /// 远程目录
-    pub remote_dir: String,
+    pub remote_dir: PathBuf,
     /// 会话状态
     pub status: SyncSessionStatus,
     /// 错误信息（如果有）
@@ -306,7 +329,7 @@ pub enum SyncSessionStatus {
 
 impl SyncSession {
     /// 创建新的同步会话
-    pub fn new(local_dir: PathBuf, remote_dir: String) -> Self {
+    pub fn new(local_dir: PathBuf, remote_dir: PathBuf) -> Self {
         Self {
             id: uuid::Uuid::new_v4().to_string(),
             start_time: Utc::now(),

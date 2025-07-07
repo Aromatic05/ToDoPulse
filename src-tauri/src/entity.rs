@@ -44,7 +44,7 @@ where
     R: tauri::Runtime;
 
 pub struct Storage {
-    db: Database,
+    pub db: Database,
 }
 
 impl Storage {

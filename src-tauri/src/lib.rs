@@ -4,11 +4,13 @@ mod filter;
 mod function; // 功能
 mod init; // 初始化模块
 mod utils; // 通用工具函数
+#[cfg(test)]
+mod test;
 
 use entity::{event, list, tag};
 use function::{export, sync, upload, aigc};
 use tauri_plugin_dialog;
-use utils::{config};
+use utils::config;
 
 #[cfg(desktop)]
 use utils::init_tray;

@@ -1,4 +1,4 @@
-use crate::function::sync::model::{DiffEntry, DiffResult, DiffType, EntryState, FileSystemState};
+use crate::model::{DiffEntry, DiffResult, DiffType, EntryState, FileSystemState};
 use anyhow::Result;
 use chrono::{DateTime, Duration, Utc};
 use log::info;
@@ -6,11 +6,9 @@ use log::info;
 /// 差异比较配置
 pub struct DiffConfig {
     /// 修改时间容差（秒）
-    /// 有些文件系统的时间戳精度可能不同，允许一定的误差
     pub time_tolerance: i64,
 
     /// 是否比较文件内容哈希
-    /// 如果为true，则需要两个状态中都包含内容哈希
     pub compare_hash: bool,
 
     /// 是否忽略修改时间，仅比较大小和/或哈希
@@ -20,7 +18,7 @@ pub struct DiffConfig {
 impl Default for DiffConfig {
     fn default() -> Self {
         Self {
-            time_tolerance: 1, // 1秒容差
+            time_tolerance: 1,
             compare_hash: false,
             ignore_time: false,
         }
@@ -28,14 +26,9 @@ impl Default for DiffConfig {
 }
 
 /// 比较两个时间戳是否相等（考虑容差）
-fn time_equals(t1: &Option<DateTime<Utc>>, t2: &Option<DateTime<Utc>>, tolerance: i64) -> bool {
-    match (t1, t2) {
-        (Some(time1), Some(time2)) => {
-            let duration = time1.signed_duration_since(*time2).abs();
-            duration <= Duration::seconds(tolerance)
-        }
-        _ => false,
-    }
+fn time_equals(t1: &DateTime<Utc>, t2: &DateTime<Utc>, tolerance: i64) -> bool {
+    let duration = t1.signed_duration_since(*t2).abs();
+    duration <= Duration::seconds(tolerance)
 }
 
 /// 比较两个文件系统状态，生成差异报告

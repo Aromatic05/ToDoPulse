@@ -1,11 +1,12 @@
 [workspace.package]
-authors = ["ToDoPulse Team"]
+authors = ["Avandar2024 and Aromatic05"]
 edition = "2024"
 
 [workspace]
 members = [
     "src-tauri",
-    "src-tauri/src/utils/field_macro"
+    "field_macro",
+    "webdav",
 ]
 resolver = "3"
 

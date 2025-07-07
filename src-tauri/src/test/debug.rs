@@ -1,4 +1,3 @@
-#[cfg(any(debug_assertions, test))]
 mod debug {
     use redb::{Database, ReadableTable, TableDefinition};
     use std::path::Path;
@@ -82,7 +81,6 @@ mod debug {
     }
 }
 
-#[cfg(test)]
 mod tests {
     use super::debug::print_lists_data;
 
