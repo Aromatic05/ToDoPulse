@@ -1,26 +1,15 @@
 use crate::model::{EntryState, FileSystemState};
 use anyhow::{Result, anyhow};
-use field_macro::ConfigField as F;
 use log::{debug, error, info};
 use path_clean::PathClean;
 use reqwest_dav::{Auth, Client, ClientBuilder, Depth, list_cmd::ListEntity};
-use serde::{Deserialize, Serialize};
 use std::path::{Path, PathBuf};
 use tokio::fs;
-use ts_rs::TS;
-
-#[derive(Deserialize, Serialize, Clone, TS, F)]
-pub struct WebDav {
-    pub enabled: bool,
-    pub host: String,
-    pub username: String,
-    pub password: String,
-    pub remote_dir: String,
-}
 
 /// 创建WebDAV客户端
-pub async fn create_client(host: &str, username: &str, password: &str) -> Result<Client> {
-    debug!("创建WebDAV客户端: {}", host);
+pub async fn create_client(credential: (&str, &str, &str)) -> Result<Client> {
+    debug!("创建WebDAV客户端: {}", credential.0);
+    let (host, username, password) = credential;
 
     // 创建WebDAV客户端
     let client = ClientBuilder::new()
@@ -35,7 +24,7 @@ pub async fn create_client(host: &str, username: &str, password: &str) -> Result
 pub async fn test_connection(host: &str, username: &str, password: &str) -> Result<bool> {
     debug!("测试WebDAV连接: {}", host);
 
-    let client = create_client(host, username, password).await?;
+    let client = create_client((host, username, password)).await?;
 
     // 尝试列出根目录内容来测试连接
     match client.list("/", Depth::Number(1)).await {
@@ -61,13 +50,12 @@ pub async fn ensure_remote_dir_exists(client: &Client, dir: &Path) -> Result<()>
     for part in dir.components().filter(|c| c.as_os_str() != "/") {
         current_path.push(part);
 
-        if let Some(path_str) = current_path.to_str() {
-            if client.list(path_str, Depth::Number(0)).await.is_err() {
-                debug!("创建远程目录: {}", path_str);
-                client.mkcol(path_str).await?;
-            } else {
-                debug!("远程目录已存在: {}", path_str);
-            }
+        let path_str = &current_path.as_os_str().to_string_lossy();
+        if client.list(path_str, Depth::Number(0)).await.is_err() {
+            debug!("创建远程目录: {}", path_str);
+            client.mkcol(path_str).await?;
+        } else {
+            debug!("远程目录已存在: {}", path_str);
         }
     }
 
@@ -75,9 +63,10 @@ pub async fn ensure_remote_dir_exists(client: &Client, dir: &Path) -> Result<()>
 }
 
 /// 上传文件到WebDAV服务器
-pub async fn upload_file(client: &Client, local_path: &Path, remote_path: &str) -> Result<()> {
-    debug!("上传文件: {} -> {}", local_path.display(), remote_path);
+pub async fn upload_file(client: &Client, local_path: &Path, remote_path: &Path) -> Result<()> {
+    debug!("上传文件: {} -> {}", local_path.display(), remote_path.display());
 
+    let remote_path = &remote_path.as_os_str().to_string_lossy();
     // 读取本地文件
     let content = fs::read(local_path).await?;
 
@@ -89,9 +78,10 @@ pub async fn upload_file(client: &Client, local_path: &Path, remote_path: &str) 
 }
 
 /// 从WebDAV服务器下载文件
-pub async fn download_file(client: &Client, remote_path: &str, local_path: &Path) -> Result<()> {
-    debug!("下载文件: {} -> {}", remote_path, local_path.display());
+pub async fn download_file(client: &Client, remote_path: &Path, local_path: &Path) -> Result<()> {
+    debug!("下载文件: {} -> {}", remote_path.display(), local_path.display());
 
+    let remote_path = &remote_path.as_os_str().to_string_lossy();
     // 创建父目录（如果不存在）
     if let Some(parent) = local_path.parent() {
         fs::create_dir_all(parent).await?;

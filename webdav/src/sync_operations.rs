@@ -1,103 +1,62 @@
 use anyhow::{Result, anyhow};
 use chrono::Utc;
+use core::panic;
 use log::{debug, error, info, warn};
-use std::path::Path;
-use urlencoding;
+use reqwest_dav::Client;
+use std::path::{Path, PathBuf};
 
-use crate::webdav::WebDav;
 use crate::diff::{DiffConfig, compare_states};
-use crate::model::{
-    ConflictStrategy, DiffResult, DiffType, EntryState, FileSystemState, SyncOperation,
-    SyncOperationStatus, SyncOperationType, SyncSession, SyncSessionStatus,
-};
+use crate::manager::{with_app_path, with_config};
+use crate::model::*;
+use crate::path_resolver::PathResolver;
 use crate::state::{StateCollectionConfig, collect_local_state, load_state, save_state};
+use crate::webdav::*;
+use crate::{with_config_if_enabled, without_config_enabled};
 
-/// 路径处理工具
-struct PathProcessor {}
+pub trait PathExt {
+    fn contains(&self, pattern: &str) -> bool;
+}
 
-impl PathProcessor {
-    /// 从完整的WebDAV路径提取标准化路径
-    /// 输入: "/webdav/webdav/ToDoPulse/5555.md"
-    /// 输出: "/ToDoPulse/5555.md"
-    fn extract_relative_path(&self, webdav_url: &str) -> Option<String> {
-        debug!("=== extract_relative_path 开始 ===");
-        debug!("输入路径: '{}'", webdav_url);
+impl PathExt for PathBuf {
+    fn contains(&self, pattern: &str) -> bool {
+        self.to_string_lossy().contains(pattern)
+    }
+}
 
-        // URL解码
-        let decoded = match urlencoding::decode(webdav_url) {
-            Ok(d) => d.into_owned(),
-            Err(e) => {
-                warn!("URL解码失败: {} - {}", webdav_url, e);
-                return None;
-            }
-        };
-        debug!("URL解码后: '{}'", decoded);
-
-        // 固定移除 "/webdav/webdav" 前缀
-        const WEBDAV_PREFIX: &str = "/webdav/webdav";
-
-        if decoded.starts_with(WEBDAV_PREFIX) {
-            let after_prefix = &decoded[WEBDAV_PREFIX.len()..];
-
-            // 如果结果为空或只是斜杠，表示这是根目录
-            if after_prefix.is_empty() || after_prefix == "/" {
-                debug!("检测到根目录，返回空字符串");
-                return Some(String::new());
-            }
-
-            // 确保以斜杠开头的标准格式
-            let normalized = format!("/{}", after_prefix.trim_start_matches('/'));
-
-            debug!("最终标准化结果: '{}'", normalized);
-            Some(normalized)
-        } else {
-            warn!("路径不以webdav前缀开头: '{}'", decoded);
-            None
-        }
+impl PathExt for Path {
+    fn contains(&self, pattern: &str) -> bool {
+        self.to_string_lossy().contains(pattern)
     }
 }
 
 /// 将配置应用到会话
 pub fn apply_config_to_session(session: &mut SyncSession) -> Result<()> {
-    let webdav_config = WebDav::load()?;
-
-    // 检查WebDAV是否启用
-    if !webdav_config.enabled {
-        return Err(anyhow!("WebDAV同步未启用"));
-    }
-
-    // 更新会话的远程目录
-    session.remote_dir = webdav_config.remote_dir.clone().into();
-
-    Ok(())
+    with_config_if_enabled!(
+      |config| {
+        Ok(session.remote_dir = config.remote_dir().to_path_buf())
+      },
+      else Err(anyhow!("WebDAV配置未加载"))
+    )
 }
 
 /// 创建一个新的同步会话
 pub fn create_sync_session() -> Result<SyncSession> {
     // 获取本地数据目录
-    let local_dir = AppPaths::data_dir().clone();
+    let local_dir = with_app_path(|app| app.data_dir().clone());
 
     // 从配置中获取远程目录
-    let remote_dir = {
-        let webdav_config = WebDav::load()?;
-        if webdav_config.enabled {
-            webdav_config.remote_dir.clone()
-        } else {
-            "/ToDoPulse".to_string()
-        }
-    };
+    let remote_dir = with_config_if_enabled!(
+      |config| {
+        config.remote_dir().to_path_buf()
+      },
+      else "/ToDoPulse".into()
+    );
 
     // 创建会话
     let mut session = SyncSession::new(local_dir, remote_dir);
 
     // 更新配置
-    match apply_config_to_session(&mut session) {
-        Ok(_) => {}
-        Err(e) => {
-            session.fail(format!("配置应用失败: {}", e));
-            return Ok(session);
-        }
-    }
+    apply_config_to_session(&mut session).map_err(|e| anyhow!("应用配置到会话失败: {}", e))?;
 
     Ok(session)
 }
@@ -106,22 +65,12 @@ pub fn create_sync_session() -> Result<SyncSession> {
 pub async fn collect_states(
     session: &mut SyncSession,
 ) -> Result<(FileSystemState, FileSystemState)> {
+    // get client
+    let client = client().await?;
+
     session.status = SyncSessionStatus::CollectingState;
 
-    let webdav_config = WebDav::load()?;
-    if !webdav_config.enabled {
-        return Err(anyhow!("WebDAV同步未启用"));
-    }
-
-    let client = crate::create_client(
-        &webdav_config.host,
-        &webdav_config.username,
-        &webdav_config.password,
-    )
-    .await?;
-
     // 创建路径处理器
-    let path_processor = PathProcessor {};
 
     // 收集本地状态
     info!("收集本地文件系统状态: {}", session.local_dir.display());
@@ -130,19 +79,7 @@ pub async fn collect_states(
 
     // 收集远程状态
     info!("收集远程文件系统状态: {}", session.remote_dir.display());
-    let webdav_remote_state = crate::collect_remote_state(&client, &session.remote_dir).await?;
-
-    // 添加详细的原始路径调试
-    info!("WebDAV 原始收集结果:");
-    for (original_path, entry) in &webdav_remote_state.entries {
-        info!(
-            "  原始路径: '{}', 类型: {}",
-            original_path.display(),
-            if entry.is_file() { "文件" } else { "目录" }
-        );
-    }
-
-    // 转换远程状态
+    let webdav_remote_state = collect_remote_state(&client, &session.remote_dir).await?;
     let mut remote_state = FileSystemState::new();
     remote_state.collection_time = webdav_remote_state.collection_time;
 
@@ -152,58 +89,7 @@ pub async fn collect_states(
     );
 
     for (webdav_path, webdav_entry) in &webdav_remote_state.entries {
-        debug!("=== 开始处理路径 ===");
-        debug!("原始WebDAV路径: '{}'", webdav_path.display());
-
-        if let Some(normalized_path) = path_processor.extract_relative_path(webdav_path) {
-            debug!("extract_relative_path 返回: '{}'", normalized_path);
-
-            if normalized_path.is_empty() {
-                debug!("路径为空，跳过根目录: '{}'", webdav_path.display());
-                continue;
-            }
-
-            info!(
-                "路径处理: '{}' -> '{}'",
-                webdav_path.display(),
-                normalized_path.display()
-            );
-
-            // 验证：确保路径不再包含webdav信息
-            if normalized_path.contains("webdav") {
-                error!("路径处理失败，仍包含webdav信息: '{}'", normalized_path);
-                return Err(anyhow!("路径处理错误: '{}'", normalized_path));
-            }
-
-            // 转换为相对路径用于内部存储（移除前导斜杠）
-            let relative_path = normalized_path.trim_start_matches('/');
-            debug!("内部存储路径: '{}'", relative_path);
-
-            // 关键验证：检查是否意外移除了重要路径部分
-            if !relative_path.contains("ToDoPulse") && webdav_path.contains("ToDoPulse") {
-                error!("严重错误：ToDoPulse路径部分被意外移除！");
-                error!("原始路径: '{}'", webdav_path.display());
-                error!("标准化路径: '{}'", normalized_path.display());
-                error!("最终路径: '{}'", relative_path.display());
-                return Err(anyhow!("路径处理错误：ToDoPulse部分丢失"));
-            }
-
-            if webdav_entry.is_file() {
-                let entry = EntryState::new_file(
-                    relative_path,
-                    webdav_entry.modified,
-                    webdav_entry.size,
-                );
-                remote_state.add_entry(entry);
-            } else {
-                let entry =
-                    EntryState::new_directory(relative_path.to_string(), webdav_entry.modified);
-                remote_state.add_entry(entry);
-            }
-        } else {
-            warn!("extract_relative_path 返回 None: '{}'", webdav_path.display());
-        }
-        debug!("=== 路径处理完成 ===");
+        path_resolve(webdav_path, webdav_entry, &mut remote_state);
     }
 
     info!(
@@ -213,39 +99,63 @@ pub async fn collect_states(
     );
 
     // 最终验证
-    for (path, _) in &remote_state.entries {
-        if path.contains("webdav") {
-            return Err(anyhow!("状态收集失败，路径包含webdav信息: '{}'", path));
-        }
+    if let Some((path, _)) = remote_state
+        .entries
+        .iter()
+        .find(|(path, _)| path.to_string_lossy().contains("webdav"))
+    {
+        panic!("状态收集失败,路径包含webdav信息: '{}'", path.display());
     }
 
     Ok((local_state, remote_state))
 }
 
+// 辅助函数
+async fn client() -> Result<Box<Client>> {
+    // --- 1. 同步阶段：获取所需数据的 "所有权" ---
+    // with_config 是同步的，它会锁住全局配置并执行闭包
+    let maybe_creds = with_config(|config| {
+        if config.enabled() {
+            // a. 从 config 获取借用的元组 (&str, &str, &str)
+            let (host, user, pass) = config.credential();
+
+            // b. 分别将每个 &str 转换为拥有的 String，并组装成新元组
+            //    这是解决生命周期问题的关键
+            Some((host.to_owned(), user.to_owned(), pass.to_owned()))
+        } else {
+            None
+        }
+    });
+
+    // --- 2. 卫语句：处理配置未启用的情况 ---
+    let Some(creds) = maybe_creds else {
+        // 如果配置未启用，返回一个明确的错误
+        return Err(anyhow!("WebDAV配置未启用"));
+    };
+
+    // --- 3. 异步阶段：使用拥有所有权的数据执行异步操作 ---
+    // 现在 creds 的类型是 (String, String, String)，我们需要传递引用给 create_client
+    // 使用 `?` 操作符来优雅地处理 create_client 可能返回的错误
+    let client = create_client((&creds.0, &creds.1, &creds.2)).await?;
+
+    Ok(Box::new(client))
+}
+
 /// 执行同步操作
 pub async fn execute_sync_operations(
     mut session: SyncSession,
-    webdav_config: WebDav,
+    client: &Client,
 ) -> Result<SyncSession> {
     session.status = SyncSessionStatus::Executing;
     info!("执行同步操作");
 
-    if !webdav_config.enabled {
-        return Err(anyhow!("WebDAV同步未启用"));
-    }
-
-    let client = crate::create_client(
-        &webdav_config.host,
-        &webdav_config.username,
-        &webdav_config.password,
-    )
-    .await?;
+    without_config_enabled!(return Err(anyhow!("WebDAV配置未启用，无法执行同步操作")));
 
     // 创建路径处理器
-    let path_processor = PathProcessor {};
+    let path_processor = PathResolver {};
 
     // 确保远程目录存在
-    crate::ensure_remote_dir_exists(&client, &session.remote_dir).await?;
+    ensure_remote_dir_exists(&client, &session.remote_dir).await?;
 
     for operation in &mut session.operations {
         if operation.status != SyncOperationStatus::Pending {
@@ -255,7 +165,10 @@ pub async fn execute_sync_operations(
         operation.status = SyncOperationStatus::InProgress;
 
         // operation.path 应该是相对路径，如 "ToDoPulse/dffff/dffff.md"
-        let relative_path = operation.path.trim_start_matches('/');
+        let relative_path = operation
+        .path
+        .strip_prefix("/")
+        .unwrap_or(&operation.path);
 
         // 从相对路径中移除 ToDoPulse 前缀来构建本地路径
         let local_relative_path = relative_path
@@ -264,15 +177,15 @@ pub async fn execute_sync_operations(
 
         match operation.operation_type {
             SyncOperationType::Download => {
-                info!("下载文件: {}", relative_path);
+                info!("下载文件: {}", relative_path.display());
 
                 let local_path = session.local_dir.join(local_relative_path);
-                let remote_path = format!("/{}", relative_path.trim_start_matches('/'));
+                let remote_path = Path::new("/").join(relative_path);
 
                 info!(
                     "下载 - 本地: {}, 远程: {}",
                     local_path.display(),
-                    remote_path
+                    remote_path.display()
                 );
 
                 // 确保父目录存在
@@ -284,28 +197,28 @@ pub async fn execute_sync_operations(
                     }
                 }
 
-                match crate::download_file(&client, &remote_path, &local_path).await {
+                match download_file(&client, &remote_path, &local_path).await {
                     Ok(_) => {
                         operation.status = SyncOperationStatus::Completed;
-                        info!("下载完成: {}", relative_path);
+                        info!("下载完成: {}", relative_path.display());
                     }
                     Err(e) => {
                         operation.status = SyncOperationStatus::Failed;
                         operation.error = Some(format!("下载失败: {}", e));
-                        error!("下载失败 {}: {}", relative_path, e);
+                        error!("下载失败 {}: {}", relative_path.display(), e);
                     }
                 }
             }
             SyncOperationType::Upload => {
-                info!("上传文件: {}", relative_path);
+                info!("上传文件: {}", relative_path.display());
 
                 let local_path = session.local_dir.join(local_relative_path);
-                let remote_path = format!("/{}", relative_path.trim_start_matches('/'));
+                let remote_path = Path::new("/").join(relative_path);
 
                 info!(
                     "上传 - 本地: {}, 远程: {}",
                     local_path.display(),
-                    remote_path
+                    remote_path.display()
                 );
 
                 if !local_path.exists() {
@@ -317,17 +230,17 @@ pub async fn execute_sync_operations(
                 match upload_file(&client, &local_path, &remote_path).await {
                     Ok(_) => {
                         operation.status = SyncOperationStatus::Completed;
-                        info!("上传完成: {}", relative_path);
+                        info!("上传完成: {}", relative_path.display());
                     }
                     Err(e) => {
                         operation.status = SyncOperationStatus::Failed;
                         operation.error = Some(format!("上传失败: {}", e));
-                        error!("上传失败 {}: {}", relative_path, e);
+                        error!("上传失败 {}: {}", relative_path.display(), e);
                     }
                 }
             }
             SyncOperationType::CreateLocalDirectory => {
-                info!("创建本地目录: {}", relative_path);
+                info!("创建本地目录: {}", relative_path.display());
 
                 let local_path = session.local_dir.join(local_relative_path);
 
@@ -342,9 +255,9 @@ pub async fn execute_sync_operations(
                 }
             }
             SyncOperationType::CreateRemoteDirectory => {
-                info!("创建远程目录: {}", relative_path);
+                info!("创建远程目录: {}", relative_path.display());
 
-                let remote_path = format!("/{}", relative_path.trim_start_matches('/'));
+                let remote_path = Path::new("/").join(relative_path);
 
                 match ensure_remote_dir_exists(&client, &remote_path).await {
                     Ok(_) => {
@@ -389,6 +302,7 @@ pub async fn execute_sync_operations(
 
 /// 执行完整的同步流程
 pub async fn perform_sync() -> Result<SyncSession> {
+    let client = client().await?;
     // 创建同步会话
     let mut session = create_sync_session()?;
 
@@ -455,7 +369,7 @@ pub async fn perform_sync() -> Result<SyncSession> {
     }
 
     // 执行同步操作
-    execute_sync_operations(session).await
+    execute_sync_operations(session, &client).await
 }
 
 /// 保存和加载同步状态
@@ -467,7 +381,7 @@ pub async fn save_sync_state(
     info!("开始保存同步状态");
 
     // 创建状态目录
-    let state_dir = AppPaths::config_dir().join("sync_state");
+    let state_dir = with_app_path(|app| app.config_dir().join("sync_state"));
     if let Err(e) = tokio::fs::create_dir_all(&state_dir).await {
         warn!("创建同步状态目录失败: {}", e);
         return Err(anyhow!("无法创建同步状态目录: {}", e));
@@ -518,7 +432,7 @@ pub async fn save_sync_state(
 /// 加载同步状态
 pub async fn load_sync_state() -> Result<(Option<FileSystemState>, Option<FileSystemState>)> {
     info!("开始加载同步状态");
-    let state_dir = AppPaths::config_dir().join("sync_state");
+    let state_dir = with_app_path(|app| app.config_dir().join("sync_state"));
     let local_state_path = state_dir.join("local_state.json");
     let remote_state_path = state_dir.join("remote_state.json");
 
@@ -590,186 +504,189 @@ pub fn plan_sync_operations(
     session.status = SyncSessionStatus::Planning;
     info!("计划同步操作");
 
-    // 调试：输出所有差异条目的详细信息
-    info!("差异分析结果：");
     for entry in &diff.entries {
-        info!("差异分析结果:{}", entry);
+        debug!("差异分析结果:{}", entry);
     }
 
     // 首先处理目录操作，确保目录结构存在
-    for entry in &diff.entries {
-        if entry.is_directory() {
-            match entry.diff_type {
-                DiffType::Added => {
-                    // 本地添加的目录，需要在远程创建
-                    if entry.local_state.is_some() && entry.remote_state.is_none() {
-                        info!("计划创建远程目录: {}", entry.path.display());
-                        session.add_operation(SyncOperation {
-                            operation_type: SyncOperationType::CreateRemoteDirectory,
-                            path: entry.path.clone(),
-                            entry_type: entry.entry_type.clone(),
-                            status: SyncOperationStatus::Pending,
-                            error: None,
-                        });
-                    }
-                    // 远程添加的目录，需要在本地创建
-                    else if entry.remote_state.is_some() && entry.local_state.is_none() {
-                        info!("计划创建本地目录: {}", entry.path.display());
-                        session.add_operation(SyncOperation {
-                            operation_type: SyncOperationType::CreateLocalDirectory,
-                            path: entry.path.clone(),
-                            entry_type: entry.entry_type.clone(),
-                            status: SyncOperationStatus::Pending,
-                            error: None,
-                        });
-                    }
-                }
-                DiffType::Deleted => {
-                    // 临时禁用删除操作
-                    info!("跳过删除目录操作: {})", entry);
-                }
-                _ => {} // 对于目录，其他差异类型不需要特殊处理
-            }
-        }
-    }
-
-    // 然后处理文件操作
-    for entry in &diff.entries {
-        if entry.is_file() {
-            match entry.diff_type {
-                DiffType::Added => {
-                    // 本地添加的文件，需要上传
-                    if entry.local_state.is_some() && entry.remote_state.is_none() {
-                        info!("计划上传本地新文件: {}", entry.path.display());
-                        session.add_operation(SyncOperation {
-                            operation_type: SyncOperationType::Upload,
-                            path: entry.path.clone(),
-                            entry_type: entry.entry_type.clone(),
-                            status: SyncOperationStatus::Pending,
-                            error: None,
-                        });
-                    }
-                    // 远程添加的文件，需要下载
-                    else if entry.remote_state.is_some() && entry.local_state.is_none() {
-                        info!("计划下载远程新文件: {}", entry.path.display());
-                        session.add_operation(SyncOperation {
-                            operation_type: SyncOperationType::Download,
-                            path: entry.path.clone(),
-                            entry_type: entry.entry_type.clone(),
-                            status: SyncOperationStatus::Pending,
-                            error: None,
-                        });
-                    }
-                }
-                DiffType::Deleted => {
-                    // 检测到删除文件，但需要检查这个文件是真的被删除了还是被错误分类了
-                    info!("检测到删除文件: {})", entry);
-
-                    // 如果远程存在但本地不存在，这应该是一个新的远程文件，需要下载而不是删除
-                    if entry.remote_state.is_some() && entry.local_state.is_none() {
-                        warn!(
-                            "差异分析错误：文件 {} 被错误地标记为删除，实际应该下载",
-                            entry.path.display()
-                        );
-                        info!("修正：计划下载远程新文件: {}", entry.path.display());
-                        session.add_operation(SyncOperation {
-                            operation_type: SyncOperationType::Download,
-                            path: entry.path.clone(),
-                            entry_type: entry.entry_type.clone(),
-                            status: SyncOperationStatus::Pending,
-                            error: None,
-                        });
-                    }
-                    // 如果本地存在但远程不存在，这是一个本地文件需要上传
-                    else if entry.local_state.is_some() && entry.remote_state.is_none() {
-                        warn!(
-                            "差异分析错误：文件 {} 被错误地标记为删除，实际应该上传",
-                            entry.path.display()
-                        );
-                        info!("修正：计划上传本地新文件: {}", entry.path.display());
-                        session.add_operation(SyncOperation {
-                            operation_type: SyncOperationType::Upload,
-                            path: entry.path.clone(),
-                            entry_type: entry.entry_type.clone(),
-                            status: SyncOperationStatus::Pending,
-                            error: None,
-                        });
-                    } else {
-                        info!("跳过删除文件操作: {}", entry.path.display());
-                    }
-                }
-                DiffType::Modified => {
-                    // 文件被修改，根据冲突策略决定操作
-                    match conflict_strategy {
-                        ConflictStrategy::PreferLocal => {
-                            // 优先使用本地版本，上传
-                            info!("计划上传本地修改的文件: {}", entry.path.display());
-                            session.add_operation(SyncOperation {
-                                operation_type: SyncOperationType::Upload,
-                                path: entry.path.clone(),
-                                entry_type: entry.entry_type.clone(),
-                                status: SyncOperationStatus::Pending,
-                                error: None,
-                            });
-                        }
-                        ConflictStrategy::PreferRemote => {
-                            // 优先使用远程版本，下载
-                            info!("计划下载远程修改的文件: {}", entry.path.display());
-                            session.add_operation(SyncOperation {
-                                operation_type: SyncOperationType::Download,
-                                path: entry.path.clone(),
-                                entry_type: entry.entry_type.clone(),
-                                status: SyncOperationStatus::Pending,
-                                error: None,
-                            });
-                        }
-                        ConflictStrategy::KeepBoth => {
-                            let path = Path::new(&entry.path);
-                            let timestamp = Utc::now().timestamp();
-
-                            let stem = format!(
-                                "{}_remote_{}",
-                                path.file_stem().and_then(|s| s.to_str()).unwrap_or(""),
-                                timestamp
-                            );
-
-                            let mut path_buf = path.with_file_name(stem);
-                            if let Some(ext) = path.extension() {
-                                path_buf.set_extension(ext);
-                            }
-
-                            info!(
-                                "计划下载远程版本并重命名: {} -> {}",
-                                entry.path.display(),
-                                path_buf.display()
-                            );
-                            // 用新路径下载远程文件
-                            session.add_operation(SyncOperation {
-                                operation_type: SyncOperationType::Download,
-                                path: path_buf,
-                                entry_type: entry.entry_type.clone(),
-                                status: SyncOperationStatus::Pending,
-                                error: None,
-                            });
-                        }
-                        ConflictStrategy::Skip => {
-                            // 跳过冲突文件
-                            info!("跳过冲突文件: {}", entry.path.display());
-                            session.add_operation(SyncOperation {
-                                operation_type: SyncOperationType::Skip,
-                                path: entry.path.clone(),
-                                entry_type: entry.entry_type.clone(),
-                                status: SyncOperationStatus::Skipped,
-                                error: Some("冲突文件已跳过".to_string()),
-                            });
-                        }
-                    }
-                }
-                _ => {} // 其他情况不需要处理
-            }
-        }
-    }
+    diff.entries
+        .iter()
+        .for_each(|entry| match entry.entry_type {
+            EntryType::Directory => do_when_dir(session, entry),
+            EntryType::File => do_when_file(session, entry, conflict_strategy),
+        });
 
     info!("计划了 {} 个同步操作", session.operations.len());
     Ok(())
+}
+
+// 辅助函数
+fn do_when_dir(session: &mut SyncSession, entry: &DiffEntry) {
+    // 处理目录的同步操作
+    match entry.diff_type {
+        DiffType::Added => {
+            if entry.local_state.is_some() && entry.remote_state.is_none() {
+                info!("计划创建远程目录: {}", entry.path.display());
+                session.add_operation(SyncOperation::create_remote_directory(entry));
+            } else if entry.remote_state.is_some() && entry.local_state.is_none() {
+                info!("计划创建本地目录: {}", entry.path.display());
+                session.add_operation(SyncOperation::create_local_directory(entry));
+            }
+        }
+        DiffType::Deleted => {
+            // 临时禁用删除操作
+            info!("跳过删除目录操作: {}", entry.path.display());
+        }
+        _ => {} // 对于目录，其他差异类型不需要特殊处理
+    }
+}
+
+fn do_when_file(session: &mut SyncSession, entry: &DiffEntry, conflict_strategy: ConflictStrategy) {
+    match entry.diff_type {
+        DiffType::Added => match (&entry.local_state, &entry.remote_state) {
+            (Some(_), None) => {
+                session.add_operation(SyncOperation::upload(entry));
+            }
+            (None, Some(_)) => {
+                session.add_operation(SyncOperation::download(entry));
+            }
+            _ => {}
+        },
+        DiffType::Deleted => {
+            // 检测到删除文件，但需要检查这个文件是真的被删除了还是被错误分类了
+            info!("检测到删除文件: {})", entry);
+
+            // 如果远程存在但本地不存在，这应该是一个新的远程文件，需要下载而不是删除
+            match (&entry.local_state, &entry.remote_state) {
+                (None, Some(_)) => {
+                    session.add_operation(SyncOperation::download(entry));
+                }
+                (Some(_), None) => {
+                    session.add_operation(SyncOperation::upload(entry));
+                }
+                _ => {
+                    warn!("无法确定删除操作的正确性，跳过: {}", entry.path.display());
+                }
+            }
+        }
+        DiffType::Modified => {
+            // 文件被修改，根据冲突策略决定操作
+            match conflict_strategy {
+                ConflictStrategy::PreferLocal => {
+                    // 优先使用本地版本，上传
+                    warn!("计划上传本地修改的文件: {}", entry.path.display());
+                    session.add_operation(SyncOperation::upload(entry));
+                }
+                ConflictStrategy::PreferRemote => {
+                    // 优先使用远程版本，下载
+                    warn!("计划下载远程修改的文件: {}", entry.path.display());
+                    session.add_operation(SyncOperation::download(entry));
+                }
+                ConflictStrategy::KeepBoth => {
+                    let path = Path::new(&entry.path);
+                    let timestamp = Utc::now().timestamp();
+
+                    let stem = format!(
+                        "{}_remote_{}",
+                        path.file_stem().and_then(|s| s.to_str()).unwrap_or(""),
+                        timestamp
+                    );
+
+                    let mut path_buf = path.with_file_name(stem);
+                    if let Some(ext) = path.extension() {
+                        path_buf.set_extension(ext);
+                    }
+
+                    warn!(
+                        "计划下载远程版本并重命名: {} -> {}",
+                        entry.path.display(),
+                        path_buf.display()
+                    );
+                    // 用新路径下载远程文件
+                    session.add_operation(SyncOperation::download(entry));
+                }
+                ConflictStrategy::Skip => {
+                    // 跳过冲突文件
+                    warn!("跳过冲突文件: {}", entry.path.display());
+                    session.add_operation(SyncOperation::skip(entry));
+                }
+            }
+        }
+        _ => {} // 其他情况不需要处理
+    }
+}
+
+// 辅助函数
+fn path_resolve(webdav_path: &Path, webdav_entry: &EntryState, remote_state: &mut FileSystemState) {
+    debug!("=== 开始处理路径 ===");
+    debug!("原始WebDAV路径: '{}'", webdav_path.display());
+
+    let path_processor = PathResolver {};
+
+    // --- 卫语句 1: 检查路径是否能被成功提取 ---
+    let Some(normalized_path) = path_processor.extract_relative_path(webdav_path) else {
+        warn!(
+            "extract_relative_path 返回 None，跳过: '{}'",
+            webdav_path.display()
+        );
+        debug!("=== 路径处理完成（跳过） ===");
+        return;
+    };
+
+    debug!(
+        "extract_relative_path 返回: '{}'",
+        normalized_path.display()
+    );
+
+    // --- 卫语句 2: 检查提取后的路径是否为空（代表根目录）---
+    if normalized_path.as_os_str().is_empty() {
+        debug!("路径为空，跳过根目录: '{}'", webdav_path.display());
+        debug!("=== 路径处理完成（跳过） ===");
+        return;
+    }
+
+    info!(
+        "路径处理: '{}' -> '{}'",
+        webdav_path.display(),
+        normalized_path.display()
+    );
+
+    // --- 卫语句 3: 验证路径是否还包含不应存在的 "webdav" ---
+    let normalized_str = normalized_path.to_string_lossy();
+    if normalized_str.contains("webdav") {
+        error!(
+            "路径处理失败,仍包含webdav信息: '{}'",
+            normalized_path.display()
+        );
+        // 函数返回 ()，所以我们只记录错误并返回，而不是返回 Err
+        debug!("=== 路径处理完成（失败） ===");
+        return;
+    }
+
+    // 转换为相对路径用于内部存储（移除前导斜杠）
+    let relative_path = PathBuf::from(normalized_str.trim_start_matches('/'));
+    debug!("内部存储路径: '{}'", relative_path.display());
+
+    // --- 卫语句 4: 关键验证，防止意外移除重要路径部分 ---
+    if !relative_path.contains("ToDoPulse") && webdav_path.contains("ToDoPulse") {
+        error!("严重错误:ToDoPulse路径部分被意外移除！");
+        error!("  原始路径: '{}'", webdav_path.display());
+        error!("  标准化路径: '{}'", normalized_path.display());
+        error!("  最终路径: '{}'", relative_path.display());
+        // 同样，只记录错误并返回
+        debug!("=== 路径处理完成（失败） ===");
+        return;
+    }
+
+    if webdav_entry.is_file() {
+        if let Some(size) = webdav_entry.size {
+            let entry = EntryState::new_file(relative_path, webdav_entry.modified, size);
+            remote_state.add_entry(entry);
+        }
+    } else {
+        let entry = EntryState::new_directory(relative_path, webdav_entry.modified);
+        remote_state.add_entry(entry);
+    }
+
+    debug!("=== 路径处理完成（成功） ===");
 }

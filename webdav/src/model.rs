@@ -270,6 +270,48 @@ pub struct SyncOperation {
     pub error: Option<String>,
 }
 
+// 定义一个宏，根据 SyncOperationType 的变体名自动生成对应的工厂函数
+macro_rules! define_sync_operations {
+    // 宏接收一个或多个 SyncOperationType 的变体名
+    ( $( $variant:ident ),* ) => {
+        // 使用 paste! 宏来将变体名转换为小写蛇形命名法的函数名
+        ::paste::paste! {
+            $(
+                pub fn [<$variant:snake>](entry: &DiffEntry) -> Self {
+                    Self {
+                        operation_type: SyncOperationType::$variant,
+                        path: entry.path.clone(),
+                        entry_type: entry.entry_type.clone(),
+                        status: SyncOperationStatus::Pending,
+                        error: None,
+                    }
+                }
+            )*
+        }
+    };
+}
+
+impl SyncOperation {
+    define_sync_operations!(
+        Upload,
+        Download,
+        DeleteLocal,
+        DeleteRemote,
+        CreateLocalDirectory,
+        CreateRemoteDirectory
+    );
+
+    pub fn skip(entry: &DiffEntry) -> Self {
+        Self {
+            operation_type: SyncOperationType::Skip,
+            path: entry.path.clone(),
+            entry_type: entry.entry_type.clone(),
+            status: SyncOperationStatus::Skipped,
+            error: Some("冲突文件已跳过".to_string()),
+        }
+    }
+}
+
 /// 同步操作的状态
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub enum SyncOperationStatus {

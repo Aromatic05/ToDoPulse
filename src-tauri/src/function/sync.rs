@@ -4,9 +4,11 @@ use std::sync::Arc;
 use tauri::{AppHandle, Manager, State};
 use tokio::sync::Mutex;
 
-use crate::utils::config::{self};
+use crate::utils::config;
 
-use webdav::sync_operations;
+use webdav::sync_operations::perform_sync;
+use webdav::model::SyncSessionStatus;
+use webdav::webdav::test_connection;
 
 // 同步状态
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -114,13 +116,13 @@ pub async fn sync(state: State<'_, SyncState>) -> Result<(), String> {
     // 执行同步（在后台）
     let state_clone = state.inner().0.clone();
     tokio::spawn(async move {
-        let result = sync_operations::perform_sync().await;
+        let result = perform_sync().await;
 
         // 更新同步状态
         let mut manager = state_clone.lock().await;
         match result {
             Ok(session) => {
-                if session.status == model::SyncSessionStatus::Completed {
+                if session.status == SyncSessionStatus::Completed {
                     // 同步成功
                     let now = chrono::Utc::now();
                     manager.set_status(SyncStatus::LastSyncTime(now));
@@ -194,7 +196,7 @@ pub async fn test_webdav_connection(
 ) -> Result<bool, String> {
     log::info!("测试WebDAV连接: {}", host);
 
-    match webdav::test_connection(&host, &username, &password).await {
+    match test_connection(&host, &username, &password).await {
         Ok(result) => Ok(result),
         Err(e) => {
             log::error!("WebDAV连接测试失败: {}", e);

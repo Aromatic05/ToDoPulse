@@ -1,5 +1,7 @@
 mod diff;
-mod model;
+pub mod model;
 mod state;
-mod sync_operations;
-mod webdav;
+pub mod sync_operations;
+pub mod webdav;
+mod manager;
+mod path_resolver;

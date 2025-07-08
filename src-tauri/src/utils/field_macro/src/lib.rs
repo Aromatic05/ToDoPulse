@@ -27,7 +27,7 @@ pub fn derive_config_field(input: TokenStream) -> TokenStream {
     // 生成填充默认值的代码
     let mut fill_default_fields = quote! {};
     
-    for field in &fields {
+    for field in fields {
         if let Some(field_name) = &field.ident {
             // 获取字段类型
             let field_type = &field.ty;
@@ -59,7 +59,7 @@ pub fn derive_config_field(input: TokenStream) -> TokenStream {
 
     let expanded = quote! {
         impl #name {
-            pub fn load() -> anyhow::Result<#name> {
+            pub fn load() -> Result<#name> {
                 crate::utils::config::with_config(|config| {
                     // 使用字段标识符而不是字符串
                     config.#field_name_ident.clone()

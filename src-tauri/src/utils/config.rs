@@ -111,13 +111,10 @@ where
     F: FnOnce(&Config) -> R,
 {
     let config_lock = CONFIG.lock();
-    match &*config_lock {
-        Some(config) => Ok(f(config)),
-        None => {
-            log::error!("Config not found");
-            Err(anyhow::anyhow!("Config not found").into())
-        }
-    }
+    let config = config_lock
+        .as_ref()
+        .ok_or_else(|| anyhow::anyhow!("Config not initialized"))?;
+    Ok(f(config))
 }
 
 pub fn parse() -> Result<()> {
@@ -176,7 +173,8 @@ pub fn update_config(field: ConfigField) -> Result<(), ErrorKind> {
 
 #[tauri::command]
 pub fn get_config() -> Result<Config, ErrorKind> {
-    let config = with_config(|config| config.clone())?;
+    let config = with_config(
+      |config| config.clone())?;
     Ok(config)
 }
 

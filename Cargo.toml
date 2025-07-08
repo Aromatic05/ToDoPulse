@@ -5,7 +5,7 @@ edition = "2024"
 [workspace]
 members = [
     "src-tauri",
-    "field_macro",
+    "src-tauri/src/utils/field_macro",
     "webdav",
 ]
 resolver = "3"
