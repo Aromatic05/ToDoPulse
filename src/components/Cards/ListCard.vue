@@ -118,7 +118,7 @@ export default defineComponent({
                 ...this.data,
                 finished: this.data.finished || false
             } as FEvent,
-            // 添加防抖定时器引用
+            //i 添加防抖定时器引用
             _clickTimeout: null as NodeJS.Timeout | null
         };
     },

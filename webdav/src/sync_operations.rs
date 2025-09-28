@@ -1,15 +1,14 @@
-use anyhow::{anyhow, Result};
+use anyhow::{Result, anyhow};
 use chrono::Utc;
 use core::panic;
-use log::{error, warn};
+use log::{debug, error, warn};
 use reqwest_dav::Client;
 use std::path::{Path, PathBuf};
 
-use crate::diff::{compare_states, DiffConfig};
+use crate::diff::{DiffConfig, compare_states};
 use crate::manager::{with_app_path, with_config};
 use crate::model::*;
-use crate::path_resolver::PathResolver;
-use crate::state::{collect_local_state, load_state, save_state, StateCollectionConfig};
+use crate::state::{StateCollectionConfig, collect_local_state, load_state, save_state};
 use crate::webdav::*;
 use crate::{with_config_if_enabled, without_config_enabled};
 
@@ -111,7 +110,7 @@ async fn client() -> Result<Box<Client>> {
         return Err(anyhow!("WebDAV配置未启用"));
     };
 
-    let client = create_client((&creds.0, &creds.1, &creds.2)).await?;
+    let client = create_client(&creds.0, &creds.1, &creds.2).await?;
 
     Ok(Box::new(client))
 }
@@ -136,10 +135,7 @@ pub async fn execute_sync_operations(
         operation.status = SyncOperationStatus::InProgress;
 
         // operation.path 应该是相对路径，如 "ToDoPulse/dffff/dffff.md"
-        let relative_path = operation
-        .path
-        .strip_prefix("/")
-        .unwrap_or(&operation.path);
+        let relative_path = operation.path.strip_prefix("/").unwrap_or(&operation.path);
 
         // 从相对路径中移除 ToDoPulse 前缀来构建本地路径
         let local_relative_path = relative_path
@@ -365,9 +361,7 @@ pub async fn load_sync_state() -> Result<(Option<FileSystemState>, Option<FileSy
     // 尝试加载本地状态
     let local_state = if local_state_path.exists() {
         match load_state(&local_state_path).await {
-            Ok(state) => {
-                Some(state)
-            }
+            Ok(state) => Some(state),
             Err(e) => {
                 warn!("加载本地状态失败: {}", e);
                 // 如果文件损坏，尝试备份并删除
@@ -385,9 +379,7 @@ pub async fn load_sync_state() -> Result<(Option<FileSystemState>, Option<FileSy
     // 尝试加载远程状态
     let remote_state = if remote_state_path.exists() {
         match load_state(&remote_state_path).await {
-            Ok(state) => {
-                Some(state)
-            }
+            Ok(state) => Some(state),
             Err(e) => {
                 warn!("加载远程状态失败: {}", e);
                 // 如果文件损坏，尝试备份并删除
@@ -402,8 +394,7 @@ pub async fn load_sync_state() -> Result<(Option<FileSystemState>, Option<FileSy
         None
     };
 
-    if local_state.is_none() && remote_state.is_none() {
-    }
+    if local_state.is_none() && remote_state.is_none() {}
 
     Ok((local_state, remote_state))
 }
@@ -519,11 +510,50 @@ fn do_when_file(session: &mut SyncSession, entry: &DiffEntry, conflict_strategy:
     }
 }
 
+/// 从完整的WebDAV路径提取标准化路径
+/// 输入: "/webdav/webdav/ToDoPulse/5555.md"
+/// 输出: "/ToDoPulse/5555.md"
+fn extract_relative_path(webdav_url: &Path) -> Option<PathBuf> {
+    let webdav_url = webdav_url.as_os_str().to_string_lossy();
+    debug!("=== extract_relative_path 开始 ===");
+    debug!("输入路径: '{}'", webdav_url);
+
+    // URL解码
+    let decoded = match urlencoding::decode(&webdav_url) {
+        Ok(d) => d.into_owned(),
+        Err(e) => {
+            warn!("URL解码失败: {} - {}", webdav_url, e);
+            return None;
+        }
+    };
+    debug!("URL解码后: '{}'", decoded);
+
+    // 固定移除 "/webdav/webdav" 前缀
+    const WEBDAV_PREFIX: &str = "/webdav/webdav";
+
+    if decoded.starts_with(WEBDAV_PREFIX) {
+        let after_prefix = &decoded[WEBDAV_PREFIX.len()..];
+
+        // 如果结果为空或只是斜杠，表示这是根目录
+        if after_prefix.is_empty() || after_prefix == "/" {
+            debug!("检测到根目录，返回空字符串");
+            return Some(PathBuf::new());
+        }
+
+        // 确保以斜杠开头的标准格式
+        let normalized = format!("/{}", after_prefix.trim_start_matches('/'));
+
+        debug!("最终标准化结果: '{}'", normalized);
+        Some(PathBuf::from(normalized))
+    } else {
+        warn!("路径不以webdav前缀开头: '{}'", decoded);
+        None
+    }
+}
+
 // 辅助函数
 fn path_resolve(webdav_path: &Path, webdav_entry: &EntryState, remote_state: &mut FileSystemState) {
-    let path_processor = PathResolver {};
-
-    let Some(normalized_path) = path_processor.extract_relative_path(webdav_path) else {
+    let Some(normalized_path) = extract_relative_path(webdav_path) else {
         warn!(
             "extract_relative_path 返回 None，跳过: '{}'",
             webdav_path.display()
@@ -566,5 +596,96 @@ fn path_resolve(webdav_path: &Path, webdav_entry: &EntryState, remote_state: &mu
         let entry = EntryState::new_directory(relative_path, webdav_entry.modified);
         remote_state.add_entry(entry);
     }
+}
 
+#[cfg(test)]
+mod tests {
+    use anyhow::Result;
+    use chrono::Utc;
+    use std::io::Write;
+    use tempfile::tempdir;
+
+    use crate::model::{DiffEntry, DiffResult, DiffType, EntryState, EntryType, FileSystemState};
+
+    /// 创建测试用FileSystemState
+    async fn create_test_state() -> Result<(FileSystemState, tempfile::TempDir)> {
+        // 创建临时目录
+        let temp_dir = tempdir()?;
+        let root_path = temp_dir.path();
+
+        // 创建一些测试文件和目录
+        let file1_path = root_path.join("file1.txt");
+        let mut file1 = std::fs::File::create(&file1_path)?;
+        file1.write_all("测试文件1内容".as_bytes())?;
+
+        let subdir_path = root_path.join("subdir");
+        std::fs::create_dir(&subdir_path)?;
+
+        let file2_path = subdir_path.join("file2.txt");
+        let mut file2 = std::fs::File::create(&file2_path)?;
+        file2.write_all("测试文件2内容".as_bytes())?;
+
+        // 创建FileSystemState
+        let mut state = FileSystemState::new();
+        let now = Utc::now();
+
+        // 添加文件
+        let file1_entry = EntryState::new_file("/file1.txt".into(), now, file1.metadata()?.len());
+        state.add_entry(file1_entry);
+
+        // 添加目录
+        let dir_entry = EntryState::new_directory("/subdir".into(), now);
+        state.add_entry(dir_entry);
+
+        // 添加子目录中的文件
+        let file2_entry =
+            EntryState::new_file("/subdir/file2.txt".into(), now, file2.metadata()?.len());
+        state.add_entry(file2_entry);
+
+        Ok((state, temp_dir))
+    }
+
+    /// 创建测试用DiffResult
+    fn create_test_diff() -> DiffResult {
+        let mut diff = DiffResult::new();
+        let now = Utc::now();
+
+        // 添加新增文件
+        diff.add_entry(DiffEntry {
+            path: "/new_file.txt".into(),
+            diff_type: DiffType::Added,
+            entry_type: EntryType::File,
+            local_state: Some(EntryState::new_file("/new_file.txt".into(), now, 100)),
+            remote_state: None,
+        });
+
+        // 添加新增目录
+        diff.add_entry(DiffEntry {
+            path: "/new_dir".into(),
+            diff_type: DiffType::Added,
+            entry_type: EntryType::Directory,
+            local_state: Some(EntryState::new_directory("/new_dir".into(), now)),
+            remote_state: None,
+        });
+
+        // 添加已修改文件
+        diff.add_entry(DiffEntry {
+            path: "/modified_file.txt".into(),
+            diff_type: DiffType::Modified,
+            entry_type: EntryType::File,
+            local_state: Some(EntryState::new_file("/modified_file.txt".into(), now, 200)),
+            remote_state: Some(EntryState::new_file("/modified_file.txt".into(), now, 150)),
+        });
+
+        // 添加已删除文件
+        diff.add_entry(DiffEntry {
+            path: "/deleted_file.txt".into(),
+            diff_type: DiffType::Deleted,
+            entry_type: EntryType::File,
+            local_state: None,
+            remote_state: Some(EntryState::new_file("/deleted_file.txt".into(), now, 50)),
+        });
+
+        diff
+    }
 }
